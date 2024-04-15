@@ -88,3 +88,18 @@ Tal como se ve en el diagrama, el resto de componentes también utilizará dicho
     6. **Query Master**
     7. Filtro por **categoria**
     8. **Query Master**
+
+## Asignación de tareas
+- Desarrollar Main Service
+- Desarrollar Reporting Service
+- Desarrollar Query Master
+- Desarrollar Data Processors:
+- - Desarrollar Filter
+- - Desarrollar Data Joiner
+- - Desarrollar Counter
+- - Desarrollar Sentiment Analyzer
+- Desarrollar Middleware (analizar uso de rabbitmq)
+
+Nota: Cada una conllevará el desarrollo de su dockerfile y tests (si corresponde).  
+Nota: Se asume que cada uno de los componentes se ejecutará en un container distinto.  
+Nota: Tras el desarrollo se realizará la documentación junto a los diagramas correspondientes.  
