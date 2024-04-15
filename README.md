@@ -98,7 +98,7 @@ Tal como se ve en el diagrama, el resto de componentes también utilizará dicho
 - - Desarrollar Data Joiner
 - - Desarrollar Counter
 - - Desarrollar Sentiment Analyzer
-- Desarrollar Middleware (analizar uso de rabbitmq)
+- Desarrollar Middleware (analizar uso de rabbitmq) (incluye desarrollar el protocolo de comunicación y el formato de los mensajes)
 
 Nota: Cada una conllevará el desarrollo de su dockerfile y tests (si corresponde).  
 Nota: Se asume que cada uno de los componentes se ejecutará en un container distinto.  
