@@ -1,0 +1,40 @@
+version: '3.7'
+name: 'amazon-books-analyzer'
+
+services:
+  rabbitmq:
+    build:
+      context: rabbitmq/
+      dockerfile: Dockerfile
+      args:
+        RABBITMQ_VERSION: $RABBITMQ_VERSION
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-}
+    volumes:
+      - type: bind
+        source: ./rabbitmq/config/rabbitmq.conf
+        target: /etc/rabbitmq/rabbitmq.conf
+        read_only: true
+      - type: bind
+        source: ./rabbitmq/config/definitions.json
+        target: /etc/rabbitmq/definitions.json
+        read_only: true
+      - type: volume
+        source: rabbitmq
+        target: /var/lib/rabbitmq
+    networks:
+      - network-bridge
+    hostname: rabbitmq
+
+networks:
+  network-bridge:
+    driver: bridge
+    ipam:
+      driver: default  
+      config: 
+        - subnet: "${LOCAL_NETWORK}/24"
+          gateway: $LOCAL_NETWORK_GATEWAY
+
+volumes:
+  rabbitmq:

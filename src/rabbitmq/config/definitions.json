@@ -1,0 +1,19 @@
+{
+    "rabbit_version": "3.12.2",
+    "rabbitmq_version": "3.12.2",
+    "product_name": "RabbitMQ",
+    "product_version": "3.12.2",
+    "users": [],
+    "vhosts": [
+        {
+          "name": "/"
+        }
+      ],
+    "permissions": [],
+    "topic_permissions": [],
+    "parameters": [],
+    "policies": [],
+    "queues": [],
+    "exchanges": [],
+    "bindings": []
+}
