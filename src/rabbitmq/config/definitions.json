@@ -3,7 +3,17 @@
     "rabbitmq_version": "3.12.2",
     "product_name": "RabbitMQ",
     "product_version": "3.12.2",
-    "users": [],
+    "users": [
+        {
+            "name": "developer",
+            "password_hash": "BwVzshFZq5grIc9MkwedxAXbzyuzNvirm4OCazdDcTbhTA0d",
+            "hashing_algorithm": "rabbit_password_hashing_sha256",
+            "tags": [
+              "administrator"
+            ],
+            "limits": {}
+        }
+    ],
     "vhosts": [
         {
           "name": "/"
