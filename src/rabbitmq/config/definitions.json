@@ -16,14 +16,73 @@
     ],
     "vhosts": [
         {
-          "name": "/"
+            "name": "/"
         }
       ],
-    "permissions": [],
+    "permissions": [
+        {
+            "user": "developer",
+            "vhost": "/",
+            "configure": ".*",
+            "write": ".*",
+            "read": ".*"
+        }
+    ],
     "topic_permissions": [],
     "parameters": [],
     "policies": [],
-    "queues": [],
+    "queues": [
+        {
+            "name": "aba.data_processor.filter",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-queue-type": "classic",
+                "x-max-priority": 5
+            }
+        },
+        {
+            "name": "aba.data_processor.counter",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-queue-type": "classic",
+                "x-max-priority": 5
+            }
+        },
+        {
+            "name": "aba.data_processor.sentiment_analysis",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-queue-type": "classic",
+                "x-max-priority": 5
+            }
+        },
+        {
+            "name": "aba.data_processor.joiner_books",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-queue-type": "classic",
+                "x-max-priority": 5
+            }
+        },
+        {
+            "name": "aba.data_processor.joiner_reviews",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-queue-type": "classic",
+                "x-max-priority": 5
+            }
+        }
+    ],
     "exchanges": [],
     "bindings": []
 }
