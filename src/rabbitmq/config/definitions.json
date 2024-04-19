@@ -81,6 +81,15 @@
                 "x-queue-type": "classic",
                 "x-max-priority": 5
             }
+        },
+        {
+            "name": "aba.results",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-queue-type": "classic"
+            }
         }
     ],
     "exchanges": [],
