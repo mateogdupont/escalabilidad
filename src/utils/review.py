@@ -1,6 +1,6 @@
 from typing import List
 from datetime import datetime
-import jsons
+import jsonpickle
 
 # + info here -> https://www.kaggle.com/datasets/mohamedbakhet/amazon-books-reviews?select=Books_rating.csv
 class Review:
@@ -17,8 +17,8 @@ class Review:
         self.text = text
     
     def to_json(self) -> str:
-        return jsons.dump(self)
+        return jsonpickle.encode(self)
     
     @classmethod
     def from_json(cls, json_str: str) -> 'Review':
-        return jsons.load(json_str, cls)
+        return jsonpickle.decode(json_str)

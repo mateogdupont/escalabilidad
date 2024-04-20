@@ -1,5 +1,5 @@
 from typing import List
-import jsons
+import jsonpickle
 
 class QueryInfo:
 
@@ -9,8 +9,8 @@ class QueryInfo:
         self.sentiment = sentiment
 
     def to_json(self) -> str:
-        return jsons.dump(self)
+        return jsonpickle.encode(self)
     
     @classmethod
     def from_json(cls, json_str: str) -> 'QueryInfo':
-        return jsons.load(json_str, cls)
+        return jsonpickle.decode(json_str)
