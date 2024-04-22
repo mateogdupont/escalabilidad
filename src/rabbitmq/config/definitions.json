@@ -33,7 +33,7 @@
     "policies": [],
     "queues": [
         {
-            "name": "aba.data_processor.filter",
+            "name": "books-analyser.data_processor.filter",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
@@ -43,7 +43,7 @@
             }
         },
         {
-            "name": "aba.data_processor.counter",
+            "name": "books-analyser.data_processor.counter",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
@@ -53,7 +53,7 @@
             }
         },
         {
-            "name": "aba.data_processor.sentiment_analysis",
+            "name": "books-analyser.data_processor.sentiment_analysis",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
@@ -63,7 +63,7 @@
             }
         },
         {
-            "name": "aba.data_processor.joiner_books",
+            "name": "books-analyser.data_processor.joiner_books",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
@@ -73,16 +73,84 @@
             }
         },
         {
-            "name": "aba.data_processor.joiner_reviews",
+            "name": "books-analyser.data_processor.joiner_reviews",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
                 "x-queue-type": "classic",
                 "x-max-priority": 5
+            }
+        },
+        {
+            "name": "books-analyser.results",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-queue-type": "classic"
             }
         }
     ],
-    "exchanges": [],
-    "bindings": []
+    "exchanges": [
+        {
+            "name": "books-analyser_exchange",
+            "vhost": "/",
+            "type": "direct",
+            "durable": true,
+            "auto_delete": false,
+            "internal": false,
+            "arguments": {}
+        }
+    ],
+    "bindings": [
+        {
+            "source": "books-analyser_exchange",
+            "vhost": "/",
+            "destination": "books-analyser.data_processor.filter",
+            "destination_type": "queue",
+            "routing_key": "filter",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyser_exchange",
+            "vhost": "/",
+            "destination": "books-analyser.data_processor.counter",
+            "destination_type": "queue",
+            "routing_key": "counter",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyser_exchange",
+            "vhost": "/",
+            "destination": "books-analyser.data_processor.sentiment_analysis",
+            "destination_type": "queue",
+            "routing_key": "sentiment_analysis",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyser_exchange",
+            "vhost": "/",
+            "destination": "books-analyser.data_processor.joiner_books",
+            "destination_type": "queue",
+            "routing_key": "joiner_books",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyser_exchange",
+            "vhost": "/",
+            "destination": "books-analyser.data_processor.joiner_reviews",
+            "destination_type": "queue",
+            "routing_key": "joiner_reviews",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyser_exchange",
+            "vhost": "/",
+            "destination": "books-analyser.results",
+            "destination_type": "queue",
+            "routing_key": "results",
+            "arguments": {}
+        }
+    ]
 }

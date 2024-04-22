@@ -26,6 +26,17 @@ services:
     networks:
       - network-bridge
     hostname: rabbitmq
+    ports:
+    - 15672:15672
+
+  rabbitmq-test:
+    build:
+      context: rabbitmq-test/
+      dockerfile: Dockerfile
+    depends_on:
+      - rabbitmq
+    networks:
+      - network-bridge
 
 networks:
   network-bridge:
