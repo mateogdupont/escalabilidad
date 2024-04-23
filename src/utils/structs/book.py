@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 import jsonpickle
 import json
@@ -6,7 +6,7 @@ import json
 # + info here -> https://www.kaggle.com/datasets/mohamedbakhet/amazon-books-reviews?select=books_data.csv
 class Book:
     
-    def __init__(self, title: str, description: str, authors: List[str], image: str, preview_link: str, publisher: str, published_date: datetime, info_link: str, categories: List[str], ratings_count: float) -> None:
+    def __init__(self, title: str, description: str, authors: List[str], image: Optional[str], preview_link: Optional[str], publisher: str, published_date: datetime, info_link: Optional[str], categories: List[str], ratings_count: float) -> None:
         self.title = title
         self.description = description
         self.authors = authors

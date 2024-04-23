@@ -1,8 +1,8 @@
 from typing import List, Optional
 import jsonpickle
-from book import Book
-from review import Review
-from query_info import QueryInfo
+from utils.structs.book import Book
+from utils.structs.review import Review
+from utils.structs.query_info import QueryInfo
 from datetime import datetime
 
 
