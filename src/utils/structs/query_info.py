@@ -1,5 +1,6 @@
 from typing import List, Tuple
 import jsonpickle
+import logging as logger
 
 class QueryInfo:
 
@@ -41,8 +42,6 @@ class QueryInfo:
         return new
     
     def set_author(self, author: str) -> None:
-        if self.author is not None:
-            raise Exception("Author already setted")
         self.author = author
     
     def get_author(self) -> str:
@@ -67,8 +66,6 @@ class QueryInfo:
         return self.percentile
     
     def set_sentiment(self, sentiment: float) -> None:
-        if self.sentiment is not None:
-            raise Exception("Sentiment already setted")
         self.sentiment = sentiment
 
     def get_sentiment(self) -> float:
@@ -80,6 +77,8 @@ class QueryInfo:
         self.min = min
         self.max = max
         self.top = top
+        logger.info(f"Filter params setted -> filter_on: {filter_on}, contains: {contains}, min: {min}, max: {max}, top: {top}")
+        
     
     def get_filter_params(self) -> Tuple[str, str, int, int]:
         return self.filter_on, self.contains, self.min, self.max
@@ -89,6 +88,7 @@ class QueryInfo:
         self.count_distinct = count_distinct
         self.average_column = average_column
         self.percentile_column = percentile
+        logger.info(f"Counter params setted -> group_by: {group_by}, count_distinct: {count_distinct}, average_column: {average_column}, percentile_column: {percentile}")
     
     def get_counter_params(self) -> Tuple[str, int, str, Tuple[int, str]]:
         return self.group_by, self.count_distinct, self.average_column, self.percentile_column

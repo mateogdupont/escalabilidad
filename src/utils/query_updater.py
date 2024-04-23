@@ -190,6 +190,7 @@ def update_fifth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
         return {data_fragment: "counter"}
     if step == 2:
         percentile_90 = query_info.get_percentile()
+        logger.info(f"The percentile 90 is: {percentile_90}")
         query_info.set_filter_params("SENTIMENT", None,  percentile_90, None, None)
         data_fragment.set_query_info(query_info)
         logger.info("Next step is to filter")
