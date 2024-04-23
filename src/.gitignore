@@ -1,3 +1,5 @@
 **/.env
 **/.rabbit.env
 **/*.pyc
+**/*.csv
+**/*.zip

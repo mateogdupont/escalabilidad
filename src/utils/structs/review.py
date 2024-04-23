@@ -1,11 +1,11 @@
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 import jsonpickle
 
 # + info here -> https://www.kaggle.com/datasets/mohamedbakhet/amazon-books-reviews?select=Books_rating.csv
 class Review:
 
-    def __init__(self, id: int, title: str, user_id: str, profile_name: str, helpfulness: str, score: float, time: int, summary: str, text: str) -> None:
+    def __init__(self, id: int, title: str, user_id: Optional[str], profile_name: Optional[str], helpfulness: str, score: float, time: Optional[int], summary: str, text: str) -> None:
         self.id = id
         self.title = title
         self.user_id = user_id
