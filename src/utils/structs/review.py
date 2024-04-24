@@ -22,3 +22,6 @@ class Review:
     @classmethod
     def from_json(cls, json_str: str) -> 'Review':
         return jsonpickle.decode(json_str)
+    
+    def get_text(self) -> str:
+        return self.text

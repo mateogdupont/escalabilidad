@@ -5,12 +5,13 @@ from dotenv import load_dotenv
 from structs.data_fragment import DataFragment
 
 class MOM:
-    def __init__(self, consumer_queues: dict[str, Any]) -> None:
+    def __init__(self, consumer_queues: dict[str, bool]) -> None:
         load_dotenv()
         credentials = pika.PlainCredentials(os.environ["RABBITMQ_DEFAULT_USER"], os.environ["RABBITMQ_DEFAULT_PASS"])
         connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', credentials=credentials))
         self.channel = connection.channel()
         for queue, arguments in consumer_queues.items():
+            arguments = {'x-max-priority': 5} if arguments else {}
             self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
         self.consumer_queues = consumer_queues.keys()
         self.exchange = os.environ["RABBITMQ_EXCHANGE"]

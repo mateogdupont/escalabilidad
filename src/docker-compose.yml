@@ -44,6 +44,13 @@ services:
       dockerfile: ./client/Dockerfile
     volumes:
       - ../data/data.zip:/data.zip
+  
+  sentiment-analyser:
+    build:
+      context: .
+      dockerfile: ./sentiment-analyser/Dockerfile
+    depends_on:
+      - rabbitmq
     
 # networks:
 #   network-bridge:
