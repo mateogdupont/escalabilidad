@@ -10,8 +10,8 @@ def main():
     if len(sys.argv) != 3 or not os.path.exists(sys.argv[1]):
         print("Error: Arguments error")
         return
-    queries = sys.argv[2].split(",")
-    client = Client(sys.argv[1], queries)
+    queries = [int(num) for num in sys.argv[2].split(",")]
+    client = Client(sys.argv[1], dict.fromkeys(queries, 0))
     client.run()
    
 if __name__ == "__main__":

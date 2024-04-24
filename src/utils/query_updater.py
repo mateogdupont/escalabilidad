@@ -63,7 +63,7 @@ Return: title
 
 """
 
-from structs.data_fragment import DataFragment
+from utils.structs.data_fragment import DataFragment
 import logging as logger
 
 def update_first_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
