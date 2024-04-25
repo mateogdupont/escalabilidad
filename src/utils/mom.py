@@ -28,7 +28,8 @@ class MOM:
     def ack(self, delivery_tag: int) -> None:
         self.channel.basic_ack(delivery_tag=delivery_tag)
     
-    def publish(self, routing_key: str, data_fragment: DataFragment) -> None:
-        self.channel.basic_publish(exchange=self.exchange,
-                                   routing_key=routing_key,
-                                   body=data_fragment.to_json())
+    def publish(self, data_fragments: dict[DataFragment, str]) -> None:
+        for data_fragment, routing_key in data_fragments.items():
+            self.channel.basic_publish(exchange=self.exchange,
+                                    routing_key=routing_key,
+                                    body=data_fragment.to_json())
