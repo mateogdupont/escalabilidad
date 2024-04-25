@@ -46,6 +46,13 @@ services:
       - rabbitmq
     volumes:
       - ../data/data.zip:/data.zip
+
+  filter:
+    build:
+      context: .
+      dockerfile: ./filter/Dockerfile
+    depends_on:
+      - rabbitmq
     
 networks:
   network-bridge:

@@ -36,3 +36,6 @@ class Book:
     
     def get_published_date(self) -> datetime:
         return self.published_date
+    
+    def get_categories(self) -> List[str]:
+        return self.categories
