@@ -14,6 +14,7 @@ class DataFragment:
         self.query_info = QueryInfo()
         self.querys = None
         self.set_querys(querys)
+        self.last = False
     
     def to_json(self) -> str:
         return jsonpickle.encode(self)
@@ -64,6 +65,18 @@ class DataFragment:
             self.query_info = QueryInfo()
         new.set_query_info(self.query_info.clone())
         return new
+    
+    def get_query_id(self) -> int:
+        ids = []
+        for query, step in self.querys.items():
+            ids.append(f"{query}:{step}")
+        return "-".join(ids)
+    
+    def is_last(self) -> bool:
+        return self.last
+    
+    def set_last(self, last: bool) -> None:
+        self.last = last
 
 # datafragment = DataFragment([1, 2, 3], 1, None, None)
 # print(datafragment.to_json())
