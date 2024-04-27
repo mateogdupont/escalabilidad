@@ -67,6 +67,13 @@ services:
     networks:
       - network-bridge
     
+  sentiment-analyser:
+    build:
+      context: .
+      dockerfile: ./sentiment-analyser/Dockerfile
+    depends_on:
+      - rabbitmq
+
 networks:
   network-bridge:
     driver: bridge

@@ -54,6 +54,8 @@ class DataFragment:
         self.query_info = query_info
     
     def get_query_info(self) -> 'QueryInfo':
+        if not self.query_info:
+            self.query_info = QueryInfo()
         return self.query_info
     
     def clone(self) -> 'DataFragment':

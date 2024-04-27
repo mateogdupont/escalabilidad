@@ -109,7 +109,7 @@ def update_second_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
         logger.info("Next step is to filter")
         return {data_fragment: "filter"}
     
-def update_third_and_fourth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def _update_third_and_fourth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
     querys = data_fragment.get_querys()
     query_info = data_fragment.get_query_info()
     step = querys[3] if 3 in querys.keys() else querys[4]
@@ -169,7 +169,7 @@ def update_third_and_fourth_query(data_fragment: DataFragment) -> dict[DataFragm
         logger.info("Next step is to return the results")
         return {data_fragment: "results"}
     
-def update_fifth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def _update_fifth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
     logger.info("Updating fifth query DataFragment")
     querys = data_fragment.get_querys()
     query_info = data_fragment.get_query_info()
