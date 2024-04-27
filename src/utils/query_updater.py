@@ -63,10 +63,12 @@ Return: title
 
 """
 
-from structs.data_fragment import DataFragment
+from utils.structs.data_fragment import DataFragment
 import logging as logger
 
-def _update_first_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def update_first_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+    if data_fragment.get_book() is None:
+        return {}
     logger.info("Updating first query DataFragment")
     querys = data_fragment.get_querys()
     query_info = data_fragment.get_query_info()
@@ -87,7 +89,9 @@ def _update_first_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
     logger.info("Next step is to filter")
     return {data_fragment: "filter"}
 
-def _update_second_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def update_second_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+    if data_fragment.get_book() is None:
+        return {}
     logger.info("Updating second query DataFragment")
     querys = data_fragment.get_querys()
     query_info = data_fragment.get_query_info()
@@ -209,16 +213,24 @@ def _update_fifth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
 def update_data_fragment_step(data_fragment: DataFragment) -> dict[DataFragment, str]:
     querys = data_fragment.get_querys()
     logger.info(f"Updating data fragment with querys: {querys}")
+
+    next_steps = {}
     
     if 1 in querys.keys():
-        return _update_first_query(data_fragment)
+        for datafragment, key in update_first_query(data_fragment.clone()).items():
+            next_steps[datafragment] = key
     
     if 2 in querys.keys():
-        return _update_second_query(data_fragment)
+        for datafragment, key in update_second_query(data_fragment.clone()).items():
+            next_steps[datafragment] = key
         
     if 3 in querys.keys() or 4 in querys.keys():
-        return _update_third_and_fourth_query(data_fragment)
+        for datafragment, key in update_third_and_fourth_query(data_fragment.clone()).items():
+            next_steps[datafragment] = key
     
     if 5 in querys.keys():
-        return _update_fifth_query(data_fragment)
+        for datafragment, key in update_fifth_query(data_fragment.clone()).items():
+            next_steps[datafragment] = key
+    
+    return next_steps
                     

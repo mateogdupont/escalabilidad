@@ -25,3 +25,5 @@ class Review:
     
     def get_text(self) -> str:
         return self.text
+    def get_book_title(self) -> str:
+        return self.title
