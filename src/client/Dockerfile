@@ -4,6 +4,9 @@ FROM python:3.9.7-slim
 COPY ./client ./client
 COPY ./utils ./utils
 
+# Copy the env file
+COPY .env ./.env
+
 # Install the required Python packages for utils
 RUN pip install -r ./utils/requirements.txt
 

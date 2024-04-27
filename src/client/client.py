@@ -32,7 +32,7 @@ class Client:
         self._stop = False
         self._event = None
         self.total = 0
-        self.mom = MOM({'filter':None,'counter':None,'joiner_books':None,'joiner_reviews':None,'sentiment_analysis':None, 'results':None})
+        self.mom = MOM({"books-analyser.results": None})
         signal.signal(signal.SIGTERM, self.sigterm_handler)
 
     def sigterm_handler(self, signal,frame):
@@ -58,15 +58,16 @@ class Client:
             review = Review(data[0],data[1],None,None,data[2],data[3],None,data[4],data[5])
         else:
             return None
-        return DataFragment(self._queries, 0, book , review)
+        queries_copy = self._queries.copy()
+        return DataFragment(queries_copy, book , review)
     
     #TODO: Filter input data (NULLS, invalid values, etc)
     def _send_data_chunk(self,data_chunk):
         for data in data_chunk:
             parsed_data = self.parse_data(data)
             if parsed_data != None:
-                next_node_key = update_data_fragment_step(DataFragment).values()
-                self.mom.publish(next_node_key,parsed_data)
+                for datafragment, key in update_data_fragment_step(parsed_data).items():
+                    self.mom.publish(key, datafragment)
 
     def _send_file(self, file_path: str, columns_to_send:  List[int]):
         with open(file_path, 'r') as data_file:
@@ -76,6 +77,7 @@ class Client:
                 if not data_chunk or self._stop:
                     return
                 self._send_data_chunk(data_chunk)
+                print(f"Sent {len(data_chunk)} data fragments")
 
     def _send_all_data_files(self):
         print("Starting to send data, please wait")
@@ -87,10 +89,10 @@ class Client:
         results_proccess = Process(target=self._handle_results, args=(self._event,))
         results_proccess.start()
 
-        try:
-            self._send_all_data_files()
-        except Exception as err:
-            print(f"Error sending data files: {err}")
+        # try:
+        self._send_all_data_files()
+        # except Exception as err:
+        #     print(f"Error sending data files: {err}")
         print("Data was submitted successfully, please wait for results")
         
         results_proccess.join()
@@ -98,12 +100,16 @@ class Client:
     #TODO Parse and save results in CSV
     def _handle_results(self, event):
         pass
-        with open(RESULTS_FILE_NAME, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            writer.writerows(RESULTS_COLUMNS)
-            while not event.is_set():
-                (data_fragment, tag) = self.mom.consume("results")
-                print(f"Write results {data_fragment}")
-                self.mom.ack(tag)
-
-        print("All queries have been processed")
+        # with open(RESULTS_FILE_NAME, 'w', newline='') as csvfile:
+        #     writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        #     writer.writerows(RESULTS_COLUMNS)
+        #     while not event.is_set():
+        #         result = self.mom.consume("books-analyser.results")
+        #         if result is not None:
+        #             data_fragment, tag = result
+        #             print(f"Write results {data_fragment}")
+        #             self.mom.ack(tag)
+        #         else:
+        #             # Handle the case where there are no messages to consume
+        #             sleep(100)
+        #             print("No messages to consume")
