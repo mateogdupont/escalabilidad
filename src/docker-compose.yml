@@ -46,6 +46,8 @@ services:
       - rabbitmq
     volumes:
       - ../data/data.zip:/data.zip
+    networks:
+      - network-bridge
 
   filter:
     build:
@@ -53,6 +55,8 @@ services:
       dockerfile: ./filter/Dockerfile
     depends_on:
       - rabbitmq
+    networks:
+      - network-bridge
 
   joiner:
     build:
@@ -60,7 +64,18 @@ services:
       dockerfile: ./joiner/Dockerfile
     depends_on:
       - rabbitmq
+    networks:
+      - network-bridge
     
+  sentiment-analyser:
+    build:
+      context: .
+      dockerfile: ./sentiment-analyser/Dockerfile
+    depends_on:
+      - rabbitmq
+    networks:
+      - network-bridge
+
 networks:
   network-bridge:
     driver: bridge

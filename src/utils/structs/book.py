@@ -35,6 +35,21 @@ class Book:
         return self.publisher
     
     def get_published_date(self) -> datetime:
+        if not isinstance(self.published_date, datetime):
+            # this can have a year, a year and a month, or a year, month and day, or being invalid
+            # so we need to parse it -> use split
+            try:
+                date = self.published_date.split("-")
+                if len(date) == 1:
+                    return datetime(int(date[0]), 1, 1)
+                elif len(date) == 2:
+                    return datetime(int(date[0]), int(date[1]), 1)
+                elif len(date) == 3:
+                    return datetime(int(date[0]), int(date[1]), int(date[2]))
+                else:
+                    return datetime(1, 1, 1)
+            except:
+                return datetime(1, 1, 1) # TODO: move this to the first node
         return self.published_date
     
     def get_categories(self) -> List[str]:
