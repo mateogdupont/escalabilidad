@@ -2,7 +2,7 @@ from typing import Any, Optional, Tuple
 import pika
 import os
 from dotenv import load_dotenv
-from structs.data_fragment import DataFragment
+from utils.structs.data_fragment import DataFragment
 
 class MOM:
     def __init__(self, consumer_queues: dict[str, Any]) -> None:
