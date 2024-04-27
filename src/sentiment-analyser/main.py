@@ -16,8 +16,8 @@ def get_sentiment_score(text: str) -> float:
     return TextBlob(text).sentiment.polarity
 
 def work(sleep_time, consumer_queues, work_queue, lock, ending_signal):
-    # mom = MOM(consumer_queues)
-    mom = MOM({"books-analyser.data_processor.sentiment_analysis": {'x-max-priority': 5}})
+    mom = MOM(consumer_queues)
+    # mom = MOM({"books-analyser.data_processor.sentiment_analysis": {'x-max-priority': 5}})
     while True:
         # lock.acquire()
         # if ending_signal.value:
@@ -26,14 +26,14 @@ def work(sleep_time, consumer_queues, work_queue, lock, ending_signal):
         # lock.release()
         msg = mom.consume(work_queue)
         if not msg:
-            logger.info(f"No data found in queue '{work_queue}', sleeping for {sleep_time} seconds.")
+            logger.info(f"No data found in queue, sleeping for {sleep_time} seconds.")
             time.sleep(sleep_time)
             continue
         data_fragment, delivery_tag = msg
         logger.info("Received a data fragment.")
         review_text = data_fragment.get_review().get_text()
         sentiment_score = get_sentiment_score(review_text)
-        logger.info(f"Sentiment score for review text '{review_text[:15]}...': {sentiment_score}")
+        logger.info(f"Sentiment score for review text '{review_text[:30]}...': {sentiment_score}")
         query_info = data_fragment.get_query_info().set_sentiment(sentiment_score)
         data_fragment.set_query_info(query_info)
         mom.ack(delivery_tag)
@@ -43,9 +43,9 @@ def work(sleep_time, consumer_queues, work_queue, lock, ending_signal):
             for data_fragment, _ in update_data_fragment_step(data_fragment).items():
                 logger.info(f"Publishing data fragment with querys {data_fragment.get_querys()}")
             return
-        # mom.publish(update_data_fragment_step(data_fragment))
-        for data_fragment, routing_key in update_data_fragment_step(data_fragment).items():
-            mom.publish(routing_key, data_fragment)
+        mom.publish(update_data_fragment_step(data_fragment))
+        # for data_fragment, routing_key in update_data_fragment_step(data_fragment).items():
+        #     mom.publish(routing_key, data_fragment)
 
 # def update_signal(lock, ending_signal):
 #     lock.acquire()
