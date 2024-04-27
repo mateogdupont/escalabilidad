@@ -36,6 +36,7 @@ class Counter:
         review = data_fragment.get_review()
         query_info = data_fragment.get_query_info()
         query_id = data_fragment.get_query_id()
+        queries = data_fragment.get_queries()
 
         group_data = None
         value = None
@@ -58,17 +59,24 @@ class Counter:
         if query_id not in self.counted_data.keys():
             self.counted_data[query_id] = {}
         bool_set = []
-        results_data_fragment = None
+        results = []
         for value in [group_by, count_distinct, average_column, percentile_data]:
             bool_set.append(value is not None)
         if [True, True, False, False] == bool_set:
-            # if group data is a list
+            # group data is a list
             if type(group_data) == list:
                 for data in group_data:
                     if data not in self.counted_data[query_id].keys():
                         self.counted_data[query_id][data] = set()
                     self.counted_data[query_id][data].add(value)
-            # TODO: create the datafragment with results
+            base_data_fragment = DataFragment(queries.copy(), None, None)
+            for key, value in self.counted_data[query_id].items():
+                new_data_fragment = base_data_fragment.clone()
+                new_query_info = QueryInfo()
+                new_query_info.set_author(key)
+                new_data_fragment.set_n_distinct(len(value))
+                new_data_fragment.set_query_info(new_query_info)
+                results.append(new_data_fragment)
         elif [True, True, True, False] == bool_set:
             if group_data not in self.counted_data[query_id].keys():
                 self.counted_data[query_id][group_data] = {"TOTAL": 0, "COUNT": 0}
@@ -81,7 +89,7 @@ class Counter:
             self.counted_data[query_id][group_data]["VALUES"].append(value)
             # TODO: create the datafragment with results
         
-        return results_data_fragment
+        return results
             
 
         
@@ -92,10 +100,11 @@ class Counter:
             if not msg:
                 return # TODO: change this
             data_fragment, tag = msg
-            results_data_fragment = self.count_data_fragment(data_fragment)
+            results = self.count_data_fragment(data_fragment)
             
             if data_fragment.is_last():
-                self.mom.publish(update_data_fragment_step(results_data_fragment))
+                for results_data_fragment in results:
+                    self.mom.publish(update_data_fragment_step(results_data_fragment))
 
             self.mom.ack(tag)
 

@@ -8,12 +8,12 @@ from datetime import datetime
 
 class DataFragment:
 
-    def __init__(self, querys: dict[int, int], book: Optional[Book], review: Optional[Review]) -> None:
+    def __init__(self, queries: dict[int, int], book: Optional[Book], review: Optional[Review]) -> None:
         self.book = book
         self.review = review
         self.query_info = QueryInfo()
-        self.querys = None
-        self.set_querys(querys)
+        self.queries = None
+        self.set_queries(queries)
         self.last = False
     
     def to_json(self) -> str:
@@ -22,18 +22,18 @@ class DataFragment:
     @classmethod
     def from_json(cls, json_str: str) -> 'DataFragment':
         datafragment = jsonpickle.decode(json_str)
-        datafragment.set_querys(datafragment.querys)
+        datafragment.set_queries(datafragment.queries)
         return datafragment
         
     
-    def set_querys(self, querys: dict[int, int]) -> None:
+    def set_queries(self, queries: dict[int, int]) -> None:
         corrected = {}
-        for key, value in querys.items():
+        for key, value in queries.items():
             corrected[int(key)] = int(value)
-        self.querys = corrected
+        self.queries = corrected
     
-    def get_querys(self) -> dict[int, int]:
-        return self.querys
+    def get_queries(self) -> dict[int, int]:
+        return self.queries
     
     def set_book(self, book: Book) -> None:
         if self.book is not None:
@@ -60,7 +60,7 @@ class DataFragment:
         return self.query_info
     
     def clone(self) -> 'DataFragment':
-        new = DataFragment(self.querys, self.book, self.review)
+        new = DataFragment(self.queries, self.book, self.review)
         if not self.query_info:
             self.query_info = QueryInfo()
         new.set_query_info(self.query_info.clone())
@@ -68,7 +68,7 @@ class DataFragment:
     
     def get_query_id(self) -> int:
         ids = []
-        for query, step in self.querys.items():
+        for query, step in self.queries.items():
             ids.append(f"{query}:{step}")
         return "-".join(ids)
     
