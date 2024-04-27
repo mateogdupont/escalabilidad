@@ -12,4 +12,7 @@ RUN pip install -r ./utils/requirements.txt
 # Install the required Python packages for the sentiment-analyser
 RUN pip install -r ./sentiment-analyser/requirements.txt
 
+# Set the Python path to include /app
+ENV PYTHONPATH=/app
+
 CMD ["python", "sentiment-analyser/main.py"]

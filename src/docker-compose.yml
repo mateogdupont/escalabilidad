@@ -73,6 +73,8 @@ services:
       dockerfile: ./sentiment-analyser/Dockerfile
     depends_on:
       - rabbitmq
+    networks:
+      - network-bridge
 
 networks:
   network-bridge:
