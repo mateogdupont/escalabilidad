@@ -6,7 +6,7 @@ from multiprocessing import Process, Event
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
-from utils.mom.mom import MOM
+from utils.stream_communications import *
 from utils.query_updater import update_data_fragment_step
 import os
 from dotenv import load_dotenv
@@ -28,19 +28,14 @@ REVIEW_ARGUMENT_AMOUNT = 6
 # Id|Title|Price|User_id|profileName|review/helpfulness|review/score|review/time|review/summary|review/text
 
 class Client:
-    def __init__(self, data_path: str, queries: dict[int, int]):
+    def __init__(self, data_path: str, queries: dict[int, int], socket):
         load_dotenv()
         self._data_path = data_path
         self._queries = queries
         self._stop = False
         self._event = None
         self.total = 0
-        repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
-        consumer_queues = eval(repr_consumer_queues)
-        self.work_queue = list(consumer_queues.keys())[0]
-        self.mom = MOM(consumer_queues)
-        # self.mom = MOM({"books-analyser.results": None})
-        # self.socket = socket
+        self.socket = socket
         # self.data = []
         signal.signal(signal.SIGTERM, self.sigterm_handler)
 
@@ -74,9 +69,8 @@ class Client:
         for data in data_chunk:
             parsed_data = self.parse_data(data)
             if parsed_data != None:
-                # for datafragment, key in update_data_fragment_step(parsed_data).items():
-                #     self.mom.publish(key, datafragment)
-                self.mom.publish(update_data_fragment_step(parsed_data))
+                #Mando la info al cleaner de a 1
+                send_msg(self.socket,parsed_data.to_json())
                 # self.data.append(parsed_data.to_json())
                 # if len(self.data) == CHUNK_SIZE:
                 #     message = json.dumps(self.data)
@@ -91,12 +85,18 @@ class Client:
                 if not data_chunk or self._stop:
                     return
                 self._send_data_chunk(data_chunk)
-                print(f"Sent {len(data_chunk)} data fragments")
+    
+    def _send_last(self):
+        fragment = DataFragment(self._queries.copy(), None , None)
+        fragment.set_as_last()
+        send_msg(self.socket, fragment.to_json())
+
 
     def _send_all_data_files(self):
         print("Starting to send data, please wait")
         self._send_file(self._data_path + "/" + BOOKS_FILE_NAME, BOOKS_RELEVANT_COLUMNS)
-        self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
+        #self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
+        self._send_last()
 
     def run(self):
         self._event = Event()
@@ -113,7 +113,12 @@ class Client:
 
     #TODO Parse and save results in CSV
     def _handle_results(self, event):
-        pass
+        while True:
+            msg = self.socket.recv(1024).decode('utf-8')
+            if '|' in msg:
+                break
+        print(f"Me llego el msg de confirmacion como: {msg}")
+        self.socket.close()
         # with open(RESULTS_FILE_NAME, 'w', newline='') as csvfile:
         #     writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         #     writer.writerows(RESULTS_COLUMNS)

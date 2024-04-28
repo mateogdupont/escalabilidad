@@ -31,6 +31,12 @@ class DataFragment:
             corrected[int(key)] = int(value)
         self.querys = corrected
     
+    def set_as_last(self) -> None:
+        self.query_info.set_as_last()
+    
+    def is_last(self) -> bool:
+        return self.query_info.is_last()
+
     def get_querys(self) -> dict[int, int]:
         return self.querys
     
