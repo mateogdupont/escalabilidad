@@ -62,6 +62,8 @@ services:
       dockerfile: ./filter/Dockerfile
     depends_on:
       - rabbitmq
+    networks:
+      - network-bridge
 
   joiner:
     build:
@@ -69,7 +71,18 @@ services:
       dockerfile: ./joiner/Dockerfile
     depends_on:
       - rabbitmq
+    networks:
+      - network-bridge
     
+  sentiment-analyser:
+    build:
+      context: .
+      dockerfile: ./sentiment-analyser/Dockerfile
+    depends_on:
+      - rabbitmq
+    networks:
+      - network-bridge
+
 networks:
   network-bridge:
     driver: bridge

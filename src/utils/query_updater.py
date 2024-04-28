@@ -66,9 +66,12 @@ Return: title
 from utils.structs.data_fragment import DataFragment
 import logging as logger
 
-def update_first_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def _update_first_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+    if data_fragment.get_book() is None:
+        return {}
     logger.info("Updating first query DataFragment")
     querys = data_fragment.get_querys()
+    querys = {key: value for key, value in querys.items() if key == 1}
     query_info = data_fragment.get_query_info()
     step = querys[1]
     querys[1] += 1
@@ -87,9 +90,12 @@ def update_first_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
     logger.info("Next step is to filter")
     return {data_fragment: "filter"}
 
-def update_second_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def _update_second_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+    if data_fragment.get_book() is None:
+        return {}
     logger.info("Updating second query DataFragment")
     querys = data_fragment.get_querys()
+    querys = {key: value for key, value in querys.items() if key == 2}
     query_info = data_fragment.get_query_info()
     step = querys[2]
     querys[2] += 1
@@ -105,8 +111,9 @@ def update_second_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
         logger.info("Next step is to filter")
         return {data_fragment: "filter"}
     
-def update_third_and_fourth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def _update_third_and_fourth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
     querys = data_fragment.get_querys()
+    querys = {key: value for key, value in querys.items() if key == 3 or key == 4}
     query_info = data_fragment.get_query_info()
     step = querys[3] if 3 in querys.keys() else querys[4]
     if 3 in querys.keys():
@@ -165,9 +172,10 @@ def update_third_and_fourth_query(data_fragment: DataFragment) -> dict[DataFragm
         logger.info("Next step is to return the results")
         return {data_fragment: "results"}
     
-def update_fifth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def _update_fifth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
     logger.info("Updating fifth query DataFragment")
     querys = data_fragment.get_querys()
+    querys = {key: value for key, value in querys.items() if key == 5}
     query_info = data_fragment.get_query_info()
     step = querys[5]
     querys[5] += 1
@@ -209,16 +217,24 @@ def update_fifth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
 def update_data_fragment_step(data_fragment: DataFragment) -> dict[DataFragment, str]:
     querys = data_fragment.get_querys()
     logger.info(f"Updating data fragment with querys: {querys}")
+
+    next_steps = {}
     
     if 1 in querys.keys():
-        return update_first_query(data_fragment)
+        for datafragment, key in _update_first_query(data_fragment.clone()).items():
+            next_steps[datafragment] = key
     
     if 2 in querys.keys():
-        return update_second_query(data_fragment)
+        for datafragment, key in _update_second_query(data_fragment.clone()).items():
+            next_steps[datafragment] = key
         
     if 3 in querys.keys() or 4 in querys.keys():
-        return update_third_and_fourth_query(data_fragment)
+        for datafragment, key in _update_third_and_fourth_query(data_fragment.clone()).items():
+            next_steps[datafragment] = key
     
     if 5 in querys.keys():
-        return update_fifth_query(data_fragment)
+        for datafragment, key in _update_fifth_query(data_fragment.clone()).items():
+            next_steps[datafragment] = key
+    
+    return next_steps
                     

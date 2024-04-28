@@ -9,20 +9,27 @@ from datetime import datetime
 class DataFragment:
 
     def __init__(self, querys: dict[int, int], book: Optional[Book], review: Optional[Review]) -> None:
-        self.querys = querys
         self.book = book
         self.review = review
-        self.query_info = None
+        self.query_info = QueryInfo()
+        self.querys = None
+        self.set_querys(querys)
     
     def to_json(self) -> str:
         return jsonpickle.encode(self)
     
     @classmethod
     def from_json(cls, json_str: str) -> 'DataFragment':
-        return jsonpickle.decode(json_str)
+        datafragment = jsonpickle.decode(json_str)
+        datafragment.set_querys(datafragment.querys)
+        return datafragment
+        
     
     def set_querys(self, querys: dict[int, int]) -> None:
-        self.querys = querys
+        corrected = {}
+        for key, value in querys.items():
+            corrected[int(key)] = int(value)
+        self.querys = corrected
     
     def get_querys(self) -> dict[int, int]:
         return self.querys
@@ -47,10 +54,14 @@ class DataFragment:
         self.query_info = query_info
     
     def get_query_info(self) -> 'QueryInfo':
+        if not self.query_info:
+            self.query_info = QueryInfo()
         return self.query_info
     
     def clone(self) -> 'DataFragment':
         new = DataFragment(self.querys, self.book, self.review)
+        if not self.query_info:
+            self.query_info = QueryInfo()
         new.set_query_info(self.query_info.clone())
         return new
 

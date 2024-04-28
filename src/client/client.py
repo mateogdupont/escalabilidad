@@ -6,6 +6,10 @@ from multiprocessing import Process, Event
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
+from utils.mom.mom import MOM
+from utils.query_updater import update_data_fragment_step
+import os
+from dotenv import load_dotenv
 
 CHUNK_SIZE = 100
 BOOKS_FILE_NAME = "books_data.csv"
@@ -24,14 +28,20 @@ REVIEW_ARGUMENT_AMOUNT = 6
 # Id|Title|Price|User_id|profileName|review/helpfulness|review/score|review/time|review/summary|review/text
 
 class Client:
-    def __init__(self, data_path: str, queries: dict[int, int], socket):
+    def __init__(self, data_path: str, queries: dict[int, int]):
+        load_dotenv()
         self._data_path = data_path
         self._queries = queries
         self._stop = False
         self._event = None
         self.total = 0
-        self.socket = socket
-        self.data = []
+        repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
+        consumer_queues = eval(repr_consumer_queues)
+        self.work_queue = list(consumer_queues.keys())[0]
+        self.mom = MOM(consumer_queues)
+        # self.mom = MOM({"books-analyser.results": None})
+        # self.socket = socket
+        # self.data = []
         signal.signal(signal.SIGTERM, self.sigterm_handler)
 
     def sigterm_handler(self, signal,frame):
@@ -57,17 +67,21 @@ class Client:
             review = Review(data[0],data[1],None,None,data[2],data[3],None,data[4],data[5])
         else:
             return None
-        return DataFragment(self._queries, 0, book , review)
+        queries_copy = self._queries.copy()
+        return DataFragment(queries_copy, book , review)
     
     def _send_data_chunk(self,data_chunk):
         for data in data_chunk:
             parsed_data = self.parse_data(data)
             if parsed_data != None:
-                self.data.append(parsed_data.to_json())
-                if len(self.data) == CHUNK_SIZE:
-                    message = json.dumps(self.data)
-                    header = str(len(message)) + '|'
-                    self.socket.sendall((header + message).encode('utf-8'))
+                # for datafragment, key in update_data_fragment_step(parsed_data).items():
+                #     self.mom.publish(key, datafragment)
+                self.mom.publish(update_data_fragment_step(parsed_data))
+                # self.data.append(parsed_data.to_json())
+                # if len(self.data) == CHUNK_SIZE:
+                #     message = json.dumps(self.data)
+                #     header = str(len(message)) + '|'
+                #     self.socket.sendall((header + message).encode('utf-8'))
 
     def _send_file(self, file_path: str, columns_to_send:  List[int]):
         with open(file_path, 'r') as data_file:
@@ -77,6 +91,7 @@ class Client:
                 if not data_chunk or self._stop:
                     return
                 self._send_data_chunk(data_chunk)
+                print(f"Sent {len(data_chunk)} data fragments")
 
     def _send_all_data_files(self):
         print("Starting to send data, please wait")
@@ -88,10 +103,10 @@ class Client:
         results_proccess = Process(target=self._handle_results, args=(self._event,))
         results_proccess.start()
 
-        try:
-            self._send_all_data_files()
-        except Exception as err:
-            print(f"Error sending data files: {err}")
+        # try:
+        self._send_all_data_files()
+        # except Exception as err:
+        #     print(f"Error sending data files: {err}")
         print("Data was submitted successfully, please wait for results")
         
         results_proccess.join()
@@ -99,12 +114,12 @@ class Client:
     #TODO Parse and save results in CSV
     def _handle_results(self, event):
         pass
-        with open(RESULTS_FILE_NAME, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            writer.writerows(RESULTS_COLUMNS)
-            while not event.is_set():
-                (data_fragment_chunk, tag) = self.mom.consume("results")
-                print(f"Write results {data_fragment_chunk}")
-                self.mom.ack(tag)
+        # with open(RESULTS_FILE_NAME, 'w', newline='') as csvfile:
+        #     writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        #     writer.writerows(RESULTS_COLUMNS)
+        #     while not event.is_set():
+        #         (data_fragment_chunk, tag) = self.mom.consume("results")
+        #         print(f"Write results {data_fragment_chunk}")
+        #         self.mom.ack(tag)
 
-        print("All queries have been processed")
+        # print("All queries have been processed")

@@ -4,6 +4,7 @@ from utils.structs.review import *
 from utils.structs.data_fragment import *
 from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
+from dotenv import load_dotenv
 
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
@@ -11,12 +12,16 @@ TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
 
-
 class Filter:
     def __init__(self):
-        self._exit = False
-        self.mom = MOM({'filter':None,'counter':None,'joiner_books':None,'joiner_reviews':None,'sentiment_analysis':None, 'results':None})
+        load_dotenv()
+        repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
+        consumer_queues = eval(repr_consumer_queues)
+        self.work_queue = list(consumer_queues.keys())[0]
+        self.mom = MOM(consumer_queues)
+        # self.mom = MOM({"books-analyser.data_processor.filter": {'x-max-priority': 5}})
         signal.signal(signal.SIGTERM, self.sigterm_handler)
+        self._exit = False
     
     def sigterm_handler(self):
         self._exit = True
@@ -39,17 +44,20 @@ class Filter:
         elif (filter_on == SENTIMENT_FILTER) and (query_info is not None):
             return query_info.get_sentimentt() >= min_value
         else:
-            print("Error processing data in filter")
+            print(f"Filter not applied")
         return False
 
     def run(self):
         while not self._exit:
-            (data_fragment, tag) = self.mom.consume("filter")
-            pass_filter = self.filter_data_fragment(data_fragment)
-            if pass_filter:
-                updated_dict = update_data_fragment_step(DataFragment)
-                for data in updated_dict:
-                    self.mom.publish(updated_dict[data],data)
+            msg = self.mom.consume(self.work_queue)
+            if not msg:
+                return # TODO: change this
+            data_fragment, tag = msg
+            if self.filter_data_fragment(data_fragment):
+                # updated_dict = update_data_fragment_step(data_fragment)
+                # for data, key in updated_dict.items():
+                #     self.mom.publish(key, data)
+                self.mom.publish(update_data_fragment_step(data_fragment))
             self.mom.ack(tag)
 
 def main():

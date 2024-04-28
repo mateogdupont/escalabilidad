@@ -23,5 +23,7 @@ class Review:
     def from_json(cls, json_str: str) -> 'Review':
         return jsonpickle.decode(json_str)
     
-    def ger_book_title(self) -> str:
+    def get_text(self) -> str:
+        return self.text
+    def get_book_title(self) -> str:
         return self.title
