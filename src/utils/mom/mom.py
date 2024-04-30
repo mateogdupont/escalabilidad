@@ -12,7 +12,7 @@ class MOMNotAvailableError(Exception):
 class MOM:
     def __init__(self, consumer_queues: 'dict[str, bool]') -> None:
         load_dotenv()
-        if not self.connect(0):
+        if not self._connect(0):
             raise MOMNotAvailableError("The connection to the Message Oriented Middleware (MOM) is not available.")
         self.channel.basic_qos(prefetch_count=1)
         for queue, arguments in consumer_queues.items():
@@ -21,7 +21,7 @@ class MOM:
         self.consumer_queues = consumer_queues.keys()
         self.exchange = os.environ["RABBITMQ_EXCHANGE"]
 
-    def connect(self, retry: int) -> bool:
+    def _connect(self, retry: int) -> bool:
         try:
             credentials = pika.PlainCredentials(os.environ["RABBITMQ_DEFAULT_USER"], os.environ["RABBITMQ_DEFAULT_PASS"])
             connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', credentials=credentials))
@@ -31,7 +31,7 @@ class MOM:
             if retry == os.environ["MAX_RETRIES"]:
                 logger.error(f"Max retries limit reached, ending the connection with rabbitmq. Last error was '{e}'")
                 return False
-            return self.connect(retry + 1)
+            return self._connect(retry + 1)
     
     def consume(self, queue: str) -> Optional[Tuple[DataFragment, int]]:
         if not queue in self.consumer_queues:
