@@ -9,6 +9,7 @@ from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv
 import numpy as np
+import logging as logger
 
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
@@ -18,6 +19,7 @@ SENTIMENT_FILTER = "SENTIMENT"
 
 class Counter:
     def __init__(self):
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
@@ -53,6 +55,7 @@ class Counter:
         return results
 
     def count_type_3(self, data_fragment, query_info, query_id, group_data, value, percentile, results):
+        logger.info("Processing query 5")
         if group_data not in self.counted_data[query_id].keys():
             self.counted_data[query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
         self.counted_data[query_id][group_data]["VALUES"].append(value)
@@ -63,6 +66,7 @@ class Counter:
         results.append(data_fragment)
 
     def count_type_2(self, data_fragment, query_info, query_id, group_data, value, results):
+        logger.info("Processing query 3 and 4")
         if group_data not in self.counted_data[query_id].keys():
             self.counted_data[query_id][group_data] = {"TOTAL": 0, "COUNT": 0}
         self.counted_data[query_id][group_data]["TOTAL"] += value
@@ -74,6 +78,7 @@ class Counter:
         results.append(data_fragment)
 
     def count_type_1(self, query_id, queries, group_data, value, results):
+        logger.info("Processing query 2")
         # group data is a list
         if type(group_data) == list:
             for data in group_data:
@@ -107,9 +112,6 @@ class Counter:
             value = query_info.get_sentiment()
         return group_data, value, percentile
             
-
-        
-
     def run(self):
         while not self._exit:
             msg = self.mom.consume(self.work_queue)
