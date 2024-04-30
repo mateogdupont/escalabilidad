@@ -4,6 +4,7 @@ import os
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
+from utils.structs.data_chunk import *
 from utils.stream_communications import *
 from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
@@ -32,53 +33,70 @@ class DataCleaner:
     def sigterm_handler(self):
         self._exit = True
     
-    def add_and_try_to_send_chunk(self,fragment, node):
-        pass
-        # if node == 'filter':
-        #     self.clean_data_to_filter.append(fragment)
-        #     if len(self.clean_data_to_filter) == MAX_AMOUNT_OF_FRAGMENTS:
-        #         data_chunk = DataFragmentChunk(self.clean_data_to_filter)
-        #         self.mom.publish(node,data_chunk)
-        #         self.clean_data_to_filter = []
+    def add_and_try_to_send_chunk(self,fragment: DataFragment, node):
+        if node == 'filter':
+            self.clean_data_to_filter.append(fragment)
+            if len(self.clean_data_to_filter) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
+                data_chunk = DataChunk(self.clean_data_to_filter)
+                self.mom.publish(data_chunk, node)
+                self.clean_data_to_filter = []
 
-        # elif node == 'counter':
-        #     self.clean_data_to_counter.append(fragment)
-        #     if len(self.clean_data_to_counter) == MAX_AMOUNT_OF_FRAGMENTS:
-        #         data_chunk = DataFragmentChunk(self.clean_data_to_counter)
-        #         self.mom.publish(node,data_chunk)
-        #         self.clean_data_to_counter = []
-        # else:
-        #     self.clean_data_to_sentiment.append(fragment)
-        #     if len(self.clean_data_to_sentiment) == MAX_AMOUNT_OF_FRAGMENTS:
-        #         data_chunk = DataFragmentChunk(self.clean_data_to_sentiment)
-        #         self.mom.publish(node,data_chunk)
-        #         self.clean_data_to_sentiment = []
+        elif node == 'counter':
+            self.clean_data_to_counter.append(fragment)
+            if len(self.clean_data_to_counter) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
+                data_chunk = DataChunk(self.clean_data_to_counter)
+                self.mom.publish(data_chunk, node)
+                self.clean_data_to_counter = []
+        else:
+            self.clean_data_to_sentiment.append(fragment)
+            if len(self.clean_data_to_sentiment) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
+                data_chunk = DataChunk(self.clean_data_to_sentiment)
+                self.mom.publish(data_chunk, node)
+                self.clean_data_to_sentiment = []
         
 
-    def send_clean_data(self, chunk_msg):
-        fragment = DataFragment.from_json(chunk_msg)
-        self.clean_data_to_filter.append(fragment)
-        self.mom.publish(update_data_fragment_step(fragment))
-        # for msg in chunk_msg:
-        #     #TODO: Filter client data
-        #     fragment = DataFragment.from_json(msg)
-        #     next_node_key = update_data_fragment_step(fragment).values()
-        #     self.add_and_try_to_cd_chunk(fragment, next_node_key)
+    def send_clean_data(self, chunk_data: DataChunk):
+        #self.clean_data_to_filter.append(fragment)
+        #self.mom.publish(update_data_fragment_step(chunk))
+        for fragment in chunk_data.get_fragments():
+            #TODO: Filter client data
+            dic = update_data_fragment_step(fragment)
+            self.mom.publish(dic)
+            # next_node_key = update_data_fragment_step(fragment).values()
+            # self.add_and_try_to_send_chunk(fragment, next_node_key)
 
+    def has_minimun_data(self, fragment: DataFragment):
+        book = fragment.get_book()
+        review = fragment.get_review()
+        if book is not None:
+            return book.has_minimun_data()
+        elif review is not None:
+            return review.has_minimun_data()
+        else:
+            return fragment.is_last()
+
+    def clear_data(self, chunk: DataChunk):
+        print("Voy a limpiar")
+        filters_fragments = filter(self.has_minimun_data, chunk.get_fragments())
+        chunk.set_fragments(list(filters_fragments))
+        
 
     def run(self):
         socket = self._socket.accept()[0]
         while not self._exit:
             chunk_msg = receive_msg(socket)
-            #json_chunk_msg = json.loads(chunk_msg)
-            #self.send_clean_data(json_chunk_msg)
-            fragment = DataFragment.from_json(chunk_msg)
-            if fragment.is_last():
+            json_chunk_msg = json.loads(chunk_msg)
+            chunk = DataChunk.from_json(json_chunk_msg)
+            print(f"El chunk es {chunk.to_json()}")
+
+            self.clear_data(chunk)
+
+            self.send_clean_data(DataChunk.from_json(json_chunk_msg))
+            if chunk.contains_last_fragment():
                 print(f"All data was received")
-                send_msg(socket,fragment.to_json())
+                send_msg(socket,chunk.to_json())
                 self._exit = True
-            else: 
-                self.send_clean_data(chunk_msg)
+            self._exit = True
 
 
 

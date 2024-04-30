@@ -35,7 +35,7 @@ class Filter:
         if (filter_on == CATEGORY_FILTER) and (book is not None):
             return word in book.get_categories()
         elif (filter_on == YEAR_FILTER) and (book is not None):
-            book_year = book.get_published_date().year
+            book_year = book.get_published_year()
             return  min_value < book_year < max_value
         elif (filter_on == TITLE_FILTER) and (book is not None):
             return word in book.get_title()

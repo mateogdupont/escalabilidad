@@ -1,15 +1,19 @@
 import csv
 import signal
+import os
+import re
 from typing import List
 import datetime
 from multiprocessing import Process, Event
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
+from utils.structs.data_chunk import *
 from utils.stream_communications import *
 from utils.query_updater import update_data_fragment_step
-import os
 from dotenv import load_dotenv
+
+year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
 CHUNK_SIZE = 100
 BOOKS_FILE_NAME = "books_data.csv"
@@ -36,7 +40,7 @@ class Client:
         self._event = None
         self.total = 0
         self.socket = socket
-        # self.data = []
+        self.data = DataChunk([])
         signal.signal(signal.SIGTERM, self.sigterm_handler)
 
     def sigterm_handler(self, signal,frame):
@@ -53,11 +57,18 @@ class Client:
                 return chunk
         return chunk
 
+    def parse_year(self,read_date: str):
+        if read_date:
+            result = year_regex.search(read_date)
+            return result.group(1) if result else None
+        return None
+
     def parse_data(self, data):
         book = None
         review = None
         if len(data) == BOOKS_ARGUMENT_AMOUNT:
-            book = Book(data[0],data[1],data[2],None,None,data[3],data[4],None,data[5],data[6])
+            publish_year = self.parse_year(data[4])
+            book = Book(data[0],data[1],data[2],None,None,data[3],publish_year,None,data[5],data[6])
         elif len(data) == REVIEW_ARGUMENT_AMOUNT:
             review = Review(data[0],data[1],None,None,data[2],data[3],None,data[4],data[5])
         else:
@@ -69,13 +80,11 @@ class Client:
         for data in data_chunk:
             parsed_data = self.parse_data(data)
             if parsed_data != None:
-                #Mando la info al cleaner de a 1
-                send_msg(self.socket,parsed_data.to_json())
-                # self.data.append(parsed_data.to_json())
-                # if len(self.data) == CHUNK_SIZE:
-                #     message = json.dumps(self.data)
-                #     header = str(len(message)) + '|'
-                #     self.socket.sendall((header + message).encode('utf-8'))
+                self.data.add_fragment(parsed_data)
+                if self.data.get_amount() == CHUNK_SIZE:
+                    message = json.dumps(self.data.to_json())
+                    send_msg(self.socket,message)
+                    self.data.set_fragments([])
 
     def _send_file(self, file_path: str, columns_to_send:  List[int]):
         with open(file_path, 'r') as data_file:
@@ -89,7 +98,9 @@ class Client:
     def _send_last(self):
         fragment = DataFragment(self._queries.copy(), None , None)
         fragment.set_as_last()
-        send_msg(self.socket, fragment.to_json())
+        self.data.add_fragment(fragment)
+        send_msg(self.socket, json.dumps(self.data.to_json()))
+        self.data.set_fragments([])
 
 
     def _send_all_data_files(self):
