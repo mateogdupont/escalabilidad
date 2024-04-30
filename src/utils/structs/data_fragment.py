@@ -24,7 +24,6 @@ class DataFragment:
         datafragment.set_querys(datafragment.querys)
         return datafragment
         
-    
     def set_querys(self, querys: dict[int, int]) -> None:
         corrected = {}
         for key, value in querys.items():
@@ -38,6 +37,7 @@ class DataFragment:
         return self.query_info.is_last()
 
     def get_querys(self) -> dict[int, int]:
+        self.set_querys(self.querys)
         return self.querys
     
     def set_book(self, book: Book) -> None:

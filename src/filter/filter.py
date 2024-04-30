@@ -1,4 +1,5 @@
 import signal
+import os
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
@@ -19,6 +20,7 @@ class Filter:
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
+        self.top_ten = []
         # self.mom = MOM({"books-analyser.data_processor.filter": {'x-max-priority': 5}})
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         self._exit = False
@@ -44,7 +46,14 @@ class Filter:
         elif (filter_on == SENTIMENT_FILTER) and (query_info is not None):
             return query_info.get_sentimentt() >= min_value
         else:
-            print(f"Filter not applied")
+            #TODO: Apply filter of top10
+            pass
+            if data_fragment.is_last():
+                #Send all data
+                self.top_ten = []
+                return False
+            #Check if is a top 10 and insert it in order
+ 
         return False
 
     def run(self):

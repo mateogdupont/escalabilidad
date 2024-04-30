@@ -122,13 +122,19 @@ class Client:
         
         results_proccess.join()
 
-    #TODO Parse and save results in CSV
+    
     def _handle_results(self, event):
-        while True:
-            msg = self.socket.recv(1024).decode('utf-8')
-            if '|' in msg:
-                break
-        print(f"Me llego el msg de confirmacion como: {msg}")
+        amount_of_queries_left = len(self._queries)
+        while  not event.is_set():
+            chunk_msg = receive_msg(self.socket)
+            json_chunk_msg = json.loads(chunk_msg)
+            chunk = DataChunk.from_json(json_chunk_msg)
+            for fragment in chunk.get_fragments():
+                print(f"Result: {fragment.to_json()}") #TODO: Change this to save in CSV
+                if fragment.is_last():
+                    amount_of_queries_left -= 1
+            if amount_of_queries_left <= 0:
+                break              
         self.socket.close()
         # with open(RESULTS_FILE_NAME, 'w', newline='') as csvfile:
         #     writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)

@@ -56,14 +56,15 @@ class DataCleaner:
         
 
     def send_clean_data(self, chunk_data: DataChunk):
-        #self.clean_data_to_filter.append(fragment)
-        #self.mom.publish(update_data_fragment_step(chunk))
         for fragment in chunk_data.get_fragments():
-            #TODO: Filter client data
-            dic = update_data_fragment_step(fragment)
-            self.mom.publish(dic)
-            # next_node_key = update_data_fragment_step(fragment).values()
-            # self.add_and_try_to_send_chunk(fragment, next_node_key)
+            if not fragment.is_last():
+                next_node_key = list(update_data_fragment_step(fragment).values())[0]
+                self.add_and_try_to_send_chunk(fragment, next_node_key)
+            else:
+                self.add_and_try_to_send_chunk(fragment, 'filter')
+                self.add_and_try_to_send_chunk(fragment, 'counter')
+                self.add_and_try_to_send_chunk(fragment, 'sentiment_analysis')
+                
 
     def has_minimun_data(self, fragment: DataFragment):
         book = fragment.get_book()
@@ -76,7 +77,6 @@ class DataCleaner:
             return fragment.is_last()
 
     def clear_data(self, chunk: DataChunk):
-        print("Voy a limpiar")
         filters_fragments = filter(self.has_minimun_data, chunk.get_fragments())
         chunk.set_fragments(list(filters_fragments))
         
@@ -87,16 +87,14 @@ class DataCleaner:
             chunk_msg = receive_msg(socket)
             json_chunk_msg = json.loads(chunk_msg)
             chunk = DataChunk.from_json(json_chunk_msg)
-            print(f"El chunk es {chunk.to_json()}")
 
-            self.clear_data(chunk)
+            #self.clear_data(chunk)
 
             self.send_clean_data(DataChunk.from_json(json_chunk_msg))
             if chunk.contains_last_fragment():
                 print(f"All data was received")
-                send_msg(socket,chunk.to_json())
+                send_msg(socket,json.dumps(chunk.to_json()))
                 self._exit = True
-            self._exit = True
 
 
 
