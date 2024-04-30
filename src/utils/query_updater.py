@@ -66,7 +66,7 @@ Return: title
 from utils.structs.data_fragment import DataFragment
 import logging as logger
 
-def _update_first_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def _update_first_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
     if data_fragment.get_book() is None:
         return {}
     logger.info("Updating first query DataFragment")
@@ -90,7 +90,7 @@ def _update_first_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
     logger.info("Next step is to filter")
     return {data_fragment: "filter"}
 
-def _update_second_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def _update_second_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
     if data_fragment.get_book() is None:
         return {}
     logger.info("Updating second query DataFragment")
@@ -111,7 +111,7 @@ def _update_second_query(data_fragment: DataFragment) -> dict[DataFragment, str]
         logger.info("Next step is to filter")
         return {data_fragment: "filter"}
     
-def _update_third_and_fourth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
     queries = data_fragment.get_queries()
     queries = {key: value for key, value in queries.items() if key == 3 or key == 4}
     query_info = data_fragment.get_query_info()
@@ -172,7 +172,7 @@ def _update_third_and_fourth_query(data_fragment: DataFragment) -> dict[DataFrag
         logger.info("Next step is to return the results")
         return {data_fragment: "results"}
     
-def _update_fifth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def _update_fifth_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
     logger.info("Updating fifth query DataFragment")
     queries = data_fragment.get_queries()
     queries = {key: value for key, value in queries.items() if key == 5}
@@ -214,7 +214,7 @@ def _update_fifth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
         logger.info("Next step is to return the results")
         return {data_fragment: "results"}
 
-def update_data_fragment_step(data_fragment: DataFragment) -> dict[DataFragment, str]:
+def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
     queries = data_fragment.get_queries()
     logger.info(f"Updating data fragment with queries: {queries}")
 

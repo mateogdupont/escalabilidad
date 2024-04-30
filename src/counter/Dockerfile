@@ -10,6 +10,9 @@ COPY .env ./.env
 # Install the required Python packages for utils
 RUN pip install -r ./utils/requirements.txt
 
+# Install the required Python packages for counter
+RUN pip install -r ./counter/requirements.txt
+
 ENV PYTHONPATH / 
 
 CMD bash -c "python counter/counter.py"

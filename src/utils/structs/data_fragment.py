@@ -8,7 +8,7 @@ from datetime import datetime
 
 class DataFragment:
 
-    def __init__(self, queries: dict[int, int], book: Optional[Book], review: Optional[Review]) -> None:
+    def __init__(self, queries: 'dict[int, int]', book: Optional[Book], review: Optional[Review]) -> None:
         self.book = book
         self.review = review
         self.query_info = QueryInfo()
@@ -26,13 +26,13 @@ class DataFragment:
         return datafragment
         
     
-    def set_queries(self, queries: dict[int, int]) -> None:
+    def set_queries(self, queries: 'dict[int, int]') -> None:
         corrected = {}
         for key, value in queries.items():
             corrected[int(key)] = int(value)
         self.queries = corrected
     
-    def get_queries(self) -> dict[int, int]:
+    def get_queries(self) -> 'dict[int, int]':
         return self.queries
     
     def set_book(self, book: Book) -> None:
