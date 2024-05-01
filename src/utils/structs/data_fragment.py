@@ -14,7 +14,6 @@ class DataFragment:
         self.query_info = QueryInfo()
         self.queries = None
         self.set_queries(queries)
-        self.last = False
     
     def to_json(self) -> str:
         return jsonpickle.encode(self)
@@ -71,37 +70,3 @@ class DataFragment:
         for query, step in self.queries.items():
             ids.append(f"{query}:{step}")
         return "-".join(ids)
-    
-    def is_last(self) -> bool:
-        return self.last
-    
-    def set_last(self, last: bool) -> None:
-        self.last = last
-
-# datafragment = DataFragment([1, 2, 3], 1, None, None)
-# print(datafragment.to_json())
-# print(DataFragment.from_json(datafragment.to_json()).to_json())
-
-# book = Book("title", "description", ["author1", "author2"], "image", "preview_link", "publisher", datetime.now(), "info_link", ["category1", "category2"], 1.0)
-# print(book.to_json())
-# print(Book.from_json(book.to_json()).to_json())
-
-# datafragment.set_book(book)
-# print(datafragment.to_json())
-# print(DataFragment.from_json(datafragment.to_json()).to_json())
-
-# review = Review(1, "title", "user_id", "profile_name", "helpfulness", 1.0, 1, "summary", "text")
-# print(review.to_json())
-# print(Review.from_json(review.to_json()).to_json())
-
-# datafragment.set_review(review)
-# print(datafragment.to_json())
-# print(DataFragment.from_json(datafragment.to_json()).to_json())
-
-# query_info = QueryInfo("author", 1, 1.0)
-# print(query_info.to_json())
-# print(QueryInfo.from_json(query_info.to_json()).to_json())
-
-# datafragment.set_query_info(query_info)
-# print(datafragment.to_json())
-# print(DataFragment.from_json(datafragment.to_json()).to_json())
