@@ -12,6 +12,8 @@ from utils.structs.data_chunk import *
 from utils.stream_communications import *
 from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv
+import logging as logger
+import sys
 
 year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
@@ -32,7 +34,8 @@ REVIEW_ARGUMENT_AMOUNT = 6
 # Id|Title|Price|User_id|profileName|review/helpfulness|review/score|review/time|review/summary|review/text
 
 class Client:
-    def __init__(self, data_path: str, queries: dict[int, int], socket):
+    def __init__(self, data_path: str, queries: 'dict[int, int]', socket):
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
         self._data_path = data_path
         self._queries = queries

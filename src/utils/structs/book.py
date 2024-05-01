@@ -1,7 +1,9 @@
+import ast
 from typing import List, Optional
 from datetime import datetime
 import jsonpickle
 import json
+import logging as logger
 
 # + info here -> https://www.kaggle.com/datasets/mohamedbakhet/amazon-books-reviews?select=books_data.csv
 class Book:
@@ -36,6 +38,8 @@ class Book:
         return self.title
     
     def get_authors(self) -> List[str]:
+        if isinstance(self.authors, str):
+            self.authors = eval(self.authors)
         return self.authors
     
     def get_publisher(self) -> str:
@@ -45,4 +49,6 @@ class Book:
         return int(self.published_year)
     
     def get_categories(self) -> List[str]:
+        if isinstance(self.categories, str):
+            self.categories = eval(self.categories)
         return self.categories
