@@ -59,8 +59,8 @@ class DataCleaner:
     def send_clean_data(self, chunk_data: DataChunk):
         for fragment in chunk_data.get_fragments():
             if not fragment.is_last():
-                next_node_key = list(update_data_fragment_step(fragment).values())[0]
-                self.add_and_try_to_send_chunk(fragment, next_node_key)
+                for data, key in update_data_fragment_step(fragment).items():
+                    self.add_and_try_to_send_chunk(data, key)
             else:
                 self.add_and_try_to_send_chunk(fragment, 'filter')
                 self.add_and_try_to_send_chunk(fragment, 'counter')

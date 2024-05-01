@@ -41,8 +41,8 @@ class Book:
     def get_publisher(self) -> str:
         return self.publisher
     
-    def get_published_year(self) -> datetime:
-        return int(self.get_published_year)
+    def get_published_year(self) -> int:
+        return int(self.published_year)
     
     def get_categories(self) -> List[str]:
         return self.categories
