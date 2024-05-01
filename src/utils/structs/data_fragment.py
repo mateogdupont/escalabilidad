@@ -8,12 +8,12 @@ from datetime import datetime
 
 class DataFragment:
 
-    def __init__(self, querys: 'dict[int, int]', book: Optional[Book], review: Optional[Review]) -> None:
+    def __init__(self, queries: 'dict[int, int]', book: Optional[Book], review: Optional[Review]) -> None:
         self.book = book
         self.review = review
         self.query_info = QueryInfo()
-        self.querys = None
-        self.set_querys(querys)
+        self.queries = None
+        self.set_queries(queries)
     
     def to_json(self) -> str:
         return jsonpickle.encode(self)
@@ -21,14 +21,15 @@ class DataFragment:
     @classmethod
     def from_json(cls, json_str: str) -> 'DataFragment':
         datafragment = jsonpickle.decode(json_str)
-        datafragment.set_querys(datafragment.querys)
+        datafragment.set_queries(datafragment.queries)
         return datafragment
         
-    def set_querys(self, querys: 'dict[int, int]') -> None:
+    
+    def set_queries(self, queries: 'dict[int, int]') -> None:
         corrected = {}
-        for key, value in querys.items():
+        for key, value in queries.items():
             corrected[int(key)] = int(value)
-        self.querys = corrected
+        self.queries = corrected
     
     def set_as_last(self) -> None:
         self.query_info.set_as_last()
@@ -36,9 +37,9 @@ class DataFragment:
     def is_last(self) -> bool:
         return self.query_info.is_last()
 
-    def get_querys(self) -> 'dict[int, int]':
-        self.set_querys(self.querys)
-        return self.querys
+    def get_queries(self) -> 'dict[int, int]':
+        self.set_queries(self.queries)
+        return self.queries
     
     def set_book(self, book: Book) -> None:
         if self.book is not None:
@@ -65,36 +66,14 @@ class DataFragment:
         return self.query_info
     
     def clone(self) -> 'DataFragment':
-        new = DataFragment(self.querys, self.book, self.review)
+        new = DataFragment(self.queries, self.book, self.review)
         if not self.query_info:
             self.query_info = QueryInfo()
         new.set_query_info(self.query_info.clone())
         return new
-
-# datafragment = DataFragment([1, 2, 3], 1, None, None)
-# print(datafragment.to_json())
-# print(DataFragment.from_json(datafragment.to_json()).to_json())
-
-# book = Book("title", "description", ["author1", "author2"], "image", "preview_link", "publisher", datetime.now(), "info_link", ["category1", "category2"], 1.0)
-# print(book.to_json())
-# print(Book.from_json(book.to_json()).to_json())
-
-# datafragment.set_book(book)
-# print(datafragment.to_json())
-# print(DataFragment.from_json(datafragment.to_json()).to_json())
-
-# review = Review(1, "title", "user_id", "profile_name", "helpfulness", 1.0, 1, "summary", "text")
-# print(review.to_json())
-# print(Review.from_json(review.to_json()).to_json())
-
-# datafragment.set_review(review)
-# print(datafragment.to_json())
-# print(DataFragment.from_json(datafragment.to_json()).to_json())
-
-# query_info = QueryInfo("author", 1, 1.0)
-# print(query_info.to_json())
-# print(QueryInfo.from_json(query_info.to_json()).to_json())
-
-# datafragment.set_query_info(query_info)
-# print(datafragment.to_json())
-# print(DataFragment.from_json(datafragment.to_json()).to_json())
+    
+    def get_query_id(self) -> int:
+        ids = []
+        for query, step in self.queries.items():
+            ids.append(f"{query}:{step}")
+        return "-".join(ids)

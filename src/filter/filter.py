@@ -37,10 +37,11 @@ class Filter:
         self._exit = True
 
     def filter_data_fragment(self, data_fragment: DataFragment) -> bool:
+        if data_fragment.is_last():
+            return False
         query_info = data_fragment.get_query_info()
         filter_on, word, min_value, max_value = query_info.get_filter_params()
         book = data_fragment.get_book()
-        query_info = data_fragment.get_query_info()
 
         if (filter_on == CATEGORY_FILTER) and (book is not None):
             return word.lower() in [c.lower() for c in book.get_categories()]
@@ -49,7 +50,7 @@ class Filter:
             return min_value <= book_year <= max_value
         elif (filter_on == TITLE_FILTER) and (book is not None):
             return word.lower() in book.get_title().lower()
-        elif filter_on == DISTINCT_FILTER:
+        elif filter_on == DISTINCT_FILTER and (query_info.get_n_distinct() is not None):
             return query_info.get_n_distinct() >= min_value
         elif filter_on == SENTIMENT_FILTER:
             return query_info.get_sentiment() >= min_value
@@ -72,27 +73,29 @@ class Filter:
         if not node in self.results.keys():
             self.results[node] = ([], time.time())
         self.results[node][0].append(fragment)
-        if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS:
+        if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.results[node][0])
             self.mom.publish(data_chunk, node)
             self.results[node] = ([], time.time())
 
-    def update_last_and_send_chunk(self):
-        for node in self.results.keys():
-            if len(self.results[node][0]) == 0:
-                continue
-            self.results[node][0][-1].set_as_last()
-            data_chunk = DataChunk(self.results[node][0])
-            self.mom.publish(data_chunk, node)
-            self.results[node] = ([], time.time())
+    # def update_last_and_send_chunk(self):
+    #     for node in self.results.keys():
+    #         if len(self.results[node][0]) == 0:
+    #             continue
+    #         self.results[node][0][-1].set_as_last()
+    #         data_chunk = DataChunk(self.results[node][0])
+    #         self.mom.publish(data_chunk, node)
+    #         self.results[node] = ([], time.time())
         
     def filter_data_chunk(self,chunk: DataChunk):
         for fragment in chunk.get_fragments():
             if self.filter_data_fragment(fragment):
                 for data, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send_chunk(data, key)
-            if fragment.is_last():
-                self.update_last_and_send_chunk()
+            elif fragment.is_last(): # TODO hacer lo de iterar y actualizar el correcto, no todos
+                next_steps = update_data_fragment_step(fragment)
+                for data, key in next_steps.items():
+                    self.add_and_try_to_send_chunk(data, key)
 
     def send_with_timeout(self):
         for key, (data, last_sent) in self.results.items():

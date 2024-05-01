@@ -84,7 +84,7 @@ class QueryInfo:
         self.min = min
         self.max = max
         self.top = top
-        logger.info(f"Filter params setted -> filter_on: {filter_on}, contains: {contains}, min: {min}, max: {max}, top: {top}")
+        # logger.info(f"Filter params setted -> filter_on: {filter_on}, contains: {contains}, min: {min}, max: {max}, top: {top}")
         
     
     def get_filter_params(self) -> Tuple[str, str, int, int]:
@@ -95,7 +95,7 @@ class QueryInfo:
         self.count_distinct = count_distinct
         self.average_column = average_column
         self.percentile_column = percentile
-        logger.info(f"Counter params setted -> group_by: {group_by}, count_distinct: {count_distinct}, average_column: {average_column}, percentile_column: {percentile}")
+        # logger.info(f"Counter params setted -> group_by: {group_by}, count_distinct: {count_distinct}, average_column: {average_column}, percentile_column: {percentile}")
     
     def get_counter_params(self) -> Tuple[str, int, str, Tuple[int, str]]:
         return self.group_by, self.count_distinct, self.average_column, self.percentile_column

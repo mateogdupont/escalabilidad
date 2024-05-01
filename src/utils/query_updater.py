@@ -66,16 +66,16 @@ Return: title
 from utils.structs.data_fragment import DataFragment
 import logging as logger
 
-def _update_first_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
-    if data_fragment.get_book() is None:
+def _update_first_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
+    if data_fragment.get_review():
         return {}
-    logger.info("Updating first query DataFragment")
-    querys = data_fragment.get_querys()
-    querys = {key: value for key, value in querys.items() if key == 1}
+    #logger.info("Updating first query DataFragment")
+    queries = data_fragment.get_queries()
+    queries = {key: value for key, value in queries.items() if key == 1}
     query_info = data_fragment.get_query_info()
-    step = querys[1]
-    querys[1] += 1
-    data_fragment.set_querys(querys)
+    step = queries[1]
+    queries[1] += 1
+    data_fragment.set_queries(queries)
     if step == 0:
         query_info.set_filter_params("CATEGORY", "Computers", None, None, None)
     elif step == 1:
@@ -84,159 +84,160 @@ def _update_first_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
         query_info.set_filter_params("TITLE", "distributed", None, None, None)
     elif step == 3:
         # TODO: delete unwanted columns
-        logger.info("Next step is to return the results")
+        #logger.info("Next step is to return the results")
         return {data_fragment: "results"}
     data_fragment.set_query_info(query_info)
-    logger.info("Next step is to filter")
+    #logger.info("Next step is to filter")
     return {data_fragment: "filter"}
 
-def _update_second_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
-    if data_fragment.get_book() is None:
+def _update_second_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
+    if data_fragment.get_review():
         return {}
-    logger.info("Updating second query DataFragment")
-    querys = data_fragment.get_querys()
-    querys = {key: value for key, value in querys.items() if key == 2}
+    #logger.info("Updating second query DataFragment")
+    queries = data_fragment.get_queries()
+    queries = {key: value for key, value in queries.items() if key == 2}
     query_info = data_fragment.get_query_info()
-    step = querys[2]
-    querys[2] += 1
-    data_fragment.set_querys(querys)
+    step = queries[2]
+    queries[2] += 1
+    data_fragment.set_queries(queries)
     if step == 0:
         query_info.set_counter_params("AUTHOR", "DECADE", None, None)
         data_fragment.set_query_info(query_info)
-        logger.info("Next step is to count")
+        #logger.info("Next step is to count")
         return {data_fragment: "counter"}
     elif step == 1:
         query_info.set_filter_params("COUNT_DISTINCT", None, 10, None, None)
         data_fragment.set_query_info(query_info)
-        logger.info("Next step is to filter")
+        #logger.info("Next step is to filter")
         return {data_fragment: "filter"}
+    elif step == 2:
+        #logger.info("Next step is to return the results")
+        return {data_fragment: "results"}
     
-def _update_third_and_fourth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
-    querys = data_fragment.get_querys()
-    querys = {key: value for key, value in querys.items() if key == 3 or key == 4}
+def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
+    queries = data_fragment.get_queries()
+    queries = {key: value for key, value in queries.items() if key == 3 or key == 4}
     query_info = data_fragment.get_query_info()
-    step = querys[3] if 3 in querys.keys() else querys[4]
-    if 3 in querys.keys():
-        logger.info("Updating third query DataFragment")
-        querys[3] += 1
-    if 4 in querys.keys():
-        logger.info("Updating fourth query DataFragment")
-        querys[4] += 1
-    data_fragment.set_querys(querys)
+    step = queries[3] if 3 in queries.keys() else queries[4]
+    if 3 in queries.keys():
+        #logger.info("Updating third query DataFragment")
+        queries[3] += 1
+    if 4 in queries.keys():
+        #logger.info("Updating fourth query DataFragment")
+        queries[4] += 1
+    data_fragment.set_queries(queries)
     if step == 0:
         if data_fragment.get_book() is not None:
             query_info.set_filter_params("YEAR", None, 1990, 1999, None)
             data_fragment.set_query_info(query_info)
             # the next step for the book is to join with the review
-            if 3 in querys.keys():
-                querys[3] += 1
-            if 4 in querys.keys():
-                querys[4] += 1
-            data_fragment.set_querys(querys)
-            logger.info("Next step is to filter")
+            if 3 in queries.keys():
+                queries[3] += 1
+            if 4 in queries.keys():
+                queries[4] += 1
+            data_fragment.set_queries(queries)
+            #logger.info("Next step is to filter")
             return {data_fragment: "filter"}
         else:
             query_info.set_counter_params("BOOK_TITLE", "REVIEW", "SCORE", None)
             data_fragment.set_query_info(query_info)
-            logger.info("Next step is to count")
+            #logger.info("Next step is to count")
             return {data_fragment: "counter"}
     elif step == 1:
         query_info.set_filter_params("COUNT_DISTINCT", None, 500, None, None)
         data_fragment.set_query_info(query_info)
-        logger.info("Next step is to filter")
+        #logger.info("Next step is to filter")
         return {data_fragment: "filter"}
     elif step == 2:
         if data_fragment.get_book() is not None:
-            logger.info("Next step is to join (goes to books queue)")
+            #logger.info("Next step is to join (goes to books queue)")
             return {data_fragment: "joiner_books"}
         else:
-            logger.info("Next step is to join (goes to reviews queue)")
+            #logger.info("Next step is to join (goes to reviews queue)")
             return {data_fragment: "joiner_reviews"}
     
     next_steps = {}
     if step == 3:
-        if 3 in querys.keys() and 4 in querys.keys():
-            logger.info("The data fragment will be splitted in two")
-        if 3 in querys.keys():
+        # if 3 in queries.keys() and 4 in queries.keys():
+            #logger.info("The data fragment will be splitted in two")
+        if 3 in queries.keys():
             next_steps[data_fragment] = "results"
-            logger.info("Next step is to return the results (query 3)")
-        if 4 in querys.keys():
+            #logger.info("Next step is to return the results (query 3)")
+        if 4 in queries.keys():
             new_data_fragment = data_fragment.clone()
             query_info = new_data_fragment.get_query_info()
             query_info.set_filter_params(None, None, None, None, (10, "AVERAGE"))
             new_data_fragment.set_query_info(query_info)
             next_steps[new_data_fragment] = "filter"
-            logger.info("Next step is to filter (query 4)")
+            #logger.info("Next step is to filter (query 4)")
         return next_steps
     if step == 4:
-        logger.info("Next step is to return the results")
+        #logger.info("Next step is to return the results")
         return {data_fragment: "results"}
     
-def _update_fifth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
-    logger.info("Updating fifth query DataFragment")
-    querys = data_fragment.get_querys()
-    querys = {key: value for key, value in querys.items() if key == 5}
+def _update_fifth_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
+    #logger.info("Updating fifth query DataFragment")
+    queries = data_fragment.get_queries()
+    queries = {key: value for key, value in queries.items() if key == 5}
     query_info = data_fragment.get_query_info()
-    step = querys[5]
-    querys[5] += 1
-    data_fragment.set_querys(querys)
+    step = queries[5]
+    queries[5] += 1
+    data_fragment.set_queries(queries)
     if step == 0:
         if data_fragment.get_book() is not None:
-            querys[5] += 2
-            data_fragment.set_querys(querys)
+            queries[5] += 2
+            data_fragment.set_queries(queries)
             query_info.set_filter_params("CATEGORY", "Fiction", None, None, None)
             data_fragment.set_query_info(query_info)
-            logger.info("Next step is to filter")
+            #logger.info("Next step is to filter")
             return {data_fragment: "filter"}
         else:
-            logger.info("Next step is to sentiment analysis")
+            #logger.info("Next step is to sentiment analysis")
             return {data_fragment: "sentiment_analysis"}
     if step == 1:
         query_info.set_counter_params("BOOK_TITLE", None, None, (90, "SENTIMENT"))
         data_fragment.set_query_info(query_info)
-        logger.info("Next step is to count")
+        #logger.info("Next step is to count")
         return {data_fragment: "counter"}
     if step == 2:
         percentile_90 = query_info.get_percentile()
-        logger.info(f"The percentile 90 is: {percentile_90}")
+        #logger.info(f"The percentile 90 is: {percentile_90}")
         query_info.set_filter_params("SENTIMENT", None,  percentile_90, None, None)
         data_fragment.set_query_info(query_info)
-        logger.info("Next step is to filter")
+        #logger.info("Next step is to filter")
         return {data_fragment: "filter"}
     if step == 3:
         if data_fragment.get_book() is not None:
-            logger.info("Next step is to join (goes to books queue)")
+            #logger.info("Next step is to join (goes to books queue)")
             return {data_fragment: "joiner_books"}
         else:
-            logger.info("Next step is to join (goes to reviews queue)")
+            #logger.info("Next step is to join (goes to reviews queue)")
             return {data_fragment: "joiner_reviews"}
     if step == 4:
-        logger.info("Next step is to return the results")
+        #logger.info("Next step is to return the results")
         return {data_fragment: "results"}
 
-def update_data_fragment_step(data_fragment: DataFragment) -> dict[DataFragment, str]:
-    querys = data_fragment.get_querys()
-    
-    logger.info(f"Updating data fragment with querys: {querys}")
+def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
+    queries = data_fragment.get_queries()
+    #logger.info(f"Updating data fragment with queries: {queries}")
 
     next_steps = {}
     
-    if 1 in querys.keys():
+    if 1 in queries.keys():
         for datafragment, key in _update_first_query(data_fragment.clone()).items():
             next_steps[datafragment] = key
     
-    if 2 in querys.keys():
+    if 2 in queries.keys():
         for datafragment, key in _update_second_query(data_fragment.clone()).items():
             next_steps[datafragment] = key
         
-    if 3 in querys.keys() or 4 in querys.keys():
+    if 3 in queries.keys() or 4 in queries.keys():
         for datafragment, key in _update_third_and_fourth_query(data_fragment.clone()).items():
             next_steps[datafragment] = key
     
-    if 5 in querys.keys():
+    if 5 in queries.keys():
         for datafragment, key in _update_fifth_query(data_fragment.clone()).items():
             next_steps[datafragment] = key
     
-
     return next_steps
                     

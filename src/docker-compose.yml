@@ -75,6 +75,15 @@ services:
       - rabbitmq
     networks:
       - network-bridge
+
+  counter:
+    build:
+      context: .
+      dockerfile: ./counter/Dockerfile
+    depends_on:
+      - rabbitmq
+    networks:
+      - network-bridge
     
   sentiment-analyser:
     build:
