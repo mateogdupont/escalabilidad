@@ -1,11 +1,12 @@
 from typing import List
 import jsonpickle
 from utils.structs.data_fragment import DataFragment
+import logging as logger
 
 
 class DataChunk:
 
-    def __init__(self, fragments: List[DataFragment]) -> None:
+    def __init__(self, fragments: list[DataFragment]) -> None:
         self.amount = len(fragments)
         self.fragments = fragments
         self.contains_last = False

@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from utils.structs.data_chunk import DataChunk
 
 class MOM:
-    def __init__(self, consumer_queues: dict[str, bool]) -> None:
+    def __init__(self, consumer_queues: 'dict[str, bool]') -> None:
         load_dotenv()
         credentials = pika.PlainCredentials(os.environ["RABBITMQ_DEFAULT_USER"], os.environ["RABBITMQ_DEFAULT_PASS"])
         connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', credentials=credentials))
