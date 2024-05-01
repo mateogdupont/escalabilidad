@@ -21,6 +21,7 @@ class DataCleaner:
         self._socket.bind(('', 1250))
         self._socket.listen(LISTEN_BACKLOG)
         self._exit = False
+        self.total_pass = 0
         self.clean_data_to_filter = []
         self.clean_data_to_counter = []
         self.clean_data_to_sentiment = []
@@ -76,9 +77,11 @@ class DataCleaner:
         else:
             return fragment.is_last()
 
-    def clear_data(self, chunk: DataChunk):
-        filters_fragments = filter(self.has_minimun_data, chunk.get_fragments())
-        chunk.set_fragments(list(filters_fragments))
+    def clear_data(self, chunk: DataChunk) -> DataChunk:
+        filters_fragments = list(filter(self.has_minimun_data, chunk.get_fragments()))
+        self.total_pass += len(filters_fragments)
+        chunk.set_fragments(filters_fragments)
+        return chunk
         
 
     def run(self):
@@ -87,12 +90,10 @@ class DataCleaner:
             chunk_msg = receive_msg(socket)
             json_chunk_msg = json.loads(chunk_msg)
             chunk = DataChunk.from_json(json_chunk_msg)
-
-            #self.clear_data(chunk)
-
-            self.send_clean_data(DataChunk.from_json(json_chunk_msg))
+            self.clear_data(chunk)
+            self.send_clean_data(chunk)
             if chunk.contains_last_fragment():
-                print(f"All data was received")
+                print(f"All data was received: {self.total_pass}")
                 send_msg(socket,json.dumps(chunk.to_json()))
                 self._exit = True
 
