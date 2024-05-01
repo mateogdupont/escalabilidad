@@ -67,7 +67,6 @@ class Filter:
         if not node in self.results.keys():
             self.results[node] = ([], time.time())
         self.results[node][0].append(fragment)
-        self.results[node] = (self.results[node][0], time.time())
         if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS:
             data_chunk = DataChunk(self.results[node][0])
             self.mom.publish(data_chunk, node)

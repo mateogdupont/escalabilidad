@@ -5,6 +5,7 @@ from multiprocessing import Process, Event
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
+from utils.structs.data_chunk import *
 from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv
@@ -44,10 +45,10 @@ class Counter:
             self.counted_data[query_id] = {}
         bool_set = []
         results = []
-        for value in [group_by, count_distinct, average_column, percentile_data]:
-            bool_set.append(value is not None)
+        for v in [group_by, count_distinct, average_column, percentile_data]:
+            bool_set.append(v is not None)
         if [True, True, False, False] == bool_set: # for query 2
-            self.count_type_1(query_id, queries, group_data, value, results)
+            self.count_type_1(data_fragment, query_id, queries, group_data, value, results)
         elif [True, True, True, False] == bool_set: # for queries 3 and 4
             self.count_type_2(data_fragment, query_info, query_id, group_data, value, results)
         elif [True, False, False, True] == bool_set: # for query 5
@@ -59,7 +60,10 @@ class Counter:
         if group_data not in self.counted_data[query_id].keys():
             self.counted_data[query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
         self.counted_data[query_id][group_data]["VALUES"].append(value)
-            
+        
+        if not data_fragment.is_last():
+            return
+        
         percentile_90 = np.percentile(self.counted_data[query_id][group_data]["VALUES"], self.counted_data[query_id][group_data]["PERCENTILE"])
         query_info.set_percentile(percentile_90)
         data_fragment.set_query_info(query_info)
@@ -71,29 +75,40 @@ class Counter:
             self.counted_data[query_id][group_data] = {"TOTAL": 0, "COUNT": 0}
         self.counted_data[query_id][group_data]["TOTAL"] += value
         self.counted_data[query_id][group_data]["COUNT"] += 1
+
+        if not data_fragment.is_last():
+            return
             
         query_info.set_n_distinct(self.counted_data[query_id][group_data]["COUNT"])
         query_info.set_average(self.counted_data[query_id][group_data]["TOTAL"] / self.counted_data[query_id][group_data]["COUNT"])
         data_fragment.set_query_info(query_info)
         results.append(data_fragment)
 
-    def count_type_1(self, query_id, queries, group_data, value, results):
-        logger.info("Processing query 2")
+    def count_type_1(self, data_fragment, query_id, queries, group_data, value, results):
         # group data is a list
         if type(group_data) == list:
             for data in group_data:
                 if data not in self.counted_data[query_id].keys():
                     self.counted_data[query_id][data] = set()
                 self.counted_data[query_id][data].add(value)
+        else:
+            logger.warning(f"Group data is not a list, it is a {type(group_data)}")
+        
+        if not data_fragment.is_last():
+            return
 
         base_data_fragment = DataFragment(queries.copy(), None, None)
         for key, value in self.counted_data[query_id].items():
             new_data_fragment = base_data_fragment.clone()
             new_query_info = QueryInfo()
             new_query_info.set_author(key)
-            new_data_fragment.set_n_distinct(len(value))
+            new_query_info.set_n_distinct(len(value))
             new_data_fragment.set_query_info(new_query_info)
             results.append(new_data_fragment)
+            if len(value) >= 10:
+                logger.info(f"Author: {key} has {len(value)} decades")
+            if key == AUTHOR:
+                logger.info(f"Author {AUTHOR} has {len(value)} decades")
 
     def get_counter_values(self, query_info, group_by, count_distinct, average_column, percentile_data, book, review):
         group_data, value, percentile = None, None, None
@@ -104,7 +119,10 @@ class Counter:
             group_data = review.get_book_title()
         
         if (count_distinct == "DECADE") and (book is not None):
-            value = book.get_published_date().year // 10 * 10
+            if AUTHOR in book.get_authors():
+                logger.info(f"Author {AUTHOR} found | year: {book.get_published_year()}")
+                logger.info(f"Author {AUTHOR} found | title: {book.get_title()}")
+            value = (book.get_published_year() // 10) * 10
         elif (average_column == "SCORE") and (review is not None):
             value = review.get_score()
         elif (percentile_data is not None) and (query_info is not None):
@@ -116,14 +134,23 @@ class Counter:
         while not self._exit:
             msg = self.mom.consume(self.work_queue)
             if not msg:
-                return # TODO: change this
-            data_fragment, tag = msg
-            results = self.count_data_fragment(data_fragment)
-            
-            if data_fragment.is_last():
-                for results_data_fragment in results:
-                    self.mom.publish(update_data_fragment_step(results_data_fragment))
+                continue # TODO: change this
+            data_chunk, tag = msg
+            for data_fragment in data_chunk.get_fragments():
+                results = self.count_data_fragment(data_fragment)
 
+                if len(results) > 0:
+                    results[-1].set_as_last()
+
+                key = None
+                fragments = []
+                for results_data_fragment in results:
+                    steps = update_data_fragment_step(results_data_fragment)
+                    # for data, key in steps.items():
+                    #     self.mom.publish(DataChunk([data]), key)
+                    fragments.extend(steps.keys())
+                    key = steps[results_data_fragment]
+                self.mom.publish(DataChunk(fragments), key)
             self.mom.ack(tag)
 
 def main():

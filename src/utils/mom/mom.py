@@ -24,8 +24,8 @@ class MOM:
     def _connect(self, retry: int) -> bool:
         try:
             credentials = pika.PlainCredentials(os.environ["RABBITMQ_DEFAULT_USER"], os.environ["RABBITMQ_DEFAULT_PASS"])
-            connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', credentials=credentials))
-            self.channel = connection.channel()
+            self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', credentials=credentials))
+            self.channel = self.connection.channel()
             return True
         except Exception as e:
             if retry == os.environ["MAX_RETRIES"]:
