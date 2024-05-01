@@ -39,9 +39,9 @@ def work(sleep_time, consumer_queues, work_queue, lock, ending_signal):
         mom.ack(delivery_tag)
         if len(update_data_fragment_step(data_fragment).keys()) > 1:
             logger.warning("More than one data fragment returned from update_data_fragment_step")
-            logger.info(f"original data fragment with querys {data_fragment.get_querys()}")
+            logger.info(f"original data fragment with queries {data_fragment.get_queries()}")
             for data_fragment, _ in update_data_fragment_step(data_fragment).items():
-                logger.info(f"Publishing data fragment with querys {data_fragment.get_querys()}")
+                logger.info(f"Publishing data fragment with queries {data_fragment.get_queries()}")
             return
         mom.publish(update_data_fragment_step(data_fragment))
         # for data_fragment, routing_key in update_data_fragment_step(data_fragment).items():
