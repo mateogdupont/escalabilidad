@@ -9,6 +9,7 @@ from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv
 import logging as logger
+import sys
 
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
@@ -20,6 +21,7 @@ TIMEOUT = 10
 
 class Filter:
     def __init__(self):
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)

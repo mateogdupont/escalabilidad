@@ -9,6 +9,8 @@ from utils.stream_communications import *
 from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv
+import sys
+import logging as logger
 
 MAX_AMOUNT_OF_FRAGMENTS = 100
 LISTEN_BACKLOG = 5
@@ -16,6 +18,7 @@ PORT = 1250
 
 class DataCleaner:
     def __init__(self):
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.bind(('', 1250))
