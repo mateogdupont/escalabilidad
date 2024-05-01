@@ -216,6 +216,7 @@ def _update_fifth_query(data_fragment: DataFragment) -> dict[DataFragment, str]:
 
 def update_data_fragment_step(data_fragment: DataFragment) -> dict[DataFragment, str]:
     querys = data_fragment.get_querys()
+    
     logger.info(f"Updating data fragment with querys: {querys}")
 
     next_steps = {}
@@ -236,5 +237,6 @@ def update_data_fragment_step(data_fragment: DataFragment) -> dict[DataFragment,
         for datafragment, key in _update_fifth_query(data_fragment.clone()).items():
             next_steps[datafragment] = key
     
+
     return next_steps
                     

@@ -42,10 +42,17 @@ services:
     build:
       context: .
       dockerfile: ./client/Dockerfile
-    depends_on:
-      - rabbitmq
     volumes:
       - ../data/data.zip:/data.zip
+    networks:
+      - network-bridge
+    depends_on:
+      - cleaner
+
+  cleaner:
+    build:
+      context: .
+      dockerfile: ./data_cleaner/Dockerfile
     networks:
       - network-bridge
 
