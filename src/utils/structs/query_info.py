@@ -6,6 +6,7 @@ class QueryInfo:
 
     def __init__(self) -> None:
         # results
+        self.last = False
         self.author = None
         self.n_distinct = None
         self.average = None
@@ -46,6 +47,12 @@ class QueryInfo:
     
     def get_author(self) -> str:
         return self.author
+    
+    def set_as_last(self) -> None:
+        self.last = True
+    
+    def is_last(self) -> bool:
+        return self.last
     
     def set_n_distinct(self, n_distinct: int) -> None:
         self.n_distinct = n_distinct

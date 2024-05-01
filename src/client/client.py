@@ -1,15 +1,21 @@
 import csv
 import signal
+import os
+import re
 from typing import List
 import datetime
 from multiprocessing import Process, Event
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
-from utils.mom.mom import MOM
+from utils.structs.data_chunk import *
+from utils.stream_communications import *
 from utils.query_updater import update_data_fragment_step
-import os
 from dotenv import load_dotenv
+import logging as logger
+import sys
+
+year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
 CHUNK_SIZE = 100
 BOOKS_FILE_NAME = "books_data.csv"
@@ -28,18 +34,16 @@ REVIEW_ARGUMENT_AMOUNT = 6
 # Id|Title|Price|User_id|profileName|review/helpfulness|review/score|review/time|review/summary|review/text
 
 class Client:
-    def __init__(self, data_path: str, queries: dict[int, int]):
+    def __init__(self, data_path: str, queries: 'dict[int, int]', socket):
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
         self._data_path = data_path
         self._queries = queries
         self._stop = False
         self._event = None
         self.total = 0
-        repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
-        consumer_queues = eval(repr_consumer_queues)
-        self.work_queue = list(consumer_queues.keys())[0]
-        self.mom = MOM(consumer_queues)
-        # self.mom = MOM({"books-analyser.results": None})
+        self.socket = socket
+        self.data = DataChunk([])
         signal.signal(signal.SIGTERM, self.sigterm_handler)
 
     def sigterm_handler(self, signal,frame):
@@ -56,11 +60,18 @@ class Client:
                 return chunk
         return chunk
 
+    def parse_year(self,read_date: str):
+        if read_date:
+            result = year_regex.search(read_date)
+            return result.group(1) if result else None
+        return None
+
     def parse_data(self, data):
         book = None
         review = None
         if len(data) == BOOKS_ARGUMENT_AMOUNT:
-            book = Book(data[0],data[1],data[2],None,None,data[3],data[4],None,data[5],data[6])
+            publish_year = self.parse_year(data[4])
+            book = Book(data[0],data[1],data[2],None,None,data[3],publish_year,None,data[5],data[6])
         elif len(data) == REVIEW_ARGUMENT_AMOUNT:
             review = Review(data[0],data[1],None,None,data[2],data[3],None,data[4],data[5])
         else:
@@ -68,14 +79,15 @@ class Client:
         queries_copy = self._queries.copy()
         return DataFragment(queries_copy, book , review)
     
-    #TODO: Filter input data (NULLS, invalid values, etc)
     def _send_data_chunk(self,data_chunk):
         for data in data_chunk:
             parsed_data = self.parse_data(data)
             if parsed_data != None:
-                # for datafragment, key in update_data_fragment_step(parsed_data).items():
-                #     self.mom.publish(key, datafragment)
-                self.mom.publish(update_data_fragment_step(parsed_data))
+                self.data.add_fragment(parsed_data)
+                if self.data.get_amount() == CHUNK_SIZE:
+                    message = json.dumps(self.data.to_json())
+                    send_msg(self.socket,message)
+                    self.data.set_fragments([])
 
     def _send_file(self, file_path: str, columns_to_send:  List[int]):
         with open(file_path, 'r') as data_file:
@@ -85,12 +97,20 @@ class Client:
                 if not data_chunk or self._stop:
                     return
                 self._send_data_chunk(data_chunk)
-                print(f"Sent {len(data_chunk)} data fragments")
+    
+    def _send_last(self):
+        fragment = DataFragment(self._queries.copy(), None , None)
+        fragment.set_as_last()
+        self.data.add_fragment(fragment)
+        send_msg(self.socket, json.dumps(self.data.to_json()))
+        self.data.set_fragments([])
+
 
     def _send_all_data_files(self):
         print("Starting to send data, please wait")
         self._send_file(self._data_path + "/" + BOOKS_FILE_NAME, BOOKS_RELEVANT_COLUMNS)
-        self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
+        #self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
+        self._send_last()
 
     def run(self):
         self._event = Event()
@@ -105,20 +125,26 @@ class Client:
         
         results_proccess.join()
 
-    #TODO Parse and save results in CSV
+    
     def _handle_results(self, event):
-        pass
+        amount_of_queries_left = len(self._queries)
+        while  not event.is_set():
+            chunk_msg = receive_msg(self.socket)
+            json_chunk_msg = json.loads(chunk_msg)
+            chunk = DataChunk.from_json(json_chunk_msg)
+            for fragment in chunk.get_fragments():
+                print(f"Result: {fragment.to_json()}") #TODO: Change this to save in CSV
+                if fragment.is_last():
+                    amount_of_queries_left -= 1
+            if amount_of_queries_left <= 0:
+                break              
+        self.socket.close()
         # with open(RESULTS_FILE_NAME, 'w', newline='') as csvfile:
         #     writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         #     writer.writerows(RESULTS_COLUMNS)
         #     while not event.is_set():
-        #         # result = self.mom.consume("books-analyser.results")
-        #         result = self.mom.consume(self.work_queue)
-        #         if result is not None:
-        #             data_fragment, tag = result
-        #             print(f"Write results {data_fragment}")
-        #             self.mom.ack(tag)
-        #         else:
-        #             # Handle the case where there are no messages to consume
-        #             sleep(100)
-        #             print("No messages to consume")
+        #         (data_fragment_chunk, tag) = self.mom.consume("results")
+        #         print(f"Write results {data_fragment_chunk}")
+        #         self.mom.ack(tag)
+
+        # print("All queries have been processed")

@@ -23,6 +23,9 @@ class Review:
     def from_json(cls, json_str: str) -> 'Review':
         return jsonpickle.decode(json_str)
     
+    def has_minimun_data(self) -> bool:
+        return bool(self.title and self.text)
+    
     def get_text(self) -> str:
         return self.text
     

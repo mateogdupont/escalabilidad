@@ -1,28 +1,34 @@
-import sys
-import os
 import signal
-from multiprocessing import Process, Event
+import os
+import time
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
+from utils.structs.data_chunk import *
 from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv
+import logging as logger
+import sys
 
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
+MAX_AMOUNT_OF_FRAGMENTS = 100
+TIMEOUT = 10
 
 class Filter:
     def __init__(self):
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
-        # self.mom = MOM({"books-analyser.data_processor.filter": {'x-max-priority': 5}})
+        self.results = {}
+        self.top_ten = []
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         self._exit = False
     
@@ -36,32 +42,73 @@ class Filter:
         query_info = data_fragment.get_query_info()
 
         if (filter_on == CATEGORY_FILTER) and (book is not None):
-            return word in book.get_categories()
+            return word.lower() in [c.lower() for c in book.get_categories()]
         elif (filter_on == YEAR_FILTER) and (book is not None):
-            book_year = book.get_published_date().year
-            return  min_value < book_year < max_value
+            book_year = book.get_published_year()
+            return min_value <= book_year <= max_value
         elif (filter_on == TITLE_FILTER) and (book is not None):
-            return word in book.get_title()
-        elif (filter_on == DISTINCT_FILTER) and (query_info is not None):
+            return word.lower() in book.get_title().lower()
+        elif filter_on == DISTINCT_FILTER:
             return query_info.get_n_distinct() >= min_value
-        elif (filter_on == SENTIMENT_FILTER) and (query_info is not None):
-            return query_info.get_sentimentt() >= min_value
+        elif filter_on == SENTIMENT_FILTER:
+            return query_info.get_sentiment() >= min_value
         else:
-            print(f"Filter not applied")
+            #TODO: Apply filter of top10
+            # logger.info(f"No entre a nadapor que filter on es: {filter_on}")
+            return False
+            if data_fragment.is_last():
+                #Send all data
+                self.top_ten = []
+                return False
+            #Check if is a top 10 and insert it in order
         return False
+    
+    def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
+        if not node in self.results.keys():
+            self.results[node] = ([], time.time())
+        self.results[node][0].append(fragment)
+        self.results[node] = (self.results[node][0], time.time())
+        if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS:
+            data_chunk = DataChunk(self.results[node][0])
+            self.mom.publish(data_chunk, node)
+            self.results[node] = ([], time.time())
+
+    def update_last_and_send_chunk(self):
+        for node in self.results.keys():
+            if len(self.results[node][0]) == 0:
+                continue
+            self.results[node][0][-1].set_as_last()
+            data_chunk = DataChunk(self.results[node][0])
+            self.mom.publish(data_chunk, node)
+            self.results[node] = ([], time.time())
+        
+    def filter_data_chunk(self,chunk: DataChunk):
+        for fragment in chunk.get_fragments():
+            if self.filter_data_fragment(fragment):
+                for data, key in update_data_fragment_step(fragment).items():
+                    self.add_and_try_to_send_chunk(data, key)
+            if fragment.is_last():
+                self.update_last_and_send_chunk()
+
+    def send_with_timeout(self):
+        for key, (data, last_sent) in self.results.items():
+            if (len(data) > 0) and (time.time() - last_sent > TIMEOUT):
+                chunk = DataChunk(data)
+                self.mom.publish(chunk, key)
+                self.results[key] = ([], time.time())
+
 
     def run(self):
         while not self._exit:
             msg = self.mom.consume(self.work_queue)
             if not msg:
-                return # TODO: change this
-            data_fragment, tag = msg
-            if self.filter_data_fragment(data_fragment):
-                # updated_dict = update_data_fragment_step(data_fragment)
-                # for data, key in updated_dict.items():
-                #     self.mom.publish(key, data)
-                self.mom.publish(update_data_fragment_step(data_fragment))
+                continue
+                #return # TODO: change this
+            # logger.info(f"Recibi {msg}")
+            data_chunk, tag = msg
+            self.filter_data_chunk(data_chunk)
             self.mom.ack(tag)
+            self.send_with_timeout()
 
 def main():
     filter = Filter()

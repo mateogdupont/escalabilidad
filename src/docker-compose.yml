@@ -42,12 +42,21 @@ services:
     build:
       context: .
       dockerfile: ./client/Dockerfile
-    depends_on:
-      - rabbitmq
     volumes:
       - ../data/data.zip:/data.zip
     networks:
       - network-bridge
+    depends_on:
+      - cleaner
+
+  cleaner:
+    build:
+      context: .
+      dockerfile: ./data_cleaner/Dockerfile
+    networks:
+      - network-bridge
+    depends_on:
+      - rabbitmq
 
   filter:
     build:
@@ -87,12 +96,6 @@ services:
 
 networks:
   network-bridge:
-    driver: bridge
-    ipam:
-      driver: default  
-      config: 
-        - subnet: "${LOCAL_NETWORK}/24"
-          gateway: $LOCAL_NETWORK_GATEWAY
 
 volumes:
   rabbitmq:
