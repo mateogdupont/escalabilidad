@@ -100,3 +100,5 @@ class QueryInfo:
     def get_counter_params(self) -> Tuple[str, int, str, Tuple[int, str]]:
         return self.group_by, self.count_distinct, self.average_column, self.percentile_column
     
+    def get_top_param(self):
+        return self.top

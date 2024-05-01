@@ -18,6 +18,7 @@ DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 100
 TIMEOUT = 10
+TOP_AMOUNT = 10
 
 class Filter:
     def __init__(self):
@@ -53,21 +54,24 @@ class Filter:
         elif filter_on == SENTIMENT_FILTER:
             return query_info.get_sentiment() >= min_value
         else:
-            #TODO: Apply filter of top10
-            # logger.info(f"No entre a nadapor que filter on es: {filter_on}")
             return False
+            if len(self.top_ten) < TOP_AMOUNT or query_info.get_top_param() > self.top_ten[0].get_top_param():
+                self.top_ten.append(data_fragment)
+                self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_top_param())
+                if len(self.top_ten) > 10:
+                    self.top_ten.pop()
+            return False
+        
             if data_fragment.is_last():
                 #Send all data
                 self.top_ten = []
                 return False
-            #Check if is a top 10 and insert it in order
         return False
     
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
         if not node in self.results.keys():
             self.results[node] = ([], time.time())
         self.results[node][0].append(fragment)
-        self.results[node] = (self.results[node][0], time.time())
         if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS:
             data_chunk = DataChunk(self.results[node][0])
             self.mom.publish(data_chunk, node)
