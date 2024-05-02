@@ -1,6 +1,7 @@
 import socket
 import signal
 import os
+from multiprocessing import Process, Event
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
@@ -24,6 +25,7 @@ class DataCleaner:
         self._socket.bind(('', 1250))
         self._socket.listen(LISTEN_BACKLOG)
         self._exit = False
+        self._event = None
         self.total_pass = 0
         self.clean_data = {}
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
@@ -34,6 +36,8 @@ class DataCleaner:
     
     def sigterm_handler(self):
         self._exit = True
+        if self._event:
+            self._event.set()
     
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
         # # self.clean_data[node] = self.clean_data.get(node, []).append(fragment)
@@ -80,10 +84,13 @@ class DataCleaner:
         chunk.set_fragments(filters_fragments)
         return chunk
         
-
-    def run(self):
-        socket = self._socket.accept()[0]
-        while not self._exit:
+    def handle_client(self, socket):
+        finish = False
+        queries = receive_msg(socket)
+        self._event = Event()
+        results_proccess = Process(target=self._send_results, args=(socket,queries,self._event,))
+        results_proccess.start()
+        while not self._exit and not finish:
             chunk_msg = receive_msg(socket)
             json_chunk_msg = json.loads(chunk_msg)
             chunk = DataChunk.from_json(json_chunk_msg)
@@ -91,8 +98,28 @@ class DataCleaner:
             self.send_clean_data(chunk)
             if chunk.contains_last_fragment():
                 print(f"All data was received: {self.total_pass}")
-                send_msg(socket,json.dumps(chunk.to_json()))
-                self._exit = True
+                finish = True
+        results_proccess.join()
+        logger.info(f"Muero para este cliente")
+
+    def run(self):
+        while not self._exit:
+            socket = self._socket.accept()[0]
+            self.handle_client(socket)
+
+    def _send_results(self,socket,queries,event):
+        queries_left = len(queries.split(','))
+        while not event.is_set() and queries_left > 0:
+            msg = self.mom.consume(self.work_queue)
+            if not msg:
+                continue
+            (data_chunk, tag) = msg
+            message = json.dumps(data_chunk.to_json())
+            send_msg(socket,message)
+            if data_chunk.contains_last():
+                queries_left -= 1
+            self.mom.ack(tag)
+        logger.info(f"All results has been delivered.")
 
 
 
