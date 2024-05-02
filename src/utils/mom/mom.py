@@ -5,15 +5,11 @@ from dotenv import load_dotenv
 from utils.structs.data_chunk import DataChunk
 import logging as logger
 
-class MOMNotAvailableError(Exception):
-    """Raised when the Message Oriented Middleware (MOM) is not available."""
-    pass
-
 class MOM:
     def __init__(self, consumer_queues: 'dict[str, bool]') -> None:
         load_dotenv()
         if not self._connect(0):
-            raise MOMNotAvailableError("The connection to the Message Oriented Middleware (MOM) is not available.")
+            return
         self.channel.basic_qos(prefetch_count=1)
         for queue, arguments in consumer_queues.items():
             arguments = {'x-max-priority': 5} if arguments else {}

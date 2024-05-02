@@ -37,8 +37,6 @@ class Filter:
         self._exit = True
 
     def filter_data_fragment(self, data_fragment: DataFragment) -> bool:
-        if data_fragment.is_last():
-            return False
         query_info = data_fragment.get_query_info()
         filter_on, word, min_value, max_value = query_info.get_filter_params()
         book = data_fragment.get_book()
@@ -51,22 +49,24 @@ class Filter:
         elif (filter_on == TITLE_FILTER) and (book is not None):
             return word.lower() in book.get_title().lower()
         elif filter_on == DISTINCT_FILTER and (query_info.get_n_distinct() is not None):
-            return query_info.get_n_distinct() >= min_value
-        elif filter_on == SENTIMENT_FILTER:
+            return query_info.get_n_distinct() >= 10 #min_value
+        elif filter_on == SENTIMENT_FILTER and (query_info.get_sentiment() is not None):
             return query_info.get_sentiment() >= min_value
-        else:
-            if len(self.top_ten) < TOP_AMOUNT or query_info.get_top_param() > self.top_ten[0].get_top_param():
+        elif query_info.filter_by_top():
+            if len(self.top_ten) < TOP_AMOUNT:
                 self.top_ten.append(data_fragment)
-                self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_top_param())
-                if len(self.top_ten) > 10:
-                    self.top_ten.pop()
+                self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
+            else:
+                lowest = self.top_ten[0]
+                if data_fragment.get_query_info().get_average() > lowest.get_query_info().get_average():
+                    self.top_ten[0] = data_fragment
+                    self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
         
             if data_fragment.is_last():
-                if 4 in data_fragment.get_queries().keys():
-                    for fragment in self.top_ten:
-                        for data, key in update_data_fragment_step(fragment).items():
-                            self.add_and_try_to_send_chunk(data, key)
-                    self.top_ten = []
+                for fragment in self.top_ten:
+                    for data, key in update_data_fragment_step(fragment).items():
+                        self.add_and_try_to_send_chunk(data, key)
+                self.top_ten = []
         return False
 
     
@@ -95,7 +95,7 @@ class Filter:
             if self.filter_data_fragment(fragment):
                 for data, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send_chunk(data, key)
-            elif fragment.is_last():
+            if fragment.is_last():
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)

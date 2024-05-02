@@ -127,6 +127,12 @@ def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFra
         queries[4] += 1
     data_fragment.set_queries(queries)
     if step == 0:
+        if data_fragment.is_last():
+            # a copy for books and another for reviews
+            new_data_fragment = data_fragment.clone()
+            new_data_fragment.set_query_info(data_fragment.get_query_info().clone())
+            return {new_data_fragment: "filter", data_fragment: "counter"}
+
         if data_fragment.get_book() is not None:
             query_info.set_filter_params("YEAR", None, 1990, 1999, None)
             data_fragment.set_query_info(query_info)
@@ -149,6 +155,12 @@ def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFra
         #logger.info("Next step is to filter")
         return {data_fragment: "filter"}
     elif step == 2:
+        if data_fragment.is_last():
+            # a copy for books and another for reviews
+            new_data_fragment = data_fragment.clone()
+            new_data_fragment.set_query_info(data_fragment.get_query_info().clone())
+            return {new_data_fragment: "joiner_books", data_fragment: "joiner_reviews"}
+        
         if data_fragment.get_book() is not None:
             #logger.info("Next step is to join (goes to books queue)")
             return {data_fragment: "joiner_books"}
@@ -184,6 +196,11 @@ def _update_fifth_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]
     queries[5] += 1
     data_fragment.set_queries(queries)
     if step == 0:
+        if data_fragment.is_last():
+            # a copy for books and another for reviews
+            new_data_fragment = data_fragment.clone()
+            new_data_fragment.set_query_info(data_fragment.get_query_info().clone())
+            return {new_data_fragment: "filter", data_fragment: "sentiment_analysis"}
         if data_fragment.get_book() is not None:
             queries[5] += 2
             data_fragment.set_queries(queries)
@@ -207,6 +224,11 @@ def _update_fifth_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]
         #logger.info("Next step is to filter")
         return {data_fragment: "filter"}
     if step == 3:
+        if data_fragment.is_last():
+            # a copy for books and another for reviews
+            new_data_fragment = data_fragment.clone()
+            new_data_fragment.set_query_info(data_fragment.get_query_info().clone())
+            return {new_data_fragment: "joiner_books", data_fragment: "joiner_reviews"}
         if data_fragment.get_book() is not None:
             #logger.info("Next step is to join (goes to books queue)")
             return {data_fragment: "joiner_books"}

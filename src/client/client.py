@@ -92,7 +92,11 @@ class Client:
     def _send_file(self, file_path: str, columns_to_send:  List[int]):
         with open(file_path, 'r') as data_file:
             reader = csv.reader(data_file)
+            i = 0
             while True:
+                i += 1
+                if i > 2500:
+                    break
                 data_chunk = self.read_chunk_with_columns(reader,columns_to_send)
                 if not data_chunk or self._stop:
                     return
@@ -108,7 +112,7 @@ class Client:
 
     def _send_all_data_files(self):
         print("Starting to send data, please wait")
-        # self._send_file(self._data_path + "/" + BOOKS_FILE_NAME, BOOKS_RELEVANT_COLUMNS)
+        self._send_file(self._data_path + "/" + BOOKS_FILE_NAME, BOOKS_RELEVANT_COLUMNS)
         self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
         self._send_last()
 
@@ -145,7 +149,7 @@ class Client:
         with open(RESULTS_FILE_NAME, 'w', newline='') as result_file:
             writer = csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
             writer.writerows(RESULTS_COLUMNS)
-            while  not event.is_set():
+            while not event.is_set():
                 chunk_msg = receive_msg(self.socket)
                 json_chunk_msg = json.loads(chunk_msg)
                 chunk = DataChunk.from_json(json_chunk_msg)
