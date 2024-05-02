@@ -49,7 +49,7 @@ class Filter:
         elif (filter_on == TITLE_FILTER) and (book is not None):
             return word.lower() in book.get_title().lower()
         elif filter_on == DISTINCT_FILTER and (query_info.get_n_distinct() is not None):
-            return query_info.get_n_distinct() >= 1 #min_value
+            return query_info.get_n_distinct() >= min_value
         elif filter_on == SENTIMENT_FILTER and (query_info.get_sentiment() is not None):
             return query_info.get_sentiment() >= min_value
         elif query_info.filter_by_top():
