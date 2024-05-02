@@ -102,3 +102,6 @@ class QueryInfo:
     
     def get_top_param(self):
         return self.top
+    
+    def get_result(self) -> List[str]:
+        return [self.n_distinct, self.average,self.sentiment, self.percentile]
