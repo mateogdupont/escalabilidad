@@ -15,4 +15,4 @@ RUN pip install -r ./counter/requirements.txt
 
 ENV PYTHONPATH / 
 
-CMD bash -c "python counter/counter.py"
+CMD bash -c "sleep 2 && python counter/counter.py"

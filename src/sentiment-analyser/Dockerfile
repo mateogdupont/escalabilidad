@@ -15,4 +15,5 @@ RUN pip install -r ./sentiment-analyser/requirements.txt
 # Set the Python path to include /app
 ENV PYTHONPATH=/app
 
-CMD ["python", "sentiment-analyser/main.py"]
+# CMD ["python", "sentiment-analyser/main.py"]
+CMD bash -c "sleep 2 && python sentiment-analyser/main.py"
