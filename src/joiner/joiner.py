@@ -42,11 +42,11 @@ class Joiner:
         self.books_side_tables[query_id][book.get_title()] = book
     
     def process_book_fragment(self,fragment):
-        logger.info(f"Processing book fragment")
+        # logger.info(f"Processing book fragment")
         book = fragment.get_book()
         query_id = fragment.get_query_id()
         self.save_book_in_table(book,query_id)
-        logger.info(f"Book fragment processed")
+        # logger.info(f"Book fragment processed")
 
     def receive_all_books(self, query_id: str):
         logger.info(f"Receiving all books for query {query_id}")
@@ -87,8 +87,8 @@ class Joiner:
         review = fragment.get_review()
         query_id = fragment.get_query_id()
         if review is not None:
-            logger.info(f"self.books_side_tables: {self.books_side_tables}")
-            logger.info(f"query_id: {query_id}")
+            # logger.info(f"self.books_side_tables: {self.books_side_tables}")
+            # logger.info(f"query_id: {query_id}")
             side_table = self.books_side_tables[query_id]
             book = side_table.get(review.get_book_title(), None)
             if book is not None:
