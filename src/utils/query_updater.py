@@ -130,6 +130,11 @@ def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFra
         if data_fragment.is_last():
             # a copy for books and another for reviews
             new_data_fragment = data_fragment.clone()
+            if 3 in queries.keys():
+                queries[3] += 1
+            if 4 in queries.keys():
+                queries[4] += 1
+            new_data_fragment.set_queries(queries)
             new_data_fragment.set_query_info(data_fragment.get_query_info().clone())
             return {new_data_fragment: "filter", data_fragment: "counter"}
 
@@ -200,6 +205,8 @@ def _update_fifth_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]
             # a copy for books and another for reviews
             new_data_fragment = data_fragment.clone()
             new_data_fragment.set_query_info(data_fragment.get_query_info().clone())
+            queries[5] += 2
+            new_data_fragment.set_queries(queries)
             return {new_data_fragment: "filter", data_fragment: "sentiment_analysis"}
         if data_fragment.get_book() is not None:
             queries[5] += 2

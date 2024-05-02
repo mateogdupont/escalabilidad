@@ -64,8 +64,6 @@ class Analyser:
                     query_info.set_sentiment(sentiment_score)
                     data_fragment.set_query_info(query_info)
                 for fragment, key in update_data_fragment_step(data_fragment).items():
-                    if fragment.get_query_info().get_sentiment() is None:
-                        raise Exception("Sentiment is None")
                     self.add_and_try_to_send_chunk(fragment, key)
             
             self.mom.ack(tag)

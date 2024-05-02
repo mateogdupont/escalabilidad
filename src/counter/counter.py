@@ -130,7 +130,7 @@ class Counter:
             value = (book.get_published_year() // 10) * 10
         elif (average_column == "SCORE") and (review is not None):
             value = review.get_score()
-        elif (percentile_data is not None) and (query_info is not None):
+        elif (percentile_data is not None) and (query_info.get_percentile() is not None):
             percentile = query_info.get_percentile()[0]
             value = query_info.get_sentiment()
         return group_data, value, percentile

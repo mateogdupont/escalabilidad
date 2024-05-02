@@ -49,10 +49,11 @@ class Filter:
         elif (filter_on == TITLE_FILTER) and (book is not None):
             return word.lower() in book.get_title().lower()
         elif filter_on == DISTINCT_FILTER and (query_info.get_n_distinct() is not None):
-            return query_info.get_n_distinct() >= 10 #min_value
+            return query_info.get_n_distinct() >= 1 #min_value
         elif filter_on == SENTIMENT_FILTER and (query_info.get_sentiment() is not None):
             return query_info.get_sentiment() >= min_value
         elif query_info.filter_by_top():
+            logger.info(f"Top ten: {self.top_ten} | len {len(self.top_ten)}")
             if len(self.top_ten) < TOP_AMOUNT:
                 self.top_ten.append(data_fragment)
                 self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
@@ -63,6 +64,7 @@ class Filter:
                     self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
         
             if data_fragment.is_last():
+                logger.info("data_fragment is last")
                 for fragment in self.top_ten:
                     for data, key in update_data_fragment_step(fragment).items():
                         self.add_and_try_to_send_chunk(data, key)
