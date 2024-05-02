@@ -76,6 +76,7 @@ class Filter:
         if not node in self.results.keys():
             self.results[node] = ([], time.time())
         self.results[node][0].append(fragment)
+        self.results[node] = (self.results[node][0], self.results[node][1])
         if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.results[node][0])
             self.mom.publish(data_chunk, node)
@@ -114,6 +115,7 @@ class Filter:
         while not self._exit:
             msg = self.mom.consume(self.work_queue)
             if not msg:
+                self.send_with_timeout()
                 continue
                 #return # TODO: change this
             # logger.info(f"Recibi {msg}")
