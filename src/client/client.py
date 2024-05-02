@@ -21,7 +21,7 @@ CHUNK_SIZE = 100
 BOOKS_FILE_NAME = "books_data.csv"
 REVIEWS_FILE_NAME = "Books_rating.csv"
 RESULTS_FILE_NAME = "Results.csv"
-RESULTS_COLUMNS = ['Query','Author','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
+RESULTS_COLUMNS = ['Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
 BOOKS_RELEVANT_COLUMNS = [0,1,2,5,6,8,9]
 REVIEWS_RELEVANT_COLUMNS = [0,1,5,6,8,9]
 BOOKS_ARGUMENT_AMOUNT = 7
@@ -92,7 +92,11 @@ class Client:
     def _send_file(self, file_path: str, columns_to_send:  List[int]):
         with open(file_path, 'r') as data_file:
             reader = csv.reader(data_file)
+            i = 0
             while True:
+                i += 1
+                if i > 2500:
+                    break
                 data_chunk = self.read_chunk_with_columns(reader,columns_to_send)
                 if not data_chunk or self._stop:
                     return
@@ -108,7 +112,7 @@ class Client:
 
     def _send_all_data_files(self):
         print("Starting to send data, please wait")
-        # self._send_file(self._data_path + "/" + BOOKS_FILE_NAME, BOOKS_RELEVANT_COLUMNS)
+        self._send_file(self._data_path + "/" + BOOKS_FILE_NAME, BOOKS_RELEVANT_COLUMNS)
         self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
         self._send_last()
 
@@ -124,28 +128,38 @@ class Client:
         print("Data was submitted successfully, please wait for results")
         
         results_proccess.join()
-
     
+    # Creates a result array
+    # ['Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
+    def get_result_from_datafragment(self, fragment: DataFragment):
+        book_result = [None] * 5
+        query_info_results = [None] * 4
+        query = list(fragment.get_queries().keys())[0]
+        book = fragment.get_book()
+        if book:
+            book_result = book.get_result()
+        query_info = fragment.get_query_info()
+        if query_info:
+            query_info_results = query_info.get_result()
+
+        return [query] + book_result + query_info_results
+
     def _handle_results(self, event):
         pass
         amount_of_queries_left = len(self._queries)
-        while  not event.is_set():
-            chunk_msg = receive_msg(self.socket)
-            json_chunk_msg = json.loads(chunk_msg)
-            chunk = DataChunk.from_json(json_chunk_msg)
-            for fragment in chunk.get_fragments():
-                print(f"Result: {fragment.to_json()}") #TODO: Change this to save in CSV
-                if fragment.is_last():
-                    amount_of_queries_left -= 1
-            if amount_of_queries_left <= 0:
-                break              
+        with open(RESULTS_FILE_NAME, 'w', newline='') as result_file:
+            writer = csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+            writer.writerows(RESULTS_COLUMNS)
+            while not event.is_set():
+                chunk_msg = receive_msg(self.socket)
+                json_chunk_msg = json.loads(chunk_msg)
+                chunk = DataChunk.from_json(json_chunk_msg)
+                for fragment in chunk.get_fragments():
+                    result = self.get_result_from_datafragment(fragment)
+                    writer.writerows(result)
+                    if fragment.is_last():
+                        amount_of_queries_left -= 1
+                if amount_of_queries_left <= 0:
+                    break      
+        print("All queries have been processed")
         self.socket.close()
-        # with open(RESULTS_FILE_NAME, 'w', newline='') as csvfile:
-        #     writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        #     writer.writerows(RESULTS_COLUMNS)
-        #     while not event.is_set():
-        #         (data_fragment_chunk, tag) = self.mom.consume("results")
-        #         print(f"Write results {data_fragment_chunk}")
-        #         self.mom.ack(tag)
-
-        # print("All queries have been processed")

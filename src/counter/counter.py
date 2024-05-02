@@ -50,29 +50,31 @@ class Counter:
         if [True, True, False, False] == bool_set: # for query 2
             return self.count_type_1(data_fragment, query_id, queries, group_data, value)
         if [True, True, True, False] == bool_set: # for queries 3 and 4
-            a = 1 / 0
-            return self.count_type_2(data_fragment, query_info, query_id, group_data, value)
+            return self.count_type_2(data_fragment, query_id, queries, group_data, value)
         if [True, False, False, True] == bool_set: # for query 5
-            b = 1 / 0
-            return self.count_type_3(data_fragment, query_info, query_id, group_data, value, percentile)
+            return self.count_type_3(data_fragment, query_id, queries, group_data, value, percentile)
         return []
 
-    def count_type_3(self, data_fragment, query_info, query_id, group_data, value, percentile):
-        logger.info("Processing query 5")
+    def count_type_3(self, data_fragment, query_id, queries, group_data, value, percentile):
         results = []
         if not data_fragment.is_last():    
             if group_data not in self.counted_data[query_id].keys():
                 self.counted_data[query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
             self.counted_data[query_id][group_data]["VALUES"].append(value)
         else:
-            percentile_90 = np.percentile(self.counted_data[query_id][group_data]["VALUES"], self.counted_data[query_id][group_data]["PERCENTILE"])
-            query_info.set_percentile(percentile_90)
-            data_fragment.set_query_info(query_info)
-            results.append(data_fragment)
+            base_data_fragment = DataFragment(queries.copy(), None, None)
+            for group_data in self.counted_data[query_id].keys():
+                new_data_fragment = base_data_fragment.clone()
+                new_query_info = QueryInfo()
+                percentile_90 = np.percentile(self.counted_data[query_id][group_data]["VALUES"], self.counted_data[query_id][group_data]["PERCENTILE"])
+                new_query_info.set_percentile(percentile_90)
+                new_data_fragment.set_query_info(new_query_info)
+                review = Review.with_minimum_data(title=group_data, text="-", score=0.0)
+                new_data_fragment.set_review(review)
+                results.append(new_data_fragment)
         return results
 
-    def count_type_2(self, data_fragment, query_info, query_id, group_data, value):
-        logger.info("Processing query 3 and 4")
+    def count_type_2(self, data_fragment, query_id, queries, group_data, value):
         results = []
         if not data_fragment.is_last():
             if group_data not in self.counted_data[query_id].keys():
@@ -80,10 +82,16 @@ class Counter:
             self.counted_data[query_id][group_data]["TOTAL"] += value
             self.counted_data[query_id][group_data]["COUNT"] += 1
         else:
-            query_info.set_n_distinct(self.counted_data[query_id][group_data]["COUNT"])
-            query_info.set_average(self.counted_data[query_id][group_data]["TOTAL"] / self.counted_data[query_id][group_data]["COUNT"])
-            data_fragment.set_query_info(query_info)
-            results.append(data_fragment)
+            base_data_fragment = DataFragment(queries.copy(), None, None)
+            for group_data in self.counted_data[query_id].keys():
+                new_data_fragment = base_data_fragment.clone()
+                new_query_info = QueryInfo()
+                new_query_info.set_n_distinct(self.counted_data[query_id][group_data]["COUNT"])
+                new_query_info.set_average(self.counted_data[query_id][group_data]["TOTAL"] / self.counted_data[query_id][group_data]["COUNT"])
+                new_data_fragment.set_query_info(new_query_info)
+                review = Review.with_minimum_data(title=group_data, text="-", score=0.0)
+                new_data_fragment.set_review(review)
+                results.append(new_data_fragment)
         return results
 
     def count_type_1(self, data_fragment, query_id, queries, group_data, value):
@@ -122,7 +130,7 @@ class Counter:
             value = (book.get_published_year() // 10) * 10
         elif (average_column == "SCORE") and (review is not None):
             value = review.get_score()
-        elif (percentile_data is not None) and (query_info is not None):
+        elif (percentile_data is not None) and (query_info.get_percentile() is not None):
             percentile = query_info.get_percentile()[0]
             value = query_info.get_sentiment()
         return group_data, value, percentile

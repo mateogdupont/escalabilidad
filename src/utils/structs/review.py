@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
+import logging as logger
 import jsonpickle
 
 # + info here -> https://www.kaggle.com/datasets/mohamedbakhet/amazon-books-reviews?select=Books_rating.csv
@@ -16,6 +17,10 @@ class Review:
         self.summary = summary
         self.text = text
     
+    @classmethod
+    def with_minimum_data(cls, title: str, text: str, score: float) -> 'Review':
+        return cls(-1, title, None, None, None, score, None, None, text)
+    
     def to_json(self) -> str:
         return jsonpickle.encode(self)
     
@@ -24,6 +29,10 @@ class Review:
         return jsonpickle.decode(json_str)
     
     def has_minimun_data(self) -> bool:
+        try:
+            self.score = float(self.score) # if there was a header, this will fail
+        except:
+            return False
         return bool(self.title and self.text)
     
     def get_text(self) -> str:
@@ -33,4 +42,6 @@ class Review:
         return self.title
     
     def get_score(self) -> float:
+        if type(self.score) == str:
+            self.score = float(self.score)
         return self.score

@@ -18,6 +18,7 @@ DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 100
 TIMEOUT = 10
+TOP_AMOUNT = 10
 
 class Filter:
     def __init__(self):
@@ -36,8 +37,6 @@ class Filter:
         self._exit = True
 
     def filter_data_fragment(self, data_fragment: DataFragment) -> bool:
-        if data_fragment.is_last():
-            return False
         query_info = data_fragment.get_query_info()
         filter_on, word, min_value, max_value = query_info.get_filter_params()
         book = data_fragment.get_book()
@@ -53,18 +52,27 @@ class Filter:
             return word.lower() in book.get_title().lower()
         elif filter_on == DISTINCT_FILTER and (query_info.get_n_distinct() is not None):
             return query_info.get_n_distinct() >= min_value
-        elif filter_on == SENTIMENT_FILTER:
+        elif filter_on == SENTIMENT_FILTER and (query_info.get_sentiment() is not None):
             return query_info.get_sentiment() >= min_value
-        else:
-            #TODO: Apply filter of top10
-            # logger.info(f"No entre a nadapor que filter on es: {filter_on}")
-            return False
+        elif query_info.filter_by_top():
+            logger.info(f"Top ten: {self.top_ten} | len {len(self.top_ten)}")
+            if len(self.top_ten) < TOP_AMOUNT:
+                self.top_ten.append(data_fragment)
+                self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
+            else:
+                lowest = self.top_ten[0]
+                if data_fragment.get_query_info().get_average() > lowest.get_query_info().get_average():
+                    self.top_ten[0] = data_fragment
+                    self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
+        
             if data_fragment.is_last():
-                #Send all data
+                logger.info("data_fragment is last")
+                for fragment in self.top_ten:
+                    for data, key in update_data_fragment_step(fragment).items():
+                        self.add_and_try_to_send_chunk(data, key)
                 self.top_ten = []
-                return False
-            #Check if is a top 10 and insert it in order
         return False
+
     
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
         if not node in self.results.keys():
@@ -75,15 +83,6 @@ class Filter:
             data_chunk = DataChunk(self.results[node][0])
             self.mom.publish(data_chunk, node)
             self.results[node] = ([], time.time())
-
-    # def update_last_and_send_chunk(self):
-    #     for node in self.results.keys():
-    #         if len(self.results[node][0]) == 0:
-    #             continue
-    #         self.results[node][0][-1].set_as_last()
-    #         data_chunk = DataChunk(self.results[node][0])
-    #         self.mom.publish(data_chunk, node)
-    #         self.results[node] = ([], time.time())
         
     def filter_data_chunk(self,chunk: DataChunk):
         for fragment in chunk.get_fragments():
@@ -92,7 +91,7 @@ class Filter:
                     logger.info(f"Fragmento {fragment} no tiene siguiente paso")
                 for data, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send_chunk(data, key)
-            elif fragment.is_last(): # TODO hacer lo de iterar y actualizar el correcto, no todos
+            if fragment.is_last():
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)

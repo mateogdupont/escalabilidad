@@ -4,9 +4,12 @@ FROM python:3.9.7-slim
 COPY ./joiner ./joiner
 COPY ./utils ./utils
 
+# Copy the env file
+COPY .env ./.env
+
 # Install the required Python packages for utils
 RUN pip install -r ./utils/requirements.txt
 
 ENV PYTHONPATH / 
 
-CMD bash -c "python joiner/joiner.py"
+CMD bash -c "sleep 2 && python joiner/joiner.py"
