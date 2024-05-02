@@ -81,17 +81,6 @@ class Filter:
             data_chunk = DataChunk(self.results[node][0])
             self.mom.publish(data_chunk, node)
             self.results[node] = ([], time.time())
-
-    # def update_last_and_send_chunk(self, queries_to_update):
-    #     for query in queries_to_update:
-    #         for key, (data, last_sent) in self.results.items():
-    #             for i, fragment in enumerate(reversed(data)):
-    #                 queries = fragment.get_queries()
-    #                 if query in queries.keys():
-    #                     fragment.set_as_last()
-    #                     data[i] = fragment
-    #                     break
-    #             self.results[key] = (data,last_sent)
         
     def filter_data_chunk(self,chunk: DataChunk):
         for fragment in chunk.get_fragments():
