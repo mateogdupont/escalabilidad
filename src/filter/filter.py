@@ -79,23 +79,23 @@ class Filter:
             self.mom.publish(data_chunk, node)
             self.results[node] = ([], time.time())
 
-    def update_last_and_send_chunk(self, queries_to_update):
-        for query in queries_to_update:
-            for key, (data, last_sent) in self.results.items():
-                for i, fragment in enumerate(reversed(data)):
-                    queries = fragment.get_queries()
-                    if query in queries.keys():
-                        fragment.set_as_last()
-                        data[i] = fragment
-                        break
-                self.results[key] = (data,last_sent)
+    # def update_last_and_send_chunk(self, queries_to_update):
+    #     for query in queries_to_update:
+    #         for key, (data, last_sent) in self.results.items():
+    #             for i, fragment in enumerate(reversed(data)):
+    #                 queries = fragment.get_queries()
+    #                 if query in queries.keys():
+    #                     fragment.set_as_last()
+    #                     data[i] = fragment
+    #                     break
+    #             self.results[key] = (data,last_sent)
         
     def filter_data_chunk(self,chunk: DataChunk):
         for fragment in chunk.get_fragments():
             if self.filter_data_fragment(fragment):
                 for data, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send_chunk(data, key)
-            elif fragment.is_last(): # TODO hacer lo de iterar y actualizar el correcto, no todos
+            elif fragment.is_last():
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)

@@ -29,6 +29,8 @@ class Joiner:
         self.reviews_queue = os.environ["REVIEWS_QUEUE"]
         self.nineties_books_side_table = {}
         self.fiction_books_side_table = {}
+        self.nineties_books_side_table_ended = False
+        self.fiction_books_side_table_ended = False
         self.results = {}
         self._exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
@@ -53,8 +55,7 @@ class Joiner:
                 self.save_book_in_table(book,filter_on)
 
     def receive_all_books(self):
-        complete = False
-        while not self._exit and not complete:
+        while not self._exit and not (self.nineties_books_side_table_ended and self.fiction_books_side_table_ended):
             msg = self.mom.consume(self.books_queue)
             if not msg:
                 continue
@@ -62,7 +63,13 @@ class Joiner:
             for fragment in data_chunk.get_fragments():
                 self.process_book_fragment(fragment)
                 if fragment.is_last():
-                    complete = True
+                    query_info = fragment.get_query_info()
+                    if query_info is not None:
+                        filter_on, word, min_value, max_value = query_info.get_filter_params()
+                        if filter_on == YEAR_FILTER:
+                            self.nineties_books_side_table_ended = True
+                        elif filter_on == CATEGORY_FILTER:
+                            self.fiction_books_side_table_ended = True
             self.mom.ack(tag)
 
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
@@ -70,7 +77,7 @@ class Joiner:
             self.results[node] = ([], time.time())
         self.results[node][0].append(fragment)
         self.results[node] = (self.results[node][0], time.time())
-        if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS:
+        if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.results[node][0])
             self.mom.publish(data_chunk, node)
             self.results[node] = ([], time.time())
@@ -83,11 +90,9 @@ class Joiner:
                 fragment.set_book(book)
                 for data, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send_chunk(data, key)
-                
-                #if fragment.is_last():
-                #    self.update_last_and_send_chunk()
-            else: 
-                logger.info(f"Error: Book not found: {review.get_book_title()}")
+        if fragment.is_last():
+            for data, key in update_data_fragment_step(fragment).items():
+                self.add_and_try_to_send_chunk(data, key)
 
     def send_with_timeout(self):
         for key, (data, last_sent) in self.results.items():
