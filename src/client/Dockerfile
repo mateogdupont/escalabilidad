@@ -15,4 +15,4 @@ RUN apt-get update && apt-get install -y unzip
 
 ENV PYTHONPATH / 
 
-CMD bash -c "unzip -n /data.zip && python client/main.py .. 2"
+CMD bash -c "unzip -n /data.zip && python client/main.py .. 3"

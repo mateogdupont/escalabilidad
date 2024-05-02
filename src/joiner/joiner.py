@@ -38,15 +38,15 @@ class Joiner:
 
     def save_book_in_table(self,book: Book, filter: str):
         if filter == YEAR_FILTER:
-            self.books_side_table[book.get_title] = book
+            self.nineties_books_side_table[book.get_title()] = book
         elif filter == CATEGORY_FILTER:
-            self.books_side_table[book.get_title] = book
+            self.fiction_books_side_table[book.get_title()] = book
         else:
             logger.info(f"Error, book with unknown filter: {filter}")
     
     def process_book_fragment(self,fragment):
         book = fragment.get_book()
-        query_info = fragment.query_info()
+        query_info = fragment.get_query_info()
         if query_info is not None:
             filter_on, word, min_value, max_value = query_info.get_filter_params()
             if book is not None:
@@ -55,9 +55,10 @@ class Joiner:
     def receive_all_books(self):
         complete = False
         while not self._exit and not complete:
-            (data_chunk, tag) = self.mom.consume(self.books_queue)
-            if not data_chunk:
+            msg = self.mom.consume(self.books_queue)
+            if not msg:
                 continue
+            (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
                 self.process_book_fragment(fragment)
                 if fragment.is_last():
@@ -98,7 +99,10 @@ class Joiner:
     def run(self):
         self.receive_all_books()
         while not self._exit:
-            (data_chunk, tag) = self.mom.consume(self.reviews_queue)
+            msg = self.mom.consume(self.reviews_queue)
+            if not msg:
+                continue
+            (data_chunk, tag) = msg
             for fragment in data_chunk.fragments():
                 self.process_review_fragment(fragment)
             self.mom.ack(tag)
