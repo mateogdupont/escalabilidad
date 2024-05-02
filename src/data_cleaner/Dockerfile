@@ -9,4 +9,4 @@ RUN pip install -r ./utils/requirements.txt
 
 ENV PYTHONPATH / 
 
-CMD bash -c "python data_cleaner/data_cleaner.py"
+CMD bash -c "sleep 2 && python data_cleaner/data_cleaner.py"

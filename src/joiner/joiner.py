@@ -27,10 +27,8 @@ class Joiner:
         self.mom = MOM(consumer_queues)
         self.books_queue = os.environ["BOOKS_QUEUE"]
         self.reviews_queue = os.environ["REVIEWS_QUEUE"]
-        self.nineties_books_side_table = {}
-        self.fiction_books_side_table = {}
-        self.nineties_books_side_table_ended = False
-        self.fiction_books_side_table_ended = False
+        self.books_side_tables = {}
+        self.side_tables_ended = set()
         self.results = {}
         self._exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
@@ -38,38 +36,41 @@ class Joiner:
     def sigterm_handler(self):
         self._exit = True
 
-    def save_book_in_table(self,book: Book, filter: str):
-        if filter == YEAR_FILTER:
-            self.nineties_books_side_table[book.get_title()] = book
-        elif filter == CATEGORY_FILTER:
-            self.fiction_books_side_table[book.get_title()] = book
-        else:
-            logger.info(f"Error, book with unknown filter: {filter}")
+    def save_book_in_table(self,book: Book, query_id: str):
+        if query_id not in self.books_side_tables.keys():
+            self.books_side_tables[query_id] = {}
+        self.books_side_tables[query_id][book.get_title()] = book
     
     def process_book_fragment(self,fragment):
+        # logger.info(f"Processing book fragment")
         book = fragment.get_book()
-        query_info = fragment.get_query_info()
-        if query_info is not None:
-            filter_on, word, min_value, max_value = query_info.get_filter_params()
-            if book is not None:
-                self.save_book_in_table(book,filter_on)
+        query_id = fragment.get_query_id()
+        self.save_book_in_table(book,query_id)
+        # logger.info(f"Book fragment processed")
 
-    def receive_all_books(self):
-        while not self._exit and not (self.nineties_books_side_table_ended and self.fiction_books_side_table_ended):
+    def receive_all_books(self, query_id: str):
+        logger.info(f"Receiving all books for query {query_id}")
+        tries = 100
+        completed = False
+        while not self._exit and not completed:
             msg = self.mom.consume(self.books_queue)
             if not msg:
+                tries -= 1
+                if tries == 0:
+                    logger.info(f"Finished receiving all books for query {query_id}")
+                    self.side_tables_ended.add(query_id)
+                    break
                 continue
             (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
-                self.process_book_fragment(fragment)
                 if fragment.is_last():
-                    query_info = fragment.get_query_info()
-                    if query_info is not None:
-                        filter_on, word, min_value, max_value = query_info.get_filter_params()
-                        if filter_on == YEAR_FILTER:
-                            self.nineties_books_side_table_ended = True
-                        elif filter_on == CATEGORY_FILTER:
-                            self.fiction_books_side_table_ended = True
+                    f_query_id = fragment.get_query_id()
+                    logger.info(f"Finished receiving all books for query {f_query_id}")
+                    self.side_tables_ended.add(f_query_id)
+                    if f_query_id == query_id:
+                        completed = True
+                else:
+                    self.process_book_fragment(fragment)
             self.mom.ack(tag)
 
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
@@ -84,8 +85,12 @@ class Joiner:
 
     def process_review_fragment(self, fragment: DataFragment):
         review = fragment.get_review()
+        query_id = fragment.get_query_id()
         if review is not None:
-            book = self.books_side_table[review.get_book_title()]
+            # logger.info(f"self.books_side_tables: {self.books_side_tables}")
+            # logger.info(f"query_id: {query_id}")
+            side_table = self.books_side_tables[query_id]
+            book = side_table.get(review.get_book_title(), None)
             if book is not None:
                 fragment.set_book(book)
                 for data, key in update_data_fragment_step(fragment).items():
@@ -102,13 +107,15 @@ class Joiner:
                 self.results[key] = ([], time.time())
 
     def run(self):
-        self.receive_all_books()
+        # self.receive_all_books()
         while not self._exit:
             msg = self.mom.consume(self.reviews_queue)
             if not msg:
                 continue
             (data_chunk, tag) = msg
-            for fragment in data_chunk.fragments():
+            for fragment in data_chunk.get_fragments():
+                if fragment.get_query_id() not in self.side_tables_ended:
+                    self.receive_all_books(fragment.get_query_id())
                 self.process_review_fragment(fragment)
             self.mom.ack(tag)
             self.send_with_timeout()

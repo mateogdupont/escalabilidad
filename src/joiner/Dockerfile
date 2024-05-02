@@ -12,4 +12,4 @@ RUN pip install -r ./utils/requirements.txt
 
 ENV PYTHONPATH / 
 
-CMD bash -c "python joiner/joiner.py"
+CMD bash -c "sleep 2 && python joiner/joiner.py"

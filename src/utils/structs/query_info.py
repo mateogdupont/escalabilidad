@@ -90,6 +90,9 @@ class QueryInfo:
     def get_filter_params(self) -> Tuple[str, str, int, int]:
         return self.filter_on, self.contains, self.min, self.max
     
+    def filter_by_top(self) -> bool:
+        return self.top is not None
+    
     def set_counter_params(self, group_by: str, count_distinct: int, average_column: str, percentile: Tuple[int, str]) -> None:
         self.group_by = group_by
         self.count_distinct = count_distinct
@@ -99,9 +102,6 @@ class QueryInfo:
     
     def get_counter_params(self) -> Tuple[str, int, str, Tuple[int, str]]:
         return self.group_by, self.count_distinct, self.average_column, self.percentile_column
-    
-    def get_top_param(self):
-        return self.top
     
     def get_result(self) -> List[str]:
         return [self.n_distinct, self.average,self.sentiment, self.percentile]

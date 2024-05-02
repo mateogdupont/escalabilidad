@@ -72,7 +72,7 @@ class DataFragment:
         new.set_query_info(self.query_info.clone())
         return new
     
-    def get_query_id(self) -> int:
+    def get_query_id(self) -> str:
         ids = []
         for query, step in self.queries.items():
             ids.append(f"{query}:{step}")

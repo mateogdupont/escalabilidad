@@ -93,7 +93,11 @@ class Client:
     def _send_file(self, file_path: str, columns_to_send:  List[int]):
         with open(file_path, 'r') as data_file:
             reader = csv.reader(data_file)
+            # i = 0
             while True:
+                # i += 1
+                # if i > 2500:
+                #     break
                 data_chunk = self.read_chunk_with_columns(reader,columns_to_send)
                 if not data_chunk or self._stop:
                     return
@@ -141,6 +145,7 @@ class Client:
         return [query] + book_result + query_info_results
 
     def _handle_results(self, event):
+        pass
         amount_of_queries_left = len(self._queries)
         with open(RESULTS_FILE_NAME, 'w', newline='') as result_file:
             writer = csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
