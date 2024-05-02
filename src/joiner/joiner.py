@@ -20,8 +20,8 @@ TIMEOUT = 10
 
 class Joiner:
     def __init__(self):
-        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
         self.mom = MOM(consumer_queues)

@@ -55,19 +55,20 @@ class Filter:
         elif filter_on == SENTIMENT_FILTER:
             return query_info.get_sentiment() >= min_value
         else:
-            return False
             if len(self.top_ten) < TOP_AMOUNT or query_info.get_top_param() > self.top_ten[0].get_top_param():
                 self.top_ten.append(data_fragment)
                 self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_top_param())
                 if len(self.top_ten) > 10:
                     self.top_ten.pop()
-            return False
         
             if data_fragment.is_last():
-                #Send all data
-                self.top_ten = []
-                return False
+                if 4 in data_fragment.get_queries().keys():
+                    for fragment in self.top_ten:
+                        for data, key in update_data_fragment_step(fragment).items():
+                            self.add_and_try_to_send_chunk(data, key)
+                    self.top_ten = []
         return False
+
     
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
         if not node in self.results.keys():
@@ -78,14 +79,16 @@ class Filter:
             self.mom.publish(data_chunk, node)
             self.results[node] = ([], time.time())
 
-    # def update_last_and_send_chunk(self):
-    #     for node in self.results.keys():
-    #         if len(self.results[node][0]) == 0:
-    #             continue
-    #         self.results[node][0][-1].set_as_last()
-    #         data_chunk = DataChunk(self.results[node][0])
-    #         self.mom.publish(data_chunk, node)
-    #         self.results[node] = ([], time.time())
+    def update_last_and_send_chunk(self, queries_to_update):
+        for query in queries_to_update:
+            for key, (data, last_sent) in self.results.items():
+                for i, fragment in enumerate(reversed(data)):
+                    queries = fragment.get_queries()
+                    if query in queries.keys():
+                        fragment.set_as_last()
+                        data[i] = fragment
+                        break
+                self.results[key] = (data,last_sent)
         
     def filter_data_chunk(self,chunk: DataChunk):
         for fragment in chunk.get_fragments():

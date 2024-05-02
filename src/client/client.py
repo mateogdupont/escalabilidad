@@ -109,7 +109,7 @@ class Client:
     def _send_all_data_files(self):
         print("Starting to send data, please wait")
         self._send_file(self._data_path + "/" + BOOKS_FILE_NAME, BOOKS_RELEVANT_COLUMNS)
-        #self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
+        self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
         self._send_last()
 
     def run(self):

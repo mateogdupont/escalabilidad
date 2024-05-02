@@ -50,10 +50,8 @@ class Counter:
         if [True, True, False, False] == bool_set: # for query 2
             return self.count_type_1(data_fragment, query_id, queries, group_data, value)
         if [True, True, True, False] == bool_set: # for queries 3 and 4
-            a = 1 / 0
             return self.count_type_2(data_fragment, query_info, query_id, group_data, value)
         if [True, False, False, True] == bool_set: # for query 5
-            b = 1 / 0
             return self.count_type_3(data_fragment, query_info, query_id, group_data, value, percentile)
         return []
 
