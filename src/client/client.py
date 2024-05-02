@@ -145,6 +145,7 @@ class Client:
         return [query] + book_result + query_info_results
 
     def _handle_results(self, event):
+        pass
         amount_of_queries_left = len(self._queries)
         with open(RESULTS_FILE_NAME, 'w', newline='') as result_file:
             writer = csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
