@@ -30,6 +30,7 @@ class Counter:
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         self._exit = False
         self.counted_data = {}
+        self.books = {}
     
     def sigterm_handler(self):
         self._exit = True
@@ -61,6 +62,7 @@ class Counter:
             if group_data not in self.counted_data[query_id].keys():
                 self.counted_data[query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
             self.counted_data[query_id][group_data]["VALUES"].append(value)
+            self.books[group_data] = data_fragment.get_book()
         else:
             base_data_fragment = DataFragment(queries.copy(), None, None)
             for group_data in self.counted_data[query_id].keys():
@@ -71,6 +73,7 @@ class Counter:
                 new_data_fragment.set_query_info(new_query_info)
                 review = Review.with_minimum_data(title=group_data, text="-", score=0.0)
                 new_data_fragment.set_review(review)
+                new_data_fragment.set_book(self.books[group_data])
                 results.append(new_data_fragment)
         return results
 
@@ -81,6 +84,7 @@ class Counter:
                 self.counted_data[query_id][group_data] = {"TOTAL": 0, "COUNT": 0}
             self.counted_data[query_id][group_data]["TOTAL"] += value
             self.counted_data[query_id][group_data]["COUNT"] += 1
+            self.books[group_data] = data_fragment.get_book()
         else:
             base_data_fragment = DataFragment(queries.copy(), None, None)
             for group_data in self.counted_data[query_id].keys():
@@ -91,6 +95,7 @@ class Counter:
                 new_data_fragment.set_query_info(new_query_info)
                 review = Review.with_minimum_data(title=group_data, text="-", score=0.0)
                 new_data_fragment.set_review(review)
+                new_data_fragment.set_book(self.books[group_data])
                 results.append(new_data_fragment)
         return results
 
@@ -142,6 +147,9 @@ class Counter:
                 continue # TODO: change this
             data_chunk, tag = msg
             for data_fragment in data_chunk.get_fragments():
+                # if data_fragment.is_last():
+                #     logger.info(f"Received last fragment")
+
                 results = self.count_data_fragment(data_fragment)
 
                 if data_fragment.is_last():

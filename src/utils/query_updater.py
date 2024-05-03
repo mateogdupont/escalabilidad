@@ -236,6 +236,8 @@ def _update_fifth_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]
     return next_steps
 
 def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
+    if data_fragment.is_last():
+        logger.info("- - - - DataFragment is last")
     queries = data_fragment.get_queries()
     #logger.info(f"Updating data fragment with queries: {queries}")
 
@@ -263,9 +265,9 @@ def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment
         for datafragment, key in _update_fifth_query(data_fragment.clone()).items():
             next_steps[datafragment] = key
     
-    # if data_fragment.is_last():
-    #     logger.info("DataFragment is last - - - -")
-    #     logger.info(next_steps)
+    if data_fragment.is_last():
+        logger.info("DataFragment is last - - - -")
+        logger.info(next_steps)
         # logger.info(queries)
         # logger.info("here")
     

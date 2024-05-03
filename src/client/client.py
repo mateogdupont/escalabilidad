@@ -111,7 +111,8 @@ class Client:
         logger.info(f"Starting to send data, please wait")
         self._send_file(self._data_path + "/" + BOOKS_FILE_NAME, BOOKS_RELEVANT_COLUMNS)
         logger.info(f"All books have been sended")
-        #self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
+        self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
+        logger.info(f"All reviews have been sended")
         self._send_last()
 
     def run(self):

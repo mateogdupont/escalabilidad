@@ -88,8 +88,10 @@ class Filter:
                 for data, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send_chunk(data, key)
             if fragment.is_last():
+                logger.info(f"Fragmento es el ultimo")
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
+                    logger.info(f"Enviando a {key}")
                     self.add_and_try_to_send_chunk(data, key)
 
     def send_with_timeout(self):
