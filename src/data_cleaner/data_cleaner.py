@@ -50,6 +50,8 @@ class DataCleaner:
 
     def send_clean_data(self, chunk_data: DataChunk):
         for fragment in chunk_data.get_fragments():
+            if fragment.is_last():
+                logger.info(f"Last fragment received")
             for data, key in update_data_fragment_step(fragment).items():
                 self.add_and_try_to_send_chunk(data, key)
             
@@ -82,7 +84,8 @@ class DataCleaner:
             self.clear_data(chunk)
             self.send_clean_data(chunk)
             if chunk.contains_last_fragment():
-                print(f"All data was received: {self.total_pass}")
+                # print(f"All data was received: {self.total_pass}")
+                logger.info(f"All data was received: {self.total_pass}")
                 finish = True
         results_proccess.join()
 

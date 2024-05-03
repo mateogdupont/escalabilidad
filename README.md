@@ -6,6 +6,19 @@
 
 La documentación del proyecto se realizará utilizando la arquitectura de 4+1 views. Para ello, iremos explicando vista por vista los distintos diagramas con el fin de describir todos los aspectos del proyecto. 
 
+
+Notas:
+Q1 sola: tarda 2 min
+Q2 sola: 
+Q3 sola:
+Q4 sola:
+Q5 sola:
+
+Todas juntas:
+Los datos no se van de results -> confusión entre las dos r
+Dsp de hacer una query tuve que reiniciar el cleaner
+
+
 **Idea del sistema:**
 
 ![alt text](diagrams/robustez-general.png)
