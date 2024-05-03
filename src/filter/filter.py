@@ -16,8 +16,8 @@ YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
-MAX_AMOUNT_OF_FRAGMENTS = 100
-TIMEOUT = 10
+MAX_AMOUNT_OF_FRAGMENTS = 500
+TIMEOUT = 50
 TOP_AMOUNT = 10
 
 class Filter:
@@ -37,6 +37,7 @@ class Filter:
         self._exit = True
 
     def filter_data_fragment(self, data_fragment: DataFragment) -> bool:
+        return True # remove this line
         query_info = data_fragment.get_query_info()
         filter_on, word, min_value, max_value = query_info.get_filter_params()
         book = data_fragment.get_book()
@@ -86,17 +87,13 @@ class Filter:
         
     def filter_data_chunk(self,chunk: DataChunk):
         for fragment in chunk.get_fragments():
-            if self.filter_data_fragment(fragment):
+            if self.filter_data_fragment(fragment.clone()):
+                if fragment.is_last():
+                    logger.info(f"Fragmento {fragment} es el ultimo")
                 if len(update_data_fragment_step(fragment).items()) == 0:
                     logger.info(f"Fragmento {fragment} no tiene siguiente paso")
                 for data, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send_chunk(data, key)
-            if fragment.is_last():
-                next_steps = update_data_fragment_step(fragment)
-                for data, key in next_steps.items():
-                    self.add_and_try_to_send_chunk(data, key)
-            if fragment.get_book() and "Trends in Distributed Systems" in fragment.get_book().get_title():
-                logger.info(f"Encontre el libro {fragment.get_book().get_title()}")
 
     def send_with_timeout(self):
         for key, (data, last_sent) in self.results.items():

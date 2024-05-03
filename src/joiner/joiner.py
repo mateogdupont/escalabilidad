@@ -15,8 +15,8 @@ import logging as logger
 
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
-MAX_AMOUNT_OF_FRAGMENTS = 100
-TIMEOUT = 10
+MAX_AMOUNT_OF_FRAGMENTS = 500
+TIMEOUT = 50
 
 class Joiner:
     def __init__(self):
@@ -50,12 +50,13 @@ class Joiner:
 
     def receive_all_books(self, query_id: str):
         logger.info(f"Receiving all books for query {query_id}")
-        tries = 100
+        tries = 500
         completed = False
+        some_books = False
         while not self._exit and not completed:
             msg = self.mom.consume(self.books_queue)
             if not msg:
-                tries -= 1
+                tries -= 1 if some_books else 0
                 if tries == 0:
                     logger.info(f"Finished receiving all books for query {query_id}")
                     self.side_tables_ended.add(query_id)
@@ -71,6 +72,7 @@ class Joiner:
                         completed = True
                 else:
                     self.process_book_fragment(fragment)
+                    some_books = True
             self.mom.ack(tag)
 
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
@@ -97,6 +99,7 @@ class Joiner:
                     self.add_and_try_to_send_chunk(data, key)
         if fragment.is_last():
             for data, key in update_data_fragment_step(fragment).items():
+                logger.info(f"Sending to {key}")
                 self.add_and_try_to_send_chunk(data, key)
 
     def send_with_timeout(self):
