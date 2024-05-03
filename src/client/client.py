@@ -138,6 +138,8 @@ class Client:
             book_result = book.get_result()
         query_info = fragment.get_query_info()
         if query_info:
+            if book_result[1] == "":
+                book_result[1] = query_info.get_author()
             query_info_results = query_info.get_result()
 
         return [query] + book_result + query_info_results

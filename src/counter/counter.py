@@ -35,7 +35,7 @@ class Counter:
     def sigterm_handler(self):
         self._exit = True
 
-    def count_data_fragment(self, data_fragment: DataFragment) -> bool:
+    def count_data_fragment(self, data_fragment: DataFragment) -> List[DataFragment]:
         query_info = data_fragment.get_query_info()
         group_by, count_distinct, average_column, percentile_data = query_info.get_counter_params()
         book, review = data_fragment.get_book(), data_fragment.get_review()
@@ -147,22 +147,22 @@ class Counter:
                 continue # TODO: change this
             data_chunk, tag = msg
             for data_fragment in data_chunk.get_fragments():
-                if data_fragment.is_last():
-                    logger.info(f"Received last fragment")
+                # if data_fragment.is_last():
+                #     logger.info(f"Received last fragment")
 
                 results = self.count_data_fragment(data_fragment)
 
                 if data_fragment.is_last():
                     results.append(data_fragment)
-
                     key = None
                     fragments = []
                     for results_data_fragment in results:
                         steps = update_data_fragment_step(results_data_fragment)
                         fragments.extend(steps.keys())
                         key = list(steps.values())[0]
-                        if len(fragments) >= MAX_AMOUNT_OF_FRAGMENTS:
-                            self.mom.publish(DataChunk(fragments), key)
+                        chunk = DataChunk(fragments)
+                        if len(fragments) >= MAX_AMOUNT_OF_FRAGMENTS or chunk.contains_last_fragment():
+                            self.mom.publish(chunk, key)
                             fragments = []
                     if len(fragments) > 0:
                         self.mom.publish(DataChunk(fragments), key)
