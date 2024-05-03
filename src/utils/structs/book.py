@@ -54,4 +54,4 @@ class Book:
         return self.categories
 
     def get_result(self) -> List[str]:
-        return [self.get_title(),self.get_authors(),self.get_publisher(),self.get_published_year(),self.get_categories()]
+        return [self.get_title(),self.get_authors(),self.get_publisher(),str(self.get_published_year()),self.get_categories()]

@@ -11,6 +11,7 @@ from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv
 import sys
+import time
 import logging as logger
 
 MAX_AMOUNT_OF_FRAGMENTS = 100
@@ -40,9 +41,6 @@ class DataCleaner:
             self._event.set()
     
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
-        # # self.clean_data[node] = self.clean_data.get(node, []).append(fragment)
-        # if not node in self.clean_data:
-        #     self.clean_data[node] = []
         self.clean_data[node] = self.clean_data.get(node, [])
         self.clean_data[node].append(fragment)
         if len(self.clean_data[node]) == MAX_AMOUNT_OF_FRAGMENTS:
@@ -100,7 +98,6 @@ class DataCleaner:
                 print(f"All data was received: {self.total_pass}")
                 finish = True
         results_proccess.join()
-        logger.info(f"Muero para este cliente")
 
     def run(self):
         while not self._exit:
@@ -112,11 +109,12 @@ class DataCleaner:
         while not event.is_set() and queries_left > 0:
             msg = self.mom.consume(self.work_queue)
             if not msg:
+                time.sleep(10)
                 continue
             (data_chunk, tag) = msg
             message = json.dumps(data_chunk.to_json())
             send_msg(socket,message)
-            if data_chunk.contains_last():
+            if data_chunk.contains_last_fragment():
                 queries_left -= 1
             self.mom.ack(tag)
         logger.info(f"All results has been delivered.")

@@ -47,15 +47,12 @@ class Filter:
             book_year = book.get_published_year()
             return min_value <= book_year <= max_value
         elif (filter_on == TITLE_FILTER) and (book is not None):
-            if "Trends in Distributed Systems" in book.get_title():
-                logger.info(f"Encontre el libro {book.get_title()} | bool {word.lower() in book.get_title().lower()} | word.lower() in book.get_title().lower()")
             return word.lower() in book.get_title().lower()
         elif filter_on == DISTINCT_FILTER and (query_info.get_n_distinct() is not None):
             return query_info.get_n_distinct() >= min_value
         elif filter_on == SENTIMENT_FILTER and (query_info.get_sentiment() is not None):
             return query_info.get_sentiment() >= min_value
         elif query_info.filter_by_top():
-            logger.info(f"Top ten: {self.top_ten} | len {len(self.top_ten)}")
             if len(self.top_ten) < TOP_AMOUNT:
                 self.top_ten.append(data_fragment)
                 self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
@@ -95,8 +92,6 @@ class Filter:
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)
-            if fragment.get_book() and "Trends in Distributed Systems" in fragment.get_book().get_title():
-                logger.info(f"Encontre el libro {fragment.get_book().get_title()}")
 
     def send_with_timeout(self):
         for key, (data, last_sent) in self.results.items():
