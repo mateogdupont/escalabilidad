@@ -104,4 +104,5 @@ class QueryInfo:
         return self.group_by, self.count_distinct, self.average_column, self.percentile_column
     
     def get_result(self) -> List[str]:
-        return [str(self.n_distinct), str(self.average),str(self.sentiment), str(self.percentile)]
+        results = [self.n_distinct, self.average,self.sentiment, self.percentile]
+        return [str(result) if result is not None else "" for result in results]

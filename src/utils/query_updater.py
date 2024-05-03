@@ -113,6 +113,8 @@ def _update_second_query(data_fragment: DataFragment) -> 'dict[DataFragment, str
     elif step == 2:
         #logger.info("Next step is to return the results")
         return {data_fragment: "results"}
+    else:
+        logger.info("Invalid step in query 2")
     
 def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
     # if data_fragment.is_last():
