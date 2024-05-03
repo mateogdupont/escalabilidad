@@ -248,8 +248,7 @@ def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment
             next_steps[datafragment] = key
         
     if 3 in queries.keys() or 4 in queries.keys():
-        if data_fragment.is_last():
-            logger.info("DataFragment is lastttttttt")
+        #TODO: Delete this!
         i = 0
         for datafragment, key in _update_third_and_fourth_query(data_fragment.clone()).items():
             if datafragment.is_last():
@@ -262,9 +261,9 @@ def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment
         for datafragment, key in _update_fifth_query(data_fragment.clone()).items():
             next_steps[datafragment] = key
     
-    if data_fragment.is_last():
-        logger.info("DataFragment is last - - - -")
-        logger.info(next_steps)
+    # if data_fragment.is_last():
+    #     logger.info("DataFragment is last - - - -")
+    #     logger.info(next_steps)
         # logger.info(queries)
         # logger.info("here")
     
