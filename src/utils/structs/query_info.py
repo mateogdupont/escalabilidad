@@ -5,8 +5,8 @@ import logging as logger
 class QueryInfo:
 
     def __init__(self) -> None:
-        # results
         self.last = False
+        # results
         self.author = None
         self.n_distinct = None
         self.average = None
