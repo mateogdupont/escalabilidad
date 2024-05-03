@@ -1,6 +1,7 @@
 import socket
 import signal
 import os
+from multiprocessing import Process, Event
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
@@ -10,6 +11,7 @@ from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv
 import sys
+import time
 import logging as logger
 
 MAX_AMOUNT_OF_FRAGMENTS = 500
@@ -24,6 +26,7 @@ class DataCleaner:
         self._socket.bind(('', 1250))
         self._socket.listen(LISTEN_BACKLOG)
         self._exit = False
+        self._event = None
         self.total_pass = 0
         self.clean_data = {}
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
@@ -34,35 +37,21 @@ class DataCleaner:
     
     def sigterm_handler(self):
         self._exit = True
+        if self._event:
+            self._event.set()
     
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
-        # # self.clean_data[node] = self.clean_data.get(node, []).append(fragment)
-        # if not node in self.clean_data:
-        #     self.clean_data[node] = []
         self.clean_data[node] = self.clean_data.get(node, [])
         self.clean_data[node].append(fragment)
-        if len(self.clean_data[node]) == MAX_AMOUNT_OF_FRAGMENTS:
+        if len(self.clean_data[node]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.clean_data[node])
             self.mom.publish(data_chunk, node)
-            self.clean_data[node].clear()
-            
-    # def update_last_and_send_chunk(self):
-    #     for node in self.clean_data.keys():
-    #         if len(self.clean_data[node]) == 0:
-    #             continue
-    #         self.clean_data[node][-1].set_as_last()
-    #         data_chunk = DataChunk(self.clean_data[node])
-    #         self.mom.publish(data_chunk, node)
-    #         self.clean_data[node].clear()
-        
+            self.clean_data[node].clear()     
 
     def send_clean_data(self, chunk_data: DataChunk):
         for fragment in chunk_data.get_fragments():
             for data, key in update_data_fragment_step(fragment).items():
                 self.add_and_try_to_send_chunk(data, key)
-            # if fragment.is_last():
-            #     logger.info("DataFragment is last!!!!!!!!!")
-                # self.update_last_and_send_chunk()
             
     def has_minimun_data(self, fragment: DataFragment):
         book = fragment.get_book()
@@ -80,10 +69,13 @@ class DataCleaner:
         chunk.set_fragments(filters_fragments)
         return chunk
         
-
-    def run(self):
-        socket = self._socket.accept()[0]
-        while not self._exit:
+    def handle_client(self, socket):
+        finish = False
+        queries = receive_msg(socket)
+        self._event = Event()
+        results_proccess = Process(target=self._send_results, args=(socket,queries,self._event,))
+        results_proccess.start()
+        while not self._exit and not finish:
             chunk_msg = receive_msg(socket)
             json_chunk_msg = json.loads(chunk_msg)
             chunk = DataChunk.from_json(json_chunk_msg)
@@ -91,8 +83,28 @@ class DataCleaner:
             self.send_clean_data(chunk)
             if chunk.contains_last_fragment():
                 print(f"All data was received: {self.total_pass}")
-                # send_msg(socket,json.dumps(chunk.to_json()))
-                self._exit = True
+                finish = True
+        results_proccess.join()
+
+    def run(self):
+        while not self._exit:
+            socket = self._socket.accept()[0]
+            self.handle_client(socket)
+
+    def _send_results(self,socket,queries,event):
+        queries_left = len(queries.split(','))
+        while not event.is_set() and queries_left > 0:
+            msg = self.mom.consume(self.work_queue)
+            if not msg:
+                time.sleep(10)
+                continue
+            (data_chunk, tag) = msg
+            message = json.dumps(data_chunk.to_json())
+            send_msg(socket,message)
+            if data_chunk.contains_last_fragment():
+                queries_left -= 1
+            self.mom.ack(tag)
+        logger.info(f"All results has been delivered.")
 
 
 

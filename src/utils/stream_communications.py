@@ -1,23 +1,25 @@
 def receive_header(client_sock):
     complete_header = ""
+    extra_payload = ""
     while True:
-        partial_header = client_sock.recv(1).decode('utf-8')
+        partial_header = client_sock.recv(4).decode('utf-8')
         if not partial_header:
             print("Error reading chunk header")
             break
-        complete_header += partial_header
-        if partial_header == '|':
+        if '|' in partial_header:
+            complete_header += partial_header.split('|')[0]
+            extra_payload = partial_header.split('|')[1]
             break
-    return complete_header
-
+        complete_header += partial_header
+    return complete_header, extra_payload
 
 def receive_msg(client_sock):
-    header = receive_header(client_sock)
+    header, extra_payload = receive_header(client_sock)
     if not header:
         return ""
-    expected_payload_size = int(header[:-1])
-    complete_msg = header
-    bytes_received = 0
+    expected_payload_size = int(header)
+    complete_msg = header + '|' + extra_payload
+    bytes_received = len(extra_payload)
     while bytes_received < expected_payload_size:
         partial_msg = client_sock.recv(expected_payload_size - bytes_received)
         if not partial_msg:
@@ -26,7 +28,6 @@ def receive_msg(client_sock):
         complete_msg += partial_msg.decode('utf-8')
         bytes_received += len(partial_msg)
     return complete_msg.split('|', 1)[1]
-
 
 def send_msg(socket, msg):
     header = str(len(msg.encode('utf-8'))) + '|'
