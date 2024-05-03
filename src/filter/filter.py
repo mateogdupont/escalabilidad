@@ -47,9 +47,11 @@ class Filter:
             book_year = book.get_published_year()
             return min_value <= book_year <= max_value
         elif (filter_on == TITLE_FILTER) and (book is not None):
+            if "Trends in Distributed Systems" in book.get_title():
+                logger.info(f"Encontre el libro {book.get_title()} | bool {word.lower() in book.get_title().lower()} | word.lower() in book.get_title().lower()")
             return word.lower() in book.get_title().lower()
         elif filter_on == DISTINCT_FILTER and (query_info.get_n_distinct() is not None):
-            return query_info.get_n_distinct() >= 1 #min_value
+            return query_info.get_n_distinct() >= min_value
         elif filter_on == SENTIMENT_FILTER and (query_info.get_sentiment() is not None):
             return query_info.get_sentiment() >= min_value
         elif query_info.filter_by_top():
@@ -76,31 +78,25 @@ class Filter:
         if not node in self.results.keys():
             self.results[node] = ([], time.time())
         self.results[node][0].append(fragment)
+        self.results[node] = (self.results[node][0], time.time())
         if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.results[node][0])
             self.mom.publish(data_chunk, node)
             self.results[node] = ([], time.time())
-
-    # def update_last_and_send_chunk(self, queries_to_update):
-    #     for query in queries_to_update:
-    #         for key, (data, last_sent) in self.results.items():
-    #             for i, fragment in enumerate(reversed(data)):
-    #                 queries = fragment.get_queries()
-    #                 if query in queries.keys():
-    #                     fragment.set_as_last()
-    #                     data[i] = fragment
-    #                     break
-    #             self.results[key] = (data,last_sent)
         
     def filter_data_chunk(self,chunk: DataChunk):
         for fragment in chunk.get_fragments():
             if self.filter_data_fragment(fragment):
+                if len(update_data_fragment_step(fragment).items()) == 0:
+                    logger.info(f"Fragmento {fragment} no tiene siguiente paso")
                 for data, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send_chunk(data, key)
             if fragment.is_last():
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)
+            if fragment.get_book() and "Trends in Distributed Systems" in fragment.get_book().get_title():
+                logger.info(f"Encontre el libro {fragment.get_book().get_title()}")
 
     def send_with_timeout(self):
         for key, (data, last_sent) in self.results.items():
@@ -114,6 +110,7 @@ class Filter:
         while not self._exit:
             msg = self.mom.consume(self.work_queue)
             if not msg:
+                self.send_with_timeout()
                 continue
                 #return # TODO: change this
             # logger.info(f"Recibi {msg}")

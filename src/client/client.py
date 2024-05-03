@@ -93,11 +93,11 @@ class Client:
     def _send_file(self, file_path: str, columns_to_send:  List[int]):
         with open(file_path, 'r') as data_file:
             reader = csv.reader(data_file)
-            # i = 0
+            i = 0
             while True:
-                # i += 1
-                # if i > 2500:
-                #     break
+                i += 1
+                if i > 2500:
+                    break
                 data_chunk = self.read_chunk_with_columns(reader,columns_to_send)
                 if not data_chunk or self._stop:
                     return
