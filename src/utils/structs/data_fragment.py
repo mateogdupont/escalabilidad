@@ -70,6 +70,8 @@ class DataFragment:
         if not self.query_info:
             self.query_info = QueryInfo()
         new.set_query_info(self.query_info.clone())
+        if self.is_last():
+            new.set_as_last()
         return new
     
     def get_query_id(self) -> str:

@@ -17,7 +17,7 @@ import sys
 
 year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
-CHUNK_SIZE = 100
+CHUNK_SIZE = 500
 BOOKS_FILE_NAME = "books_data.csv"
 REVIEWS_FILE_NAME = "Books_rating.csv"
 RESULTS_FILE_NAME = "Results.csv"
@@ -94,8 +94,8 @@ class Client:
             reader = csv.reader(data_file)
             i = 0
             while True:
-                i += 1
-                if i > 2500:
+                i += 1 # remove this line
+                if i > 25:
                     break
                 data_chunk = self.read_chunk_with_columns(reader,columns_to_send)
                 if not data_chunk or self._stop:

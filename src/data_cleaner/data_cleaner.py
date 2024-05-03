@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 import sys
 import logging as logger
 
-MAX_AMOUNT_OF_FRAGMENTS = 100
+MAX_AMOUNT_OF_FRAGMENTS = 500
 LISTEN_BACKLOG = 5
 PORT = 1250
 
@@ -46,23 +46,23 @@ class DataCleaner:
             self.mom.publish(data_chunk, node)
             self.clean_data[node].clear()
             
-    def update_last_and_send_chunk(self):
-        for node in self.clean_data.keys():
-            if len(self.clean_data[node]) == 0:
-                continue
-            self.clean_data[node][-1].set_as_last()
-            data_chunk = DataChunk(self.clean_data[node])
-            self.mom.publish(data_chunk, node)
-            self.clean_data[node].clear()
+    # def update_last_and_send_chunk(self):
+    #     for node in self.clean_data.keys():
+    #         if len(self.clean_data[node]) == 0:
+    #             continue
+    #         self.clean_data[node][-1].set_as_last()
+    #         data_chunk = DataChunk(self.clean_data[node])
+    #         self.mom.publish(data_chunk, node)
+    #         self.clean_data[node].clear()
         
 
     def send_clean_data(self, chunk_data: DataChunk):
         for fragment in chunk_data.get_fragments():
             for data, key in update_data_fragment_step(fragment).items():
                 self.add_and_try_to_send_chunk(data, key)
-            if fragment.is_last():
-                self.update_last_and_send_chunk()
-
+            # if fragment.is_last():
+            #     logger.info("DataFragment is last!!!!!!!!!")
+                # self.update_last_and_send_chunk()
             
     def has_minimun_data(self, fragment: DataFragment):
         book = fragment.get_book()
@@ -91,7 +91,7 @@ class DataCleaner:
             self.send_clean_data(chunk)
             if chunk.contains_last_fragment():
                 print(f"All data was received: {self.total_pass}")
-                send_msg(socket,json.dumps(chunk.to_json()))
+                # send_msg(socket,json.dumps(chunk.to_json()))
                 self._exit = True
 
 
