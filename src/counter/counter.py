@@ -17,7 +17,7 @@ YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
-MAX_AMOUNT_OF_FRAGMENTS = 400
+MAX_AMOUNT_OF_FRAGMENTS = 500
 
 class Counter:
     def __init__(self):
@@ -85,10 +85,7 @@ class Counter:
                     logger.info(f"Percentile 90 for {group_data}: {percentile_90}")
 
                 except Exception as e:
-                    logger.error(f"Error calculating percentile: {e}")
-                    logger.info(F"self.counted_data[query_id][group_data]['VALUES']: {self.counted_data[query_id][group_data]['VALUES']}")
-                    logger.info(f"self.counted_data[query_id][group_data]['PERCENTILE']: {self.counted_data[query_id][group_data]['PERCENTILE']}")
-                    logger.info(f"group_data: {group_data}")
+                    logger.error(f"Error calculating percentile. Discarding group data: {group_data}")
         return results
 
     def count_type_2(self, data_fragment, query_id, queries, group_data, value):
@@ -152,10 +149,6 @@ class Counter:
         elif (percentile_data is not None) and (query_info.get_sentiment() is not None):
             value = query_info.get_sentiment()
             logger.info(f"Sentiment: {value}")
-
-        logger.info(f"Group data: {group_data} | Value: {value}")
-        logger.info(f"Percentile_data: {percentile_data}")
-        logger.info(f"query_info.get_sentiment(): {query_info.get_sentiment()}")
         return group_data, value
             
     def run(self):

@@ -30,7 +30,7 @@ Review: book_title
 1b   | book |  filter     | year >= 1990 and year <= 1999
 2    | both | join        |
 3    |      | counter     | {group_by: book_title, count_distinct: review, avg: score} (avg for query 4)
-4    |      | filter      | count >= 400
+4    |      | filter      | count >= 500
 Return: title, authors
 
 Query 4
@@ -43,7 +43,7 @@ Review: book_title, score
 1b   | book |  filter     | year >= 1990 and year <= 1999
 2    | both | join        |
 3    |      | counter     | {group_by: book_title, count_distinct: review, avg: score}
-4    |      | filter      | count >= 400
+4    |      | filter      | count >= 500
 5    |      | filter      | {top: 10, order_by: avg_rating}
 Return: book (all), count, avg_rating
 

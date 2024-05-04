@@ -18,7 +18,7 @@ import sys
 
 year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
-CHUNK_SIZE = 400
+CHUNK_SIZE = 500
 BOOKS_FILE_NAME = "books_data.csv"
 REVIEWS_FILE_NAME = "Books_rating.csv"
 RESULTS_FILE_NAME = "Results.csv"

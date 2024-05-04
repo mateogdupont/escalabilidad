@@ -14,7 +14,7 @@ import sys
 import time
 import logging as logger
 
-MAX_AMOUNT_OF_FRAGMENTS = 400
+MAX_AMOUNT_OF_FRAGMENTS = 500
 LISTEN_BACKLOG = 5
 PORT = 1250
 
