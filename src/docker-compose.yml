@@ -29,21 +29,22 @@ services:
     ports:
     - 15672:15672
 
-  # rabbitmq-test:
-  #   build:
-  #     context: rabbitmq-test/
-  #     dockerfile: Dockerfile
-  #   depends_on:
-  #     - rabbitmq
-  #   networks:
-  #     - network-bridge
+  rabbitmq-test:
+    build:
+      context: rabbitmq-test/
+      dockerfile: Dockerfile
+    depends_on:
+      - rabbitmq
+    networks:
+      - network-bridge
 
   client:
     build:
       context: .
       dockerfile: ./client/Dockerfile
     volumes:
-      - ../data/data.zip:/data.zip
+ #     - ../data/data.zip:/data.zip
+      - ../data:/data
     networks:
       - network-bridge
     depends_on:
