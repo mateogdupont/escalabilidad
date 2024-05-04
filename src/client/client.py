@@ -1,18 +1,15 @@
 import csv
 import signal
 import os
-import time
 import re
 from typing import List
-import datetime
 from multiprocessing import Process, Event
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
 from utils.structs.data_chunk import *
 from utils.stream_communications import *
-from utils.query_updater import update_data_fragment_step
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
 
@@ -111,8 +108,9 @@ class Client:
         logger.info(f"Starting to send data, please wait")
         self._send_file(self._data_path + "/" + BOOKS_FILE_NAME, BOOKS_RELEVANT_COLUMNS)
         logger.info(f"All books have been sended")
-        self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
-        logger.info(f"All reviews have been sended")
+        if any(query in self._queries for query in [3, 4, 5]):
+            self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
+            logger.info(f"All reviews have been sended")
         self._send_last()
 
     def run(self):
@@ -146,7 +144,7 @@ class Client:
 
     def _handle_results(self, event):
         amount_of_queries_left = len(self._queries)
-        with open(RESULTS_FILE_NAME, 'w', newline='') as result_file:
+        with open(self._data_path + "/data/" + RESULTS_FILE_NAME, 'w', newline='') as result_file:
             writer = csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(RESULTS_COLUMNS)
             while not event.is_set():
@@ -162,5 +160,4 @@ class Client:
                 if amount_of_queries_left <= 0:
                     break      
         logger.info(f"All queries have been processed")
-        time.sleep(10*60)
         self.socket.close()
