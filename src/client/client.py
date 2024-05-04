@@ -93,12 +93,12 @@ class Client:
     def _send_file(self, file_path: str, columns_to_send:  List[int]):
         with open(file_path, 'r') as data_file:
             reader = csv.reader(data_file)
-            i = 0
+            # i = 0
             while True:
-                if i > 1000:
-                    logger.error(f"Too many iterations, something went wrong")
-                    return
-                i += 1
+                # if i > 1000:
+                #     logger.error(f"Too many iterations, something went wrong")
+                #     return
+                # i += 1
                 data_chunk = self.read_chunk_with_columns(reader,columns_to_send)
                 if not data_chunk or self._stop:
                     return

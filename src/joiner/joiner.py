@@ -22,11 +22,14 @@ class Joiner:
     def __init__(self):
         load_dotenv()
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
+        self.id = os.environ["ID"]
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
-        self.mom = MOM(consumer_queues)
-        self.books_queue = os.environ["BOOKS_QUEUE"]
+        self.books_queue = os.environ["BOOKS_QUEUE"] + '.' + self.id
         self.reviews_queue = os.environ["REVIEWS_QUEUE"]
+        consumer_queues[self.books_queue] = consumer_queues[os.environ["BOOKS_QUEUE"]]
+        consumer_queues.pop(os.environ["BOOKS_QUEUE"])
+        self.mom = MOM(consumer_queues)
         self.books_side_tables = {}
         self.side_tables_ended = set()
         self.results = {}
@@ -56,12 +59,12 @@ class Joiner:
         while not self._exit and not completed:
             msg = self.mom.consume(self.books_queue)
             if not msg:
-                tries -= 1 if some_books else 0
+                # tries -= 1 if some_books else 0
                 time.sleep(1)
-                if tries == 0:
-                    logger.info(f"(not last) Finished receiving all books for query {query_id}")
-                    self.side_tables_ended.add(query_id)
-                    break
+                # if tries == 0:
+                #     logger.info(f"(not last) Finished receiving all books for query {query_id}")
+                #     self.side_tables_ended.add(query_id)
+                #     break
                 continue
             (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
