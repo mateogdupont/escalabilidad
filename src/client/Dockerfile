@@ -13,6 +13,6 @@ RUN pip install -r ./utils/requirements.txt
 # Install unzip
 RUN apt-get update && apt-get install -y unzip
 
-ENV PYTHONPATH / 
+ENV PYTHONPATH /
 
-CMD bash -c "sleep 5 && unzip -n /data/data.zip && python client/main.py .. 3"
+ENTRYPOINT ["bash", "-c", "sleep 5 && unzip -n /data/data.zip && python client/main.py .. 1"]

@@ -2,6 +2,8 @@ import csv
 import signal
 import os
 import re
+import socket
+import time
 from typing import List
 from multiprocessing import Process, Event
 from utils.structs.book import *
@@ -43,6 +45,7 @@ class Client:
         self.socket = socket
         self.data = DataChunk([])
         signal.signal(signal.SIGTERM, self.sigterm_handler)
+        signal.signal(signal.SIGINT, self.sigterm_handler)
 
     def sigterm_handler(self, signal,frame):
         self._stop = True
@@ -79,6 +82,8 @@ class Client:
     
     def _send_data_chunk(self,data_chunk):
         for data in data_chunk:
+            if self._stop:
+                return
             parsed_data = self.parse_data(data)
             if parsed_data != None:
                 self.data.add_fragment(parsed_data)
@@ -90,11 +95,13 @@ class Client:
     def _send_file(self, file_path: str, columns_to_send:  List[int]):
         with open(file_path, 'r') as data_file:
             reader = csv.reader(data_file)
-            while True:
+            while True and not self._stop:
                 data_chunk = self.read_chunk_with_columns(reader,columns_to_send)
                 if not data_chunk or self._stop:
-                    return
+                    break
                 self._send_data_chunk(data_chunk)
+        if not self._stop:
+            logger.info(f"All data in {file_path} have been sended")
     
     def _send_last(self):
         fragment = DataFragment(self._queries.copy(), None , None)
@@ -105,12 +112,9 @@ class Client:
 
 
     def _send_all_data_files(self):
-        logger.info(f"Starting to send data, please wait")
         self._send_file(self._data_path + "/" + BOOKS_FILE_NAME, BOOKS_RELEVANT_COLUMNS)
-        logger.info(f"All books have been sended")
         if any(query in self._queries for query in [3, 4, 5]):
             self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, REVIEWS_RELEVANT_COLUMNS)
-            logger.info(f"All reviews have been sended")
         self._send_last()
 
     def run(self):
@@ -119,10 +123,12 @@ class Client:
         results_proccess.start()
         keys = ','.join([str(key) for key in self._queries.keys()])
         send_msg(self.socket,keys)
-        
+        logger.info(f"Starting to send data, please wait") 
         self._send_all_data_files()
-        logger.info(f"Data was submitted successfully, please wait for results")
-        
+        if not self._stop:
+            logger.info(f"Data was submitted successfully, please wait for results")
+        else:
+            logger.info(f"Operation was aborted due to a termination signal.")
         results_proccess.join()
     
     # Creates a result array
@@ -142,22 +148,39 @@ class Client:
 
         return [query] + book_result + query_info_results
 
+    def receive_result(self, event) -> DataChunk:
+        while not event.is_set():
+            try:
+                chunk_msg = receive_msg(self.socket)
+                if not chunk_msg:
+                    return None
+                json_chunk_msg = json.loads(chunk_msg)
+                return DataChunk.from_json(json_chunk_msg)
+            except socket.timeout:
+                time.sleep(1)
+            except socket.error as e:
+                logger.info(f"Error en el socket: {e}")
+                return None
+
     def _handle_results(self, event):
         amount_of_queries_left = len(self._queries)
         with open(self._data_path + "/data/" + RESULTS_FILE_NAME, 'w', newline='') as result_file:
             writer = csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(RESULTS_COLUMNS)
             while not event.is_set():
-                chunk_msg = receive_msg(self.socket)
-                json_chunk_msg = json.loads(chunk_msg)
-                chunk = DataChunk.from_json(json_chunk_msg)
+                chunk = self.receive_result(event)
+                if not chunk:
+                    break
                 for fragment in chunk.get_fragments():
                     if fragment.is_last():
                         amount_of_queries_left -= 1
                         continue
                     result = self.get_result_from_datafragment(fragment)
                     writer.writerow(result)
+                    if event.is_set():
+                        break
                 if amount_of_queries_left <= 0:
-                    break      
-        logger.info(f"All queries have been processed")
+                    break
+        if not event.is_set():
+            logger.info(f"All queries have been processed")
         self.socket.close()
