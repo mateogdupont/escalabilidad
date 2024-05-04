@@ -15,7 +15,7 @@ import logging as logger
 
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
-MAX_AMOUNT_OF_FRAGMENTS = 500
+MAX_AMOUNT_OF_FRAGMENTS = 400
 TIMEOUT = 50
 
 class Joiner:
@@ -50,14 +50,14 @@ class Joiner:
 
     def receive_all_books(self, query_id: str):
         logger.info(f"Receiving all books for query {query_id}")
-        tries = 630
+        tries = 60*3
         completed = False
         some_books = False
         while not self._exit and not completed:
             msg = self.mom.consume(self.books_queue)
             if not msg:
                 tries -= 1 if some_books else 0
-                time.sleep(0.1)
+                time.sleep(1)
                 if tries == 0:
                     logger.info(f"(not last) Finished receiving all books for query {query_id}")
                     self.side_tables_ended.add(query_id)
