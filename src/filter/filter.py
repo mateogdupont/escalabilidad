@@ -53,20 +53,23 @@ class Filter:
         elif filter_on == SENTIMENT_FILTER and (query_info.get_sentiment() is not None):
             return query_info.get_sentiment() >= min_value
         elif query_info.filter_by_top():
-            if len(self.top_ten) < TOP_AMOUNT:
-                self.top_ten.append(data_fragment)
-                self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
-            else:
-                lowest = self.top_ten[0]
-                if data_fragment.get_query_info().get_average() > lowest.get_query_info().get_average():
-                    self.top_ten[0] = data_fragment
-                    self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
-        
             if data_fragment.is_last():
                 for fragment in self.top_ten:
                     for data, key in update_data_fragment_step(fragment).items():
                         self.add_and_try_to_send_chunk(data, key)
                 self.top_ten = []
+
+            if len(self.top_ten) < TOP_AMOUNT:
+                logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
+                self.top_ten.append(data_fragment)
+                self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
+            else:
+                lowest = self.top_ten[0]
+                if data_fragment.get_query_info().get_average() > lowest.get_query_info().get_average():
+                    logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
+                    self.top_ten[0] = data_fragment
+                    self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
+        
         return False
 
     
@@ -118,6 +121,7 @@ class Filter:
                 logger.error(f"Error al consumir de {self.work_queue}: {e}")
                 return
             if not msg:
+                time.sleep(1)
                 self.send_with_timeout()
                 continue
                 #return # TODO: change this

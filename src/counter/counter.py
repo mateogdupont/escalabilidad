@@ -9,6 +9,7 @@ from utils.structs.data_chunk import *
 from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv
+import time
 import numpy as np
 import logging as logger
 
@@ -152,6 +153,7 @@ class Counter:
         while not self._exit:
             msg = self.mom.consume(self.work_queue)
             if not msg:
+                time.sleep(0.1)
                 continue # TODO: change this
             data_chunk, tag = msg
             for data_fragment in data_chunk.get_fragments():

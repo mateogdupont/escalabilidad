@@ -270,8 +270,9 @@ def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment
         time.sleep(10) # dont delete this!
         logger.info("DataFragment is last - - - -")
         logger.info(next_steps)
-        # logger.info(queries)
-        # logger.info("here")
+        for datafragment, key in next_steps.items():
+            logger.info(f"El fragment es {datafragment.to_json()}")
+            logger.info(f"El destino es {key}")
     
     return next_steps
                     
