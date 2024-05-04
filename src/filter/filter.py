@@ -51,6 +51,7 @@ class Filter:
         elif filter_on == DISTINCT_FILTER and (query_info.get_n_distinct() is not None):
             return query_info.get_n_distinct() >= min_value
         elif filter_on == SENTIMENT_FILTER and (query_info.get_sentiment() is not None):
+            logger.info(f"filter: {query_info.get_sentiment()} >= {min_value} | {query_info.get_sentiment() >= min_value}")
             return query_info.get_sentiment() >= min_value
         elif query_info.filter_by_top():
             if data_fragment.is_last():

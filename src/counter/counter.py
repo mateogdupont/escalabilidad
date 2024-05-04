@@ -72,19 +72,29 @@ class Counter:
             self.books[group_data] = data_fragment.get_book()
         else:
             base_data_fragment = DataFragment(queries.copy(), None, None)
+            sentiment_scores = {}
+            percentile_number = None
+            for group_data in self.counted_data[query_id].keys():
+                if len(self.counted_data[query_id][group_data]["VALUES"]) == 0 or not self.counted_data[query_id][group_data]["PERCENTILE"]:
+                    logger.error(f"Error calculating percentile. Discarding group data: {group_data}")
+                    continue
+                percentile_number = self.counted_data[query_id][group_data]["PERCENTILE"]
+                average_score = float(np.mean(self.counted_data[query_id][group_data]["VALUES"]))
+                sentiment_scores[group_data] = average_score
+            if not percentile_number:
+                logger.error(f"Percentile is None")
+                return results
+            percentile_result = float(np.percentile(list(sentiment_scores.values()), percentile_number))
             for group_data in self.counted_data[query_id].keys():
                 new_data_fragment = base_data_fragment.clone()
                 new_query_info = QueryInfo()
-                try:
-                    percentile_90 = np.percentile(self.counted_data[query_id][group_data]["VALUES"], self.counted_data[query_id][group_data]["PERCENTILE"])
-                    new_query_info.set_percentile(float(percentile_90))
-                    new_data_fragment.set_query_info(new_query_info)
-                    review = Review.with_minimum_data(title=group_data, text="-", score=0.0)
-                    new_data_fragment.set_review(review)
-                    new_data_fragment.set_book(self.books[group_data])
-                    results.append(new_data_fragment)
-                except Exception as e:
-                    logger.error(f"Error calculating percentile. Discarding group data: {group_data}")
+                new_query_info.set_percentile(percentile_result)
+                new_query_info.set_sentiment(sentiment_scores[group_data])
+                new_data_fragment.set_query_info(new_query_info)
+                review = Review.with_minimum_data(title=group_data, text="-", score=0.0)
+                new_data_fragment.set_review(review)
+                new_data_fragment.set_book(self.books[group_data])
+                results.append(new_data_fragment)
         return results
 
     def count_type_2(self, data_fragment, query_id, queries, group_data, value):
