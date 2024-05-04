@@ -76,7 +76,7 @@ class Counter:
                 new_query_info = QueryInfo()
                 try:
                     percentile_90 = np.percentile(self.counted_data[query_id][group_data]["VALUES"], self.counted_data[query_id][group_data]["PERCENTILE"])
-                    new_query_info.set_percentile(percentile_90)
+                    new_query_info.set_percentile(float(percentile_90))
                     new_data_fragment.set_query_info(new_query_info)
                     review = Review.with_minimum_data(title=group_data, text="-", score=0.0)
                     new_data_fragment.set_review(review)

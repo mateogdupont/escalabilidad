@@ -13,7 +13,7 @@ import time
 from textblob import TextBlob
 
 def get_sentiment_score(text: str) -> float:
-    return TextBlob(text).sentiment.polarity
+    return round(TextBlob(text).sentiment.polarity, 5)
 
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
