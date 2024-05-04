@@ -25,10 +25,8 @@ class MOM:
             self.channel = self.connection.channel()
             return True
         except Exception as e:
-            if retry == os.environ["MAX_RETRIES"]:
-                logger.error(f"Max retries limit reached, ending the connection with rabbitmq. Last error was '{e}'")
-                return False
-            return self._connect(retry + 1)
+            logger.error(f"Error connecting to RabbitMQ: {e}")
+            return False
         
     def consume(self, queue: str) -> Optional[Tuple[DataChunk, int]]:
         if not queue in self.consumer_queues:
@@ -40,6 +38,7 @@ class MOM:
             data_chunk = DataChunk.from_json(body)
             return data_chunk, method.delivery_tag
         except Exception as e:
+            self.close()
             self._connect(0)
             self.channel.basic_qos(prefetch_count=1)
             for queue, arguments in self.consumer_queues.items():
@@ -56,6 +55,7 @@ class MOM:
         try:
             self.channel.basic_ack(delivery_tag=delivery_tag)
         except Exception as e:
+            self.close()
             self._connect(0)
             self.channel.basic_qos(prefetch_count=1)
             for queue, arguments in self.consumer_queues.items():
@@ -66,10 +66,12 @@ class MOM:
     
     def publish(self, data_chunk: DataChunk, key: str) -> None:
         try:
+            logger.info(f"Publishing to {key} | {data_chunk.to_json()}")
             self.channel.basic_publish(exchange=self.exchange,
                                     routing_key=key,
                                     body=data_chunk.to_json())
         except Exception as e:
+            self.close()
             self._connect(0)
             self.channel.basic_qos(prefetch_count=1)
             for queue, arguments in self.consumer_queues.items():
@@ -80,6 +82,12 @@ class MOM:
                                     routing_key=key,
                                     body=data_chunk.to_json())
 
+    def close(self):
+        try:
+            self.channel.close()
+            self.connection.close()
+        except Exception as e:
+            pass
             
     # def __del__(self):
     #     self.channel.close()

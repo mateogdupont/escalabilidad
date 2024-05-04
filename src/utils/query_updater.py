@@ -267,7 +267,7 @@ def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment
             next_steps[datafragment] = key
     
     if data_fragment.is_last():
-        time.sleep(5) # dont delete this!
+        time.sleep(10) # dont delete this!
         logger.info("DataFragment is last - - - -")
         logger.info(next_steps)
         # logger.info(queries)

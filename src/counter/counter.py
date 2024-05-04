@@ -82,8 +82,6 @@ class Counter:
                     new_data_fragment.set_review(review)
                     new_data_fragment.set_book(self.books[group_data])
                     results.append(new_data_fragment)
-                    logger.info(f"Percentile 90 for {group_data}: {percentile_90}")
-
                 except Exception as e:
                     logger.error(f"Error calculating percentile. Discarding group data: {group_data}")
         return results
@@ -148,7 +146,6 @@ class Counter:
             value = review.get_score()
         elif (percentile_data is not None) and (query_info.get_sentiment() is not None):
             value = query_info.get_sentiment()
-            logger.info(f"Sentiment: {value}")
         return group_data, value
             
     def run(self):
