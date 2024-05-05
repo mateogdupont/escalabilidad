@@ -31,9 +31,10 @@ class Filter:
         self.results = {}
         self.top_ten = []
         signal.signal(signal.SIGTERM, self.sigterm_handler)
+        signal.signal(signal.SIGINT, self.sigterm_handler)
         self._exit = False
     
-    def sigterm_handler(self):
+    def sigterm_handler(self, signal,frame):
         self._exit = True
 
     def filter_data_fragment(self, data_fragment: DataFragment) -> bool:
@@ -55,6 +56,8 @@ class Filter:
         elif query_info.filter_by_top():
             if data_fragment.is_last():
                 for fragment in self.top_ten:
+                    if self._exit:
+                        return False
                     for data, key in update_data_fragment_step(fragment).items():
                         self.add_and_try_to_send_chunk(data, key)
                 self.top_ten = []
@@ -74,6 +77,8 @@ class Filter:
 
     
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
+        if self._exit:
+            return
         if not node in self.results.keys():
             self.results[node] = ([], time.time())
         self.results[node][0].append(fragment)
@@ -85,6 +90,8 @@ class Filter:
         
     def filter_data_chunk(self,chunk: DataChunk):
         for fragment in chunk.get_fragments():
+            if self._exit:
+                return
             if self.filter_data_fragment(fragment):
                 if len(update_data_fragment_step(fragment).items()) == 0:
                     logger.info(f"Fragmento {fragment} no tiene siguiente paso")
@@ -99,6 +106,8 @@ class Filter:
 
     def send_with_timeout(self):
         for key, (data, last_sent) in self.results.items():
+            if self._exit:
+                return
             if (len(data) > 0) and (time.time() - last_sent > TIMEOUT):
                 chunk = DataChunk(data)
                 self.mom.publish(chunk, key)
@@ -112,8 +121,6 @@ class Filter:
                 time.sleep(1)
                 self.send_with_timeout()
                 continue
-                #return # TODO: change this
-            # logger.info(f"Recibi {msg}")
             data_chunk, tag = msg
             self.filter_data_chunk(data_chunk)
             self.mom.ack(tag)

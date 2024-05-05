@@ -12,4 +12,4 @@ RUN pip install -r ./utils/requirements.txt
 
 ENV PYTHONPATH / 
 
-CMD bash -c "sleep 5 && python filter/filter.py"
+ENTRYPOINT ["bash", "-c", "sleep 5 && python filter/filter.py"]
