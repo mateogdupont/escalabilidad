@@ -16,4 +16,4 @@ RUN pip install -r ./sentiment-analyser/requirements.txt
 ENV PYTHONPATH=/app
 
 # CMD ["python", "sentiment-analyser/main.py"]
-CMD bash -c "sleep 5 && python sentiment-analyser/analyser.py"
+ENTRYPOINT ["bash", "-c", "sleep 5 && python sentiment-analyser/analyser.py"]

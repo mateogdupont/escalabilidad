@@ -1,7 +1,7 @@
 import ast
 from typing import List, Optional
 from datetime import datetime
-import jsonpickle
+import jsonpickle # type: ignore
 import json
 import logging as logger
 

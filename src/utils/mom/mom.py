@@ -38,14 +38,7 @@ class MOM:
             data_chunk = DataChunk.from_json(body)
             return data_chunk, method.delivery_tag
         except Exception as e:
-            # self.close()
-            # self._connect(0)
-            # self.channel.basic_qos(prefetch_count=1)
-            # for queue, arguments in self.consumer_queues.items():
-            #     arguments = {'x-max-priority': 5} if arguments else {}
-            #     self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
             self.re_connect()
-            
             method, _, body = self.channel.basic_get(queue=queue, auto_ack=False)
             if not method:
                 return None
@@ -56,14 +49,7 @@ class MOM:
         try:
             self.channel.basic_ack(delivery_tag=delivery_tag)
         except Exception as e:
-            # self.close()
-            # self._connect(0)
-            # self.channel.basic_qos(prefetch_count=1)
-            # for queue, arguments in self.consumer_queues.items():
-            #     arguments = {'x-max-priority': 5} if arguments else {}
-            #     self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
             self.re_connect()
-            
             self.channel.basic_ack(delivery_tag=delivery_tag)
     
     def nack(self, delivery_tag: int) -> None:
@@ -89,14 +75,7 @@ class MOM:
                                     routing_key=key,
                                     body=data_chunk.to_json())
         except Exception as e:
-            # self.close()
-            # self._connect(0)
-            # self.channel.basic_qos(prefetch_count=1)
-            # for queue, arguments in self.consumer_queues.items():
-            #     arguments = {'x-max-priority': 5} if arguments else {}
-            #     self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
             self.re_connect()
-
             self.channel.basic_publish(exchange=self.exchange,
                                     routing_key=key,
                                     body=data_chunk.to_json())
@@ -107,7 +86,7 @@ class MOM:
             self.connection.close()
         except Exception as e:
             pass
-    
+
     def connection_is_blocked(self):
         pass
         logger.warning(f"Connection is blocked")

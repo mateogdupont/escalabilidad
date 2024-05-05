@@ -43,7 +43,6 @@ services:
       context: .
       dockerfile: ./client/Dockerfile
     volumes:
- #     - ../data/data.zip:/data.zip
       - ../data:/data
     networks:
       - network-bridge
