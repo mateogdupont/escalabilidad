@@ -9,7 +9,7 @@ from utils.structs.data_chunk import *
 from utils.stream_communications import *
 from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 import sys
 import time
 import logging as logger
@@ -34,8 +34,10 @@ class DataCleaner:
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
         signal.signal(signal.SIGTERM, self.sigterm_handler)
+        signal.signal(signal.SIGINT, self.sigterm_handler)
     
-    def sigterm_handler(self):
+    def sigterm_handler(self, signal,frame):
+        self._socket.close()
         self._exit = True
         if self._event:
             self._event.set()
@@ -46,10 +48,14 @@ class DataCleaner:
         if len(self.clean_data[node]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.clean_data[node])
             self.mom.publish(data_chunk, node)
-            self.clean_data[node].clear()     
+            self.clean_data[node].clear()
 
     def send_clean_data(self, chunk_data: DataChunk):
         for fragment in chunk_data.get_fragments():
+            if self._exit:
+                if self._event:
+                    self._event.set()
+                return
             if fragment.is_last():
                 logger.info(f"Last fragment received")
             for data, key in update_data_fragment_step(fragment).items():
@@ -70,36 +76,62 @@ class DataCleaner:
         self.total_pass += len(filters_fragments)
         chunk.set_fragments(filters_fragments)
         return chunk
-        
+
+    def try_to_receive_chunk(self, socket) -> DataChunk:
+        while not self._exit:
+            try:
+                chunk_msg = receive_msg(socket)
+                if not chunk_msg:
+                    return None
+                json_chunk_msg = json.loads(chunk_msg)
+                return DataChunk.from_json(json_chunk_msg)
+            except socket.timeout:
+                time.sleep(1)
+            except socket.error as e:
+                logger.info(f"Error en el socket: {e}")
+                return None
+
     def handle_client(self, socket):
         finish = False
         queries = receive_msg(socket)
+        try:
+            queries = receive_msg(socket)
+        except socket.timeout:
+                logger.info(f"Client didn't answer in time")
         self._event = Event()
         results_proccess = Process(target=self._send_results, args=(socket,queries,self._event,))
         results_proccess.start()
         while not self._exit and not finish:
-            chunk_msg = receive_msg(socket)
-            json_chunk_msg = json.loads(chunk_msg)
-            chunk = DataChunk.from_json(json_chunk_msg)
+            chunk = self.try_to_receive_chunk(socket)
+            if not chunk:
+                finish = True
+                if self._event:
+                    self._event.set()
+                break
             self.clear_data(chunk)
             self.send_clean_data(chunk)
             if chunk.contains_last_fragment():
-                # print(f"All data was received: {self.total_pass}")
                 logger.info(f"All data was received: {self.total_pass}")
                 finish = True
         results_proccess.join()
+        socket.close()
 
     def run(self):
         while not self._exit:
-            socket = self._socket.accept()[0]
-            self.handle_client(socket)
+            try: 
+                socket = self._socket.accept()[0]
+                socket.settimeout(1.0)
+                self.handle_client(socket)
+            except OSError as err:
+                logger.info(f"Error in socket: {err}")
+                
 
     def _send_results(self,socket,queries,event):
         queries_left = len(queries.split(','))
         while not event.is_set() and queries_left > 0:
             msg = self.mom.consume(self.work_queue)
             if not msg:
-                time.sleep(10)
+                time.sleep(2)
                 continue
             (data_chunk, tag) = msg
             message = json.dumps(data_chunk.to_json())
@@ -107,7 +139,8 @@ class DataCleaner:
             if data_chunk.contains_last_fragment():
                 queries_left -= 1
             self.mom.ack(tag)
-        logger.info(f"All results has been delivered.")
+        if not event.is_set():
+            logger.info(f"All results has been delivered.")
 
 
 

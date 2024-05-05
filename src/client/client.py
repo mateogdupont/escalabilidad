@@ -72,7 +72,7 @@ class Client:
         review = None
         if len(data) == BOOKS_ARGUMENT_AMOUNT:
             publish_year = self.parse_year(data[4])
-            book = Book(data[0],data[1],data[2],None,None,data[3],publish_year,None,data[5],data[6])
+            book = Book(data[0],"",data[2],None,None,data[3],publish_year,None,data[5],data[6])
         elif len(data) == REVIEW_ARGUMENT_AMOUNT:
             review = Review(data[0],data[1],None,None,data[2],data[3],None,data[4],data[5])
         else:
