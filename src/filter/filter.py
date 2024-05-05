@@ -7,7 +7,7 @@ from utils.structs.data_fragment import *
 from utils.structs.data_chunk import *
 from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
 
