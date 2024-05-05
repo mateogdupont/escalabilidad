@@ -171,7 +171,7 @@ def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFra
             new_queries[3] = queries[3]
             data_fragment.set_queries(new_queries)
             next_steps[data_fragment] = "results"
-            logger.info("query 3 | step 4 | going to results")
+            # logger.info("query 3 | step 4 | going to results")
         if 4 in queries.keys():
             new_queries = {}
             new_queries[4] = queries[4]

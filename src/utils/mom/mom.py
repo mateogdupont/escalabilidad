@@ -38,12 +38,13 @@ class MOM:
             data_chunk = DataChunk.from_json(body)
             return data_chunk, method.delivery_tag
         except Exception as e:
-            self.close()
-            self._connect(0)
-            self.channel.basic_qos(prefetch_count=1)
-            for queue, arguments in self.consumer_queues.items():
-                arguments = {'x-max-priority': 5} if arguments else {}
-                self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
+            # self.close()
+            # self._connect(0)
+            # self.channel.basic_qos(prefetch_count=1)
+            # for queue, arguments in self.consumer_queues.items():
+            #     arguments = {'x-max-priority': 5} if arguments else {}
+            #     self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
+            self.re_connect()
             
             method, _, body = self.channel.basic_get(queue=queue, auto_ack=False)
             if not method:
@@ -55,28 +56,46 @@ class MOM:
         try:
             self.channel.basic_ack(delivery_tag=delivery_tag)
         except Exception as e:
-            self.close()
-            self._connect(0)
-            self.channel.basic_qos(prefetch_count=1)
-            for queue, arguments in self.consumer_queues.items():
-                arguments = {'x-max-priority': 5} if arguments else {}
-                self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
+            # self.close()
+            # self._connect(0)
+            # self.channel.basic_qos(prefetch_count=1)
+            # for queue, arguments in self.consumer_queues.items():
+            #     arguments = {'x-max-priority': 5} if arguments else {}
+            #     self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
+            self.re_connect()
             
             self.channel.basic_ack(delivery_tag=delivery_tag)
     
-    def publish(self, data_chunk: DataChunk, key: str) -> None:
+    def nack(self, delivery_tag: int) -> None:
         try:
-            logger.info(f"Publishing to {key} | {data_chunk.to_json()}")
+            self.channel.basic_nack(delivery_tag=delivery_tag)
+        except Exception as e:
+            # self.close()
+            # self._connect(0)
+            # self.channel.basic_qos(prefetch_count=1)
+            # for queue, arguments in self.consumer_queues.items():
+            #     arguments = {'x-max-priority': 5} if arguments else {}
+            #     self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
+            self.re_connect()
+            
+            self.channel.basic_nack(delivery_tag=delivery_tag)
+    
+    def publish(self, data_chunk: DataChunk, key: str) -> None:
+        if data_chunk is None or data_chunk.get_fragments() is None or len(data_chunk.get_fragments()) == 0 or data_chunk.to_json() is None:
+            logger.error(f"DataChunk is None")
+        try:
+            # logger.info(f"Publishing to {key} | {data_chunk.to_json()}")
             self.channel.basic_publish(exchange=self.exchange,
                                     routing_key=key,
                                     body=data_chunk.to_json())
         except Exception as e:
-            self.close()
-            self._connect(0)
-            self.channel.basic_qos(prefetch_count=1)
-            for queue, arguments in self.consumer_queues.items():
-                arguments = {'x-max-priority': 5} if arguments else {}
-                self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
+            # self.close()
+            # self._connect(0)
+            # self.channel.basic_qos(prefetch_count=1)
+            # for queue, arguments in self.consumer_queues.items():
+            #     arguments = {'x-max-priority': 5} if arguments else {}
+            #     self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
+            self.re_connect()
 
             self.channel.basic_publish(exchange=self.exchange,
                                     routing_key=key,
@@ -88,6 +107,20 @@ class MOM:
             self.connection.close()
         except Exception as e:
             pass
+    
+    def connection_is_blocked(self):
+        pass
+        logger.warning(f"Connection is blocked")
+        return self.connection.blocked
+    
+    def re_connect(self):
+        logger.warning(f"Reconnecting to RabbitMQ")
+        self.close()
+        self._connect(0)
+        self.channel.basic_qos(prefetch_count=1)
+        for queue, arguments in self.consumer_queues.items():
+            arguments = {'x-max-priority': 5} if arguments else {}
+            self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
             
     # def __del__(self):
     #     self.channel.close()

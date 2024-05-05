@@ -18,7 +18,7 @@ YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
-MAX_AMOUNT_OF_FRAGMENTS = 500
+MAX_AMOUNT_OF_FRAGMENTS = 250
 
 class Counter:
     def __init__(self):
@@ -139,8 +139,6 @@ class Counter:
                 new_query_info.set_n_distinct(len(value))
                 new_data_fragment.set_query_info(new_query_info)
                 results.append(new_data_fragment)
-                # if len(value) >= 10:
-                #     logger.info(f"Author: {key} has {len(value)} decades")
         return results
 
     def get_counter_values(self, query_info, group_by, count_distinct, average_column, percentile_data, book, review):

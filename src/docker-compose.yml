@@ -29,14 +29,14 @@ services:
     ports:
     - 15672:15672
 
-  rabbitmq-test:
-    build:
-      context: rabbitmq-test/
-      dockerfile: Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # rabbitmq-test:
+  #   build:
+  #     context: rabbitmq-test/
+  #     dockerfile: Dockerfile
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
 
   client:
     build:
@@ -141,60 +141,60 @@ services:
     networks:
       - network-bridge
   
-  joiner6:
-    build:
-      context: .
-      dockerfile: ./joiner/Dockerfile
-    environment:
-      - ID=6
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # joiner6:
+  #   build:
+  #     context: .
+  #     dockerfile: ./joiner/Dockerfile
+  #   environment:
+  #     - ID=6
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
 
-  joiner7:
-    build:
-      context: .
-      dockerfile: ./joiner/Dockerfile
-    environment:
-      - ID=7
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # joiner7:
+  #   build:
+  #     context: .
+  #     dockerfile: ./joiner/Dockerfile
+  #   environment:
+  #     - ID=7
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
 
-  joiner8:
-    build:
-      context: .
-      dockerfile: ./joiner/Dockerfile
-    environment:
-      - ID=8
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge 
+  # joiner8:
+  #   build:
+  #     context: .
+  #     dockerfile: ./joiner/Dockerfile
+  #   environment:
+  #     - ID=8
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge 
 
-  joiner9:
-    build:
-      context: .
-      dockerfile: ./joiner/Dockerfile
-    environment:
-      - ID=9
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge 
+  # joiner9:
+  #   build:
+  #     context: .
+  #     dockerfile: ./joiner/Dockerfile
+  #   environment:
+  #     - ID=9
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge 
   
-  joiner10:
-    build:
-      context: .
-      dockerfile: ./joiner/Dockerfile
-    environment:
-      - ID=10
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge 
+  # joiner10:
+  #   build:
+  #     context: .
+  #     dockerfile: ./joiner/Dockerfile
+  #   environment:
+  #     - ID=10
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge 
 
   counter:
     build:
@@ -250,68 +250,68 @@ services:
     networks:
       - network-bridge
 
-  sentiment-analyser6:
-    build: 
-      context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # sentiment-analyser6:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
 
-  sentiment-analyser7:
-    build: 
-      context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # sentiment-analyser7:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
   
-  sentiment-analyser8:
-    build: 
-      context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # sentiment-analyser8:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
   
-  sentiment-analyser9:
-    build: 
-      context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # sentiment-analyser9:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
   
-  sentiment-analyser10:
-    build: 
-      context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # sentiment-analyser10:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
   
-  sentiment-analyser11:
-    build: 
-      context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # sentiment-analyser11:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
   
-  sentiment-analyser12:
-    build: 
-      context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # sentiment-analyser12:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
 
 networks:
   network-bridge:

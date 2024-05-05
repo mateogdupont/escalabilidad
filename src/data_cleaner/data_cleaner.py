@@ -102,10 +102,10 @@ class DataCleaner:
                 time.sleep(10)
                 continue
             (data_chunk, tag) = msg
-            logger.info(f"Data chunk: {data_chunk.to_json()}")
             message = json.dumps(data_chunk.to_json())
             send_msg(socket,message)
             if data_chunk.contains_last_fragment():
+                logger.info(f"Last - Data chunk: {data_chunk.to_json()}")
                 queries_left -= 1
             self.mom.ack(tag)
         logger.info(f"All results has been delivered.")
