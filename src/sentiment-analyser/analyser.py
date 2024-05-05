@@ -5,12 +5,12 @@ from utils.mom.mom import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
 from utils.query_updater import *
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
 import os
 import time
-from textblob import TextBlob
+from textblob import TextBlob # type: ignore
 
 def get_sentiment_score(text: str) -> float:
     return TextBlob(text).sentiment.polarity
@@ -32,13 +32,16 @@ class Analyser:
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
         self.results = {}
-        signal.signal(signal.SIGTERM, self.sigterm_handler)
         self._exit = False
+        signal.signal(signal.SIGTERM, self.sigterm_handler)
+        signal.signal(signal.SIGINT, self.sigterm_handler)
     
-    def sigterm_handler(self):
+    def sigterm_handler(self, signal,frame):
         self._exit = True
 
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
+        if self._exit:
+            return
         if not node in self.results.keys():
             self.results[node] = []
         self.results[node].append(fragment)
@@ -51,13 +54,12 @@ class Analyser:
         while not self._exit:
             msg = self.mom.consume(self.work_queue)
             if not msg:
+                time.sleep(0.5)
                 continue
-                #return # TODO: change this
-            # logger.info(f"Recibi {msg}")
             data_chunk, tag = msg
             
             for data_fragment in data_chunk.get_fragments():
-                if not data_fragment.is_last():
+                if (not data_fragment.is_last()) and (not self._exit):
                     review_text = data_fragment.get_review().get_text()
                     sentiment_score = get_sentiment_score(review_text)
                     query_info = data_fragment.get_query_info()

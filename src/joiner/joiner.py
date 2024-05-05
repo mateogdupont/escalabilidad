@@ -117,6 +117,7 @@ class Joiner:
         while not self._exit:
             msg = self.mom.consume(self.reviews_queue)
             if not msg:
+                time.sleep(0.1)
                 continue
             (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
