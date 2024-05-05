@@ -16,7 +16,7 @@ YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
-MAX_AMOUNT_OF_FRAGMENTS = 500
+MAX_AMOUNT_OF_FRAGMENTS = 250
 TIMEOUT = 50
 TOP_AMOUNT = 10
 
@@ -60,13 +60,13 @@ class Filter:
                 self.top_ten = []
 
             if len(self.top_ten) < TOP_AMOUNT:
-                logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
+                # logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
                 self.top_ten.append(data_fragment)
                 self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
             else:
                 lowest = self.top_ten[0]
                 if data_fragment.get_query_info().get_average() > lowest.get_query_info().get_average():
-                    logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
+                    # logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
                     self.top_ten[0] = data_fragment
                     self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
         
@@ -80,7 +80,11 @@ class Filter:
         self.results[node] = (self.results[node][0], time.time())
         if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.results[node][0])
-            self.mom.publish(data_chunk, node)
+            try:
+                self.mom.publish(data_chunk, node)
+            except Exception as e:
+                logger.error(f"Error al enviar a {node}: {e}")
+                logger.error(f"Data: {data_chunk.to_json()}")
             self.results[node] = ([], time.time())
         
     def filter_data_chunk(self,chunk: DataChunk):
@@ -101,13 +105,21 @@ class Filter:
         for key, (data, last_sent) in self.results.items():
             if (len(data) > 0) and (time.time() - last_sent > TIMEOUT):
                 chunk = DataChunk(data)
-                self.mom.publish(chunk, key)
+                try:
+                    self.mom.publish(chunk, key)
+                except Exception as e:
+                    logger.error(f"Error al enviar a {key}: {e}")
+                    logger.error(f"Data: {chunk.to_json()}")
                 self.results[key] = ([], time.time())
 
 
     def run(self):
         while not self._exit:
-            msg = self.mom.consume(self.work_queue)
+            try:
+                msg = self.mom.consume(self.work_queue)
+            except Exception as e:
+                logger.error(f"Error al consumir de {self.work_queue}: {e}")
+                return
             if not msg:
                 time.sleep(1)
                 self.send_with_timeout()
@@ -115,8 +127,12 @@ class Filter:
                 #return # TODO: change this
             # logger.info(f"Recibi {msg}")
             data_chunk, tag = msg
+            # logger.info(f"Recibi data | {data_chunk.to_json()}")
             self.filter_data_chunk(data_chunk)
-            self.mom.ack(tag)
+            try:
+                self.mom.ack(tag)
+            except Exception as e:
+                logger.error(f"Error al hacer ack de {tag}: {e}")
             self.send_with_timeout()
 
 def main():
