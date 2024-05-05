@@ -25,7 +25,7 @@ class DataCleaner:
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.bind(('', 1250))
         self._socket.listen(LISTEN_BACKLOG)
-        self._exit = False
+        self.exit = False
         self._event = None
         self.total_pass = 0
         self.clean_data = {}
@@ -38,7 +38,8 @@ class DataCleaner:
     
     def sigterm_handler(self, signal,frame):
         self._socket.close()
-        self._exit = True
+        self.mom.close()
+        self.exit = True
         if self._event:
             self._event.set()
     
@@ -52,7 +53,7 @@ class DataCleaner:
 
     def send_clean_data(self, chunk_data: DataChunk):
         for fragment in chunk_data.get_fragments():
-            if self._exit:
+            if self.exit:
                 if self._event:
                     self._event.set()
                 return
@@ -78,7 +79,7 @@ class DataCleaner:
         return chunk
 
     def try_to_receive_chunk(self, socket) -> DataChunk:
-        while not self._exit:
+        while not self.exit:
             try:
                 chunk_msg = receive_msg(socket)
                 if not chunk_msg:
@@ -101,7 +102,7 @@ class DataCleaner:
         self._event = Event()
         results_proccess = Process(target=self._send_results, args=(socket,queries,self._event,))
         results_proccess.start()
-        while not self._exit and not finish:
+        while not self.exit and not finish:
             chunk = self.try_to_receive_chunk(socket)
             if not chunk:
                 finish = True
@@ -117,7 +118,7 @@ class DataCleaner:
         socket.close()
 
     def run(self):
-        while not self._exit:
+        while not self.exit:
             try: 
                 socket = self._socket.accept()[0]
                 socket.settimeout(1.0)
@@ -147,6 +148,8 @@ class DataCleaner:
 def main():
     cleaner = DataCleaner()
     cleaner.run()
+    if not cleaner.exit:
+        cleaner.mom.close()
    
 if __name__ == "__main__":
     main()

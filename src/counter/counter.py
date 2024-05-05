@@ -30,12 +30,13 @@ class Counter:
         self.mom = MOM(consumer_queues)
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
-        self._exit = False
+        self.exit = False
         self.counted_data = {}
         self.books = {}
     
     def sigterm_handler(self, signal,frame):
-        self._exit = True
+        self.exit = True
+        self.mom.close()
 
     def count_data_fragment(self, data_fragment: DataFragment) -> List[DataFragment]:
         query_info = data_fragment.get_query_info()
@@ -68,7 +69,7 @@ class Counter:
         else:
             base_data_fragment = DataFragment(queries.copy(), None, None)
             for group_data in self.counted_data[query_id].keys():
-                if self._exit:
+                if self.exit:
                     return results
                 new_data_fragment = base_data_fragment.clone()
                 new_query_info = QueryInfo()
@@ -92,7 +93,7 @@ class Counter:
         else:
             base_data_fragment = DataFragment(queries.copy(), None, None)
             for group_data in self.counted_data[query_id].keys():
-                if self._exit:
+                if self.exit:
                     return results
                 new_data_fragment = base_data_fragment.clone()
                 new_query_info = QueryInfo()
@@ -111,7 +112,7 @@ class Counter:
             # group data is a list  
             if type(group_data) == list:
                 for data in group_data:
-                    if self._exit:
+                    if self.exit:
                         return results
                     if data not in self.counted_data[query_id].keys():
                         self.counted_data[query_id][data] = set()
@@ -121,7 +122,7 @@ class Counter:
         else:
             base_data_fragment = DataFragment(queries.copy(), None, None)
             for key, value in self.counted_data[query_id].items():
-                if self._exit:
+                if self.exit:
                     return results
                 new_data_fragment = base_data_fragment.clone()
                 new_query_info = QueryInfo()
@@ -148,14 +149,14 @@ class Counter:
         return group_data, value, percentile
             
     def run(self):
-        while not self._exit:
+        while not self.exit:
             msg = self.mom.consume(self.work_queue)
             if not msg:
                 time.sleep(0.1)
                 continue
             data_chunk, tag = msg
             for data_fragment in data_chunk.get_fragments():
-                if self._exit:
+                if self.exit:
                     return
                 results = self.count_data_fragment(data_fragment)
 
@@ -164,7 +165,7 @@ class Counter:
                     key = None
                     fragments = []
                     for results_data_fragment in results:
-                        if self._exit:
+                        if self.exit:
                             return
                         steps = update_data_fragment_step(results_data_fragment)
                         fragments.extend(steps.keys())
@@ -178,8 +179,10 @@ class Counter:
             self.mom.ack(tag)
 
 def main():
-    filter = Counter()
-    filter.run()
+    counter = Counter()
+    counter.run()
+    if not counter.exit:
+        counter.mom.close()
    
 if __name__ == "__main__":
     main()

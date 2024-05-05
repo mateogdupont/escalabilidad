@@ -30,12 +30,13 @@ class Joiner:
         self.books_side_tables = {}
         self.side_tables_ended = set()
         self.results = {}
-        self._exit = False
+        self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
     
     def sigterm_handler(self, signal,frame):
-        self._exit = True
+        self.exit = True
+        self.mom.close()
 
     def save_book_in_table(self,book: Book, query_id: str):
         if query_id not in self.books_side_tables.keys():
@@ -52,7 +53,7 @@ class Joiner:
         tries = 630
         completed = False
         some_books = False
-        while not self._exit and not completed:
+        while not self.exit and not completed:
             msg = self.mom.consume(self.books_queue)
             if not msg:
                 tries -= 1 if some_books else 0
@@ -64,7 +65,7 @@ class Joiner:
                 continue
             (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
-                if self._exit:
+                if self.exit:
                     return
                 if fragment.is_last():
                     f_query_id = fragment.get_query_id()
@@ -78,7 +79,7 @@ class Joiner:
             self.mom.ack(tag)
 
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
-        if self._exit:
+        if self.exit:
             return
         if not node in self.results.keys():
             self.results[node] = ([], time.time())
@@ -92,21 +93,21 @@ class Joiner:
     def process_review_fragment(self, fragment: DataFragment):
         review = fragment.get_review()
         query_id = fragment.get_query_id()
-        if (review is not None) and (not self._exit):
+        if (review is not None) and (not self.exit):
             side_table = self.books_side_tables[query_id]
             book = side_table.get(review.get_book_title(), None)
             if book is not None:
                 fragment.set_book(book)
                 for data, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send_chunk(data, key)
-        if (fragment.is_last()) and (not self._exit):
+        if (fragment.is_last()) and (not self.exit):
             for data, key in update_data_fragment_step(fragment).items():
                 logger.info(f"Sending to {key}")
                 self.add_and_try_to_send_chunk(data, key)
 
     def send_with_timeout(self):
         for key, (data, last_sent) in self.results.items():
-            if self._exit:
+            if self.exit:
                 return
             if (len(data) > 0) and (time.time() - last_sent > TIMEOUT):
                 chunk = DataChunk(data)
@@ -114,14 +115,14 @@ class Joiner:
                 self.results[key] = ([], time.time())
 
     def run(self):
-        while not self._exit:
+        while not self.exit:
             msg = self.mom.consume(self.reviews_queue)
             if not msg:
                 time.sleep(0.1)
                 continue
             (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
-                if self._exit:
+                if self.exit:
                     return
                 if fragment.get_query_id() not in self.side_tables_ended:
                     self.receive_all_books(fragment.get_query_id())
@@ -132,6 +133,8 @@ class Joiner:
 def main():
     joiner = Joiner()
     joiner.run()
+    if not joiner.exit:
+        joiner.mom.close()
    
 if __name__ == "__main__":
     main()
