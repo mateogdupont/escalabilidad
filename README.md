@@ -45,7 +45,10 @@ El diagrama de casos de uso muestra las distintas interacciones que puede tener 
 
 ### Vista Lógica
 #### Diagrama de estados:
+![alt text](diagrams/Estados.png)
 
+La unidad mínima de información con la que trabaja nuestro sistema es un DataFragment, el cual es una fila de la tabla de datos (libros o reviews). Cada DataFragment es procesado por un nodo, y dicho procesamiento se representa en los siguientes estados: cleaning, counting, joining, analyzing sentiment, joining y done (cuando el DataFragment ya fue procesado por todos los nodos).  
+En el diagrama de estados se muestra la lógica que se utiliza para _routear_ el siguiente step de un DataFragment.
 
 
 
