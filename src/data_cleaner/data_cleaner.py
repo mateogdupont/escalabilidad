@@ -78,10 +78,10 @@ class DataCleaner:
         chunk.set_fragments(filters_fragments)
         return chunk
 
-    def try_to_receive_chunk(self, socket) -> DataChunk:
+    def try_to_receive_chunk(self, client_socket) -> DataChunk:
         while not self.exit:
             try:
-                chunk_msg = receive_msg(socket)
+                chunk_msg = receive_msg(client_socket)
                 if not chunk_msg:
                     return None
                 json_chunk_msg = json.loads(chunk_msg)
@@ -92,18 +92,18 @@ class DataCleaner:
                 logger.info(f"Error en el socket: {e}")
                 return None
 
-    def handle_client(self, socket):
+    def handle_client(self, client_socket):
         finish = False
-        queries = receive_msg(socket)
+        queries = receive_msg(client_socket)
         try:
-            queries = receive_msg(socket)
+            queries = receive_msg(client_socket)
         except socket.timeout:
                 logger.info(f"Client didn't answer in time")
         self._event = Event()
-        results_proccess = Process(target=self._send_results, args=(socket,queries,self._event,))
+        results_proccess = Process(target=self._send_results, args=(client_socket,queries,self._event,))
         results_proccess.start()
         while not self.exit and not finish:
-            chunk = self.try_to_receive_chunk(socket)
+            chunk = self.try_to_receive_chunk(client_socket)
             if not chunk:
                 finish = True
                 if self._event:
@@ -115,7 +115,7 @@ class DataCleaner:
                 logger.info(f"All data was received: {self.total_pass}")
                 finish = True
         results_proccess.join()
-        socket.close()
+        client_socket.close()
 
     def run(self):
         while not self.exit:
