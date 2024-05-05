@@ -63,6 +63,7 @@ Return: title
 
 """
 
+import time
 from utils.structs.data_fragment import DataFragment
 import logging as logger
 
@@ -170,7 +171,7 @@ def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFra
             new_queries[3] = queries[3]
             data_fragment.set_queries(new_queries)
             next_steps[data_fragment] = "results"
-            logger.info("query 3 | step 4 | going to results")
+            # logger.info("query 3 | step 4 | going to results")
         if 4 in queries.keys():
             new_queries = {}
             new_queries[4] = queries[4]
@@ -266,6 +267,7 @@ def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment
             next_steps[datafragment] = key
     
     if data_fragment.is_last():
+        time.sleep(10) # dont delete this!
         logger.info("DataFragment is last - - - -")
         logger.info(next_steps)
         for datafragment, key in next_steps.items():

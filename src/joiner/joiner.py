@@ -15,18 +15,22 @@ import logging as logger
 
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
-MAX_AMOUNT_OF_FRAGMENTS = 500
+MAX_AMOUNT_OF_FRAGMENTS = 250
 TIMEOUT = 50
+MAX_WAIT_TIME = 60 * 15
 
 class Joiner:
     def __init__(self):
         load_dotenv()
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
+        self.id = os.environ["ID"]
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
-        self.mom = MOM(consumer_queues)
-        self.books_queue = os.environ["BOOKS_QUEUE"]
+        self.books_queue = os.environ["BOOKS_QUEUE"] + '.' + self.id
         self.reviews_queue = os.environ["REVIEWS_QUEUE"]
+        consumer_queues[self.books_queue] = consumer_queues[os.environ["BOOKS_QUEUE"]]
+        consumer_queues.pop(os.environ["BOOKS_QUEUE"])
+        self.mom = MOM(consumer_queues)
         self.books_side_tables = {}
         self.side_tables_ended = set()
         self.results = {}
@@ -50,18 +54,15 @@ class Joiner:
 
     def receive_all_books(self, query_id: str):
         logger.info(f"Receiving all books for query {query_id}")
-        tries = 630
         completed = False
-        some_books = False
         while not self.exit and not completed:
             msg = self.mom.consume(self.books_queue)
             if not msg:
-                tries -= 1 if some_books else 0
-                time.sleep(0.1)
-                if tries == 0:
-                    logger.info(f"(not last) Finished receiving all books for query {query_id}")
-                    self.side_tables_ended.add(query_id)
-                    break
+                time.sleep(1)
+                # if time.time() - time_now > MAX_WAIT_TIME:
+                #     logger.info(f"(Not last) Finished receiving all books for query {query_id}")
+                #     self.side_tables_ended.add(query_id)
+                #     break
                 continue
             (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
@@ -75,7 +76,6 @@ class Joiner:
                         completed = True
                 else:
                     self.process_book_fragment(fragment)
-                    some_books = True
             self.mom.ack(tag)
 
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
@@ -121,13 +121,18 @@ class Joiner:
                 time.sleep(0.1)
                 continue
             (data_chunk, tag) = msg
+            ack = True
             for fragment in data_chunk.get_fragments():
                 if self.exit:
                     return
                 if fragment.get_query_id() not in self.side_tables_ended:
+                    ack = False
+                    self.mom.nack(tag)
                     self.receive_all_books(fragment.get_query_id())
+                    break
                 self.process_review_fragment(fragment)
-            self.mom.ack(tag)
+            if ack:
+                self.mom.ack(tag)
             self.send_with_timeout()
 
 def main():

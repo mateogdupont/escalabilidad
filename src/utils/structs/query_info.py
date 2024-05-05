@@ -40,6 +40,8 @@ class QueryInfo:
         new.set_sentiment(self.sentiment)
         new.set_filter_params(self.filter_on, self.contains, self.min, self.max, self.top)
         new.set_counter_params(self.group_by, self.count_distinct, self.average_column, self.percentile_column)
+        if self.is_last():
+            new.set_as_last()
         return new
     
     def set_author(self, author: str) -> None:
@@ -70,7 +72,10 @@ class QueryInfo:
         self.percentile = percentile
 
     def get_percentile(self) -> float:
+        if type(self.percentile) == str:
+            self.percentile = float(self.percentile)
         return self.percentile
+
     
     def set_sentiment(self, sentiment: float) -> None:
         self.sentiment = sentiment
@@ -101,6 +106,12 @@ class QueryInfo:
         # logger.info(f"Counter params setted -> group_by: {group_by}, count_distinct: {count_distinct}, average_column: {average_column}, percentile_column: {percentile}")
     
     def get_counter_params(self) -> Tuple[str, int, str, Tuple[int, str]]:
+        if not self.percentile_column:
+            return self.group_by, self.count_distinct, self.average_column, None
+        if type(self.percentile_column) == str:
+            self.percentile_column = eval(self.percentile_column)
+        if type(self.percentile_column[0]) == str:
+            self.percentile_column = (int(self.percentile_column[0]), self.percentile_column[1])
         return self.group_by, self.count_distinct, self.average_column, self.percentile_column
     
     def get_result(self) -> List[str]:

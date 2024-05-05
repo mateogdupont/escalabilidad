@@ -18,7 +18,7 @@ YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
-MAX_AMOUNT_OF_FRAGMENTS = 500
+MAX_AMOUNT_OF_FRAGMENTS = 250
 
 class Counter:
     def __init__(self):
@@ -44,7 +44,7 @@ class Counter:
         book, review = data_fragment.get_book(), data_fragment.get_review()
         query_id, queries = data_fragment.get_query_id(), data_fragment.get_queries()
 
-        group_data, value, percentile = self.get_counter_values(query_info, group_by, count_distinct, average_column, percentile_data, book, review)
+        group_data, value = self.get_counter_values(query_info, group_by, count_distinct, average_column, percentile_data, book, review)
         
         if query_id not in self.counted_data.keys():
             self.counted_data[query_id] = {}
@@ -56,25 +56,44 @@ class Counter:
         if [True, True, True, False] == bool_set: # for queries 3 and 4
             return self.count_type_2(data_fragment, query_id, queries, group_data, value)
         if [True, False, False, True] == bool_set: # for query 5
-            return self.count_type_3(data_fragment, query_id, queries, group_data, value, percentile)
+            return self.count_type_3(data_fragment, query_id, queries, group_data, value, percentile_data[0])
         return []
 
     def count_type_3(self, data_fragment, query_id, queries, group_data, value, percentile):
         results = []
         if not data_fragment.is_last():    
+            if value is None:
+                logger.error(f"Value is None | {data_fragment.to_json()}")
+                return results
+            if percentile is None:
+                logger.error(f"Percentile is None")
+                return results
             if group_data not in self.counted_data[query_id].keys():
                 self.counted_data[query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
             self.counted_data[query_id][group_data]["VALUES"].append(value)
             self.books[group_data] = data_fragment.get_book()
         else:
             base_data_fragment = DataFragment(queries.copy(), None, None)
+            sentiment_scores = {}
+            percentile_number = None
+            for group_data in self.counted_data[query_id].keys():
+                if len(self.counted_data[query_id][group_data]["VALUES"]) == 0 or not self.counted_data[query_id][group_data]["PERCENTILE"]:
+                    logger.error(f"Error calculating percentile. Discarding group data: {group_data}")
+                    continue
+                percentile_number = self.counted_data[query_id][group_data]["PERCENTILE"]
+                average_score = float(np.mean(self.counted_data[query_id][group_data]["VALUES"]))
+                sentiment_scores[group_data] = average_score
+            if not percentile_number:
+                logger.error(f"Percentile is None")
+                return results
+            percentile_result = float(np.percentile(list(sentiment_scores.values()), percentile_number))
             for group_data in self.counted_data[query_id].keys():
                 if self.exit:
                     return results
                 new_data_fragment = base_data_fragment.clone()
                 new_query_info = QueryInfo()
-                percentile_90 = np.percentile(self.counted_data[query_id][group_data]["VALUES"], self.counted_data[query_id][group_data]["PERCENTILE"])
-                new_query_info.set_percentile(percentile_90)
+                new_query_info.set_percentile(percentile_result)
+                new_query_info.set_sentiment(sentiment_scores[group_data])
                 new_data_fragment.set_query_info(new_query_info)
                 review = Review.with_minimum_data(title=group_data, text="-", score=0.0)
                 new_data_fragment.set_review(review)
@@ -143,10 +162,9 @@ class Counter:
             value = (book.get_published_year() // 10) * 10
         elif (average_column == "SCORE") and (review is not None):
             value = review.get_score()
-        elif (percentile_data is not None) and (query_info.get_percentile() is not None):
-            percentile = query_info.get_percentile()[0]
+        elif (percentile_data is not None) and (query_info.get_sentiment() is not None):
             value = query_info.get_sentiment()
-        return group_data, value, percentile
+        return group_data, value
             
     def run(self):
         while not self.exit:
