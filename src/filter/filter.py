@@ -97,10 +97,11 @@ class Filter:
         for fragment in chunk.get_fragments():
             if self.exit:
                 return
-            if self.filter_data_fragment(fragment):
-                if len(update_data_fragment_step(fragment).items()) == 0:
+            if not fragment.is_last() and self.filter_data_fragment(fragment):
+                next_steps = update_data_fragment_step(fragment)
+                if len(next_steps.items()) == 0:
                     logger.info(f"Fragmento {fragment} no tiene siguiente paso")
-                for data, key in update_data_fragment_step(fragment).items():
+                for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)
             if fragment.is_last():
                 logger.info(f"Fragmento es el ultimo")

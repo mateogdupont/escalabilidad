@@ -93,7 +93,7 @@ class Joiner:
     def process_review_fragment(self, fragment: DataFragment):
         review = fragment.get_review()
         query_id = fragment.get_query_id()
-        if (review is not None) and (not self.exit):
+        if (not fragment.is_last()) and (review is not None) and (not self.exit):
             side_table = self.books_side_tables[query_id]
             book = side_table.get(review.get_book_title(), None)
             if book is not None:
