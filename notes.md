@@ -5,7 +5,7 @@
 
 **Sobre el código / solución:**
 - <span style="color:red"> 🔥 major:</span> La ejecución de la demo grabada demoró más de 1 hora. Esto es un tiempo bastante grande y habla de optimizaciones que no se hicieron pero que pudieron haberse hecho. 
-- <span style="color:red"> 🔥 major:</span> ~~La función update_data_fragment_step de query_updater se invoca múltiples veces entre los distintos tipos de nodo, para cada fragmento (cada review o libro, osea al menos 3 millones de veces), por ejemplo en los filtros tienen:~~
+- <span style="color:red"> ✨ ~~major:~~ </span> ~~La función update_data_fragment_step de query_updater se invoca múltiples veces entre los distintos tipos de nodo, para cada fragmento (cada review o libro, osea al menos 3 millones de veces), por ejemplo en los filtros tienen:~~
 
 ```py
     def filter_data_chunk(self,chunk: DataChunk):
@@ -52,3 +52,5 @@
     - Los nodos counter, filter, y sentiment analyser no procesan el last data fragment, lo utilizan para enviar el chunk que corresponda.
     - El joiner usa el EOF de libros para saber que ya puede comenzar a procesar reviews, y el EOF de reviews para enviar el chunk que corresponda.
     - La función `update_data_fragment_step` actualiza el last data fragment según correponda, entendiendo que hay dos tipos (uno para books y otro para reviews).
+- Respecto a la side table del joiner, no era un array de arrays, sino que un diccionario de diccionarios. Tenía la forma `{query_id1: {title1: book1, ..., titlen: bookn}, ..., query_idn: {title1: book1, ..., titlen: bookn}}`, en donde cada query guardaba los libros que le pertenecían. Es necesario diferenciar los libros por queries ya que el joiner a cierto modo funciona como filter de las reviews para las que su libro no pasó un filtro anterior. Para reducir el espacio con el que se trabaja, ahora se guarda el título del libro, y los libros completos son guardados una única vez en un diccionario auxiliar.
+- Respecto al algoritmo para recibir books o reviews en el joiner, ahora se aceptan libros al principio, hasta completar la primer side table que se reciba. Luego de completar la side table se pasan a procesar las reviews. Si una review corresponde a una sidetable que todavía no se completó se manda el NACK para esa review, se aceptan libros hasta completar la side table correspondiente y luego se procesan las reviews. Se realia de esa forma debido a que se pueden necesitar más de una side table según las queries que se reciban.

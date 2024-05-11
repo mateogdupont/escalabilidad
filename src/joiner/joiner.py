@@ -32,6 +32,7 @@ class Joiner:
         consumer_queues.pop(os.environ["BOOKS_QUEUE"])
         self.mom = MOM(consumer_queues)
         self.books_side_tables = {}
+        self.books = {}
         self.side_tables_ended = set()
         self.results = {}
         self.exit = False
@@ -42,17 +43,19 @@ class Joiner:
         self.exit = True
         self.mom.close()
 
-    def save_book_in_table(self,book: Book, query_id: str):
+    def save_book_in_table(self, book: Book, query_id: str):
         if query_id not in self.books_side_tables.keys():
-            self.books_side_tables[query_id] = {}
-        self.books_side_tables[query_id][book.get_title()] = book
+            self.books_side_tables[query_id] = set()
+        self.books_side_tables[query_id].add(book.get_title())
+        if not book.get_title() in self.books.keys():
+            self.books[book.get_title()] = book
     
     def process_book_fragment(self,fragment):
         book = fragment.get_book()
         query_id = fragment.get_query_id()
         self.save_book_in_table(book,query_id)
 
-    def receive_all_books(self, query_id: str):
+    def receive_all_books(self, query_id=None):
         logger.info(f"Receiving all books for query {query_id}")
         completed = False
         while not self.exit and not completed:
@@ -68,11 +71,11 @@ class Joiner:
             for fragment in data_chunk.get_fragments():
                 if self.exit:
                     return
+                f_query_id = fragment.get_query_id()
                 if fragment.is_last():
-                    f_query_id = fragment.get_query_id()
                     logger.info(f"Finished receiving all books for query {f_query_id}")
                     self.side_tables_ended.add(f_query_id)
-                    if f_query_id == query_id:
+                    if query_id is None or f_query_id == query_id:
                         completed = True
                 else:
                     self.process_book_fragment(fragment)
@@ -95,7 +98,10 @@ class Joiner:
         query_id = fragment.get_query_id()
         if (not fragment.is_last()) and (review is not None) and (not self.exit):
             side_table = self.books_side_tables[query_id]
-            book = side_table.get(review.get_book_title(), None)
+            book_name = side_table.get(review.get_book_title(), None)
+            book = None
+            if book_name is not None:
+                book = self.books[book_name]
             if book is not None:
                 fragment.set_book(book)
                 for data, key in update_data_fragment_step(fragment).items():
@@ -115,6 +121,7 @@ class Joiner:
                 self.results[key] = ([], time.time())
 
     def run(self):
+        self.receive_all_books()
         while not self.exit:
             msg = self.mom.consume(self.reviews_queue)
             if not msg:
