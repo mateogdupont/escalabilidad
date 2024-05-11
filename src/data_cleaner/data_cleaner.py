@@ -87,7 +87,7 @@ class DataCleaner:
                 json_chunk_msg = json.loads(chunk_msg)
                 return DataChunk.from_json(json_chunk_msg)
             except socket.timeout:
-                time.sleep(1)
+                time.sleep(1) # TODO revisar si es necesario
             except socket.error as e:
                 logger.info(f"Error en el socket: {e}")
                 return None
@@ -132,7 +132,6 @@ class DataCleaner:
         while not event.is_set() and queries_left > 0:
             msg = self.mom.consume(self.work_queue)
             if not msg:
-                time.sleep(2)
                 continue
             (data_chunk, tag) = msg
             message = json.dumps(data_chunk.to_json())

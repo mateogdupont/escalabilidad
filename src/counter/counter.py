@@ -167,7 +167,6 @@ class Counter:
         while not self.exit:
             msg = self.mom.consume(self.work_queue)
             if not msg:
-                time.sleep(0.1)
                 continue
             data_chunk, tag = msg
             for data_fragment in data_chunk.get_fragments():

@@ -134,7 +134,6 @@ class Filter:
                 return
               
             if not msg:
-                time.sleep(1)
                 self.send_with_timeout()
                 continue
             data_chunk, tag = msg

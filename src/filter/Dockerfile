@@ -12,4 +12,5 @@ RUN pip install -r ./utils/requirements.txt
 
 ENV PYTHONPATH / 
 
+# Sleep before starts -> gives time to the MOM to start
 ENTRYPOINT ["bash", "-c", "sleep 5 && python filter/filter.py"]

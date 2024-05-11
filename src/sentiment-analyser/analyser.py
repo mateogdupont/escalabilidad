@@ -54,7 +54,6 @@ class Analyser:
         while not self.exit:
             msg = self.mom.consume(self.work_queue)
             if not msg:
-                time.sleep(0.5)
                 continue
             data_chunk, tag = msg
             

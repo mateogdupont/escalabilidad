@@ -61,11 +61,6 @@ class Joiner:
         while not self.exit and not completed:
             msg = self.mom.consume(self.books_queue)
             if not msg:
-                time.sleep(1)
-                # if time.time() - time_now > MAX_WAIT_TIME:
-                #     logger.info(f"(Not last) Finished receiving all books for query {query_id}")
-                #     self.side_tables_ended.add(query_id)
-                #     break
                 continue
             (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
@@ -125,7 +120,6 @@ class Joiner:
         while not self.exit:
             msg = self.mom.consume(self.reviews_queue)
             if not msg:
-                time.sleep(0.1)
                 continue
             (data_chunk, tag) = msg
             ack = True

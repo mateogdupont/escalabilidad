@@ -157,7 +157,7 @@ class Client:
                 json_chunk_msg = json.loads(chunk_msg)
                 return DataChunk.from_json(json_chunk_msg)
             except socket.timeout:
-                time.sleep(1)
+                time.sleep(1) # TODO revisar si es necesario
             except socket.error as e:
                 logger.info(f"Error en el socket: {e}")
                 return None

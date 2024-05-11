@@ -18,4 +18,5 @@ RUN apt-get update && apt-get install -y unzip
 
 ENV PYTHONPATH /
 
+# Sleep before starts -> gives time to the server to start
 ENTRYPOINT ["bash", "-c", "sleep 5 && unzip -n /data/data.zip && python client/main.py .. 1,2,3,4,5"]
