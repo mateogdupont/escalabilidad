@@ -22,16 +22,16 @@
 
 - <span style="color:red"> 🔥 major:</span> Otro punto relacionado al descarte temprano de datos para mejorar la eficiencia. La Query 3 pide "Títulos y autores de libros publicados en los 90' con al menos 500 reseñas.". Sin embargo, en todo los steps intermedios que tiene la Query 3, nunca descartan el atributo "review/text" (el que tiene varios bytes de texto libre), si descartaran esa información innecesaria lo antes posible, tendrán menos cantidad de datos viajando por la red y replicados en memoria, por lo tanto mejor rendimiento. El campo "review/text" se necesita únicamente para el cálculo del sentimient, cosa que podrían hacer en una etapa temprana sin pasar por varios steps (y sin hacer varios .clones() innecesarios como les marqué en el punto anterior).
 
-- <span style="color:red"> 🔥 major:</span> Fragmento de código del Joiner
+- <span style="color:red"> ✨ ~~major:~~ </span> ~~Fragmento de código del Joiner~~
 
 ```py
     def save_book_in_table(self,book: Book, query_id: str):
         if query_id not in self.books_side_tables.keys():
             self.books_side_tables[query_id] = {}
-        self.books_side_tables[query_id][book.get_title()] = book
+        # -> código actualizado <-
 ```
 
-¿Como funciona esta side table? Por que es necesaria una array de arrays en lugar de un mapa title -> book ? Acá pueden tener información redundante, otro punto que puede pegar en la performance. Además, vi que devuelven NACK en el joiner si falta info en la side table. Esto lo pueden evitar haciendo lo que les comenté en algún meet: primero ingestan libros, luego envían EOF, y ahi sus nodos saben que pueden empezar a leer reviews.
+~~¿Como funciona esta side table? Por que es necesaria una array de arrays en lugar de un mapa title -> book ? Acá pueden tener información redundante, otro punto que puede pegar en la performance. Además, vi que devuelven NACK en el joiner si falta info en la side table. Esto lo pueden evitar haciendo lo que les comenté en algún meet: primero ingestan libros, luego envían EOF, y ahi sus nodos saben que pueden empezar a leer reviews.~~
 
 - <span style="color:red"> 🔥 major:</span> En el método read_chunk_with_columns de client.py se pueden perder mensajes si el archivo no tiene una cantidad de registros exactamente igual a un múltiplo de CHUNK_SIZE.
 
