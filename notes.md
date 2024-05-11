@@ -5,7 +5,7 @@
 
 **Sobre el código / solución:**
 - <span style="color:red"> 🔥 major:</span> La ejecución de la demo grabada demoró más de 1 hora. Esto es un tiempo bastante grande y habla de optimizaciones que no se hicieron pero que pudieron haberse hecho. 
-- <span style="color:red"> 🔥 major:</span> La función update_data_fragment_step de query_updater se invoca múltiples veces entre los distintos tipos de nodo, para cada fragmento (cada review o libro, osea al menos 3 millones de veces), por ejemplo en los filtros tienen:
+- <span style="color:red"> 🔥 major:</span> ~~La función update_data_fragment_step de query_updater se invoca múltiples veces entre los distintos tipos de nodo, para cada fragmento (cada review o libro, osea al menos 3 millones de veces), por ejemplo en los filtros tienen:~~
 
 ```py
     def filter_data_chunk(self,chunk: DataChunk):
@@ -13,15 +13,12 @@
             if self.exit:
                 return
             if self.filter_data_fragment(fragment):
-                if len(update_data_fragment_step(fragment).items()) == 0:
-                    logger.info(f"Fragmento {fragment} no tiene siguiente paso")
-                for data, key in update_data_fragment_step(fragment).items():
-                    self.add_and_try_to_send_chunk(data, key)
+                # -> código actualizado <-
 ```
 
-La llamada a update_data_fragment_step parece inofensiva, pero se hace casi 2 veces por cada data fragment (2 * 3M), solamente en los filtros, y esa función por dentro tiene múltiples loops con evaluaciones del estilo _update_first_query() a las cuales se le pasa como parámetro data_fragment.clone()
+~~La llamada a update_data_fragment_step parece inofensiva, pero se hace casi 2 veces por cada data fragment (2 * 3M), solamente en los filtros, y esa función por dentro tiene múltiples loops con evaluaciones del estilo _update_first_query() a las cuales se le pasa como parámetro data_fragment.clone()~~
 
-¿Es necesario clonar la información? ¿Es necesario calcular varias veces en el mismo filtro, nodo, etc los "next steps"? Esto que parece inofensivo, es copiar memoria una y otra vez, millones de veces, y me parece que se puede evitar pasando una referencia al objeto en lugar de una copia, y en el filtro/nodo calculando una sóla vez los "next steps" para el fragmento. Vi uso de clone() en varios lugares, el uso de esto debe estar bien justificado, ya que implica copiar memoria y con los volúmenes de información que manejamos parece ser una mala idea. Este punto está relacionado con el primero, ya que les pega en la performance y puede contribuir a que el sistema les tarde tanto en ejecutar.
+~~¿Es necesario clonar la información? ¿Es necesario calcular varias veces en el mismo filtro, nodo, etc los "next steps"? Esto que parece inofensivo, es copiar memoria una y otra vez, millones de veces, y me parece que se puede evitar pasando una referencia al objeto en lugar de una copia, y en el filtro/nodo calculando una sóla vez los "next steps" para el fragmento. Vi uso de clone() en varios lugares, el uso de esto debe estar bien justificado, ya que implica copiar memoria y con los volúmenes de información que manejamos parece ser una mala idea. Este punto está relacionado con el primero, ya que les pega en la performance y puede contribuir a que el sistema les tarde tanto en ejecutar.~~
 
 - <span style="color:red"> 🔥 major:</span> Otro punto relacionado al descarte temprano de datos para mejorar la eficiencia. La Query 3 pide "Títulos y autores de libros publicados en los 90' con al menos 500 reseñas.". Sin embargo, en todo los steps intermedios que tiene la Query 3, nunca descartan el atributo "review/text" (el que tiene varios bytes de texto libre), si descartaran esa información innecesaria lo antes posible, tendrán menos cantidad de datos viajando por la red y replicados en memoria, por lo tanto mejor rendimiento. El campo "review/text" se necesita únicamente para el cálculo del sentimient, cosa que podrían hacer en una etapa temprana sin pasar por varios steps (y sin hacer varios .clones() innecesarios como les marqué en el punto anterior).
 
@@ -45,3 +42,8 @@ La llamada a update_data_fragment_step parece inofensiva, pero se hace casi 2 ve
 - <span style="color:yellow"> ❕minor:</span> Confuso algoritmo de formación de chunks y de conformación de data_fragments. En parse_data de client.py, desambiguan si el dato es un libro o una review por la cantidad de columnas del registro, si casualmente tuvieran la misma cantidad de "columnas" relevantes este algoritmo no serviría. Se confunde semánticamente los chunks que leen del disco, con los chunks de información que contienen data fragments. Toda esta sobre-comlpejidad se podría haber documentado en un diagrama de clases aprovechando la vista lógica.
 
 - <span style="color:orange"> ⚠️ medium: </span>  El TP exige que siempre se contesten las 5 queries, esto es algo que pueden asumir y que va a ser siempre cierto. Hay 3 millones de reviews, entonces al menos van a tener 1 millón de data fragments, todos ellos con el valor de queries en "1,2,3,4,5"... Ese string tiene 9 bytes, multipliquen por 3 millones y eso son datos innecesarios que tienen en memoria, viajando por red, etc...
+
+
+**<span style="color:#7DDA58"> Arreglos: </span>**
+- Se eliminaron las llamadas repetidas a `update_data_fragment_step`. Ahora se hace una única vez por fragmento en cada nodo (y si es necesario, sino no).
+- Se redujeorn la cantidad de clones a la mínima necesaria en `update_data_fragment_step`. Como esa función demultiplexa es imposible evitar los clones, pero se redujeron al mínimo.
