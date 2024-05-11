@@ -11,8 +11,7 @@ MAX_TRIES = 5
 class MOM:
     def __init__(self, consumer_queues: 'dict[str, bool]') -> None:
         load_dotenv()
-        if not self._connect():
-            return
+        self._connect()
         self.channel.basic_qos(prefetch_count=1)
         for queue, arguments in consumer_queues.items():
             arguments = {'x-max-priority': 5} if arguments else {}
@@ -21,19 +20,19 @@ class MOM:
         self.exchange = os.environ["RABBITMQ_EXCHANGE"]
         self.consumer_queues = consumer_queues
     
-    def _connect(self) -> bool:
+    def _connect(self) -> None:
         last_exception = None
         for _ in range(MAX_TRIES):
             try:
                 credentials = pika.PlainCredentials(os.environ["RABBITMQ_DEFAULT_USER"], os.environ["RABBITMQ_DEFAULT_PASS"])
                 self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', credentials=credentials, heartbeat=60*60))
                 self.channel = self.connection.channel()
-                return True
+                return
             except Exception as e:
                 last_exception = e
                 sleep(0.1) # wait a little before trying again, perhaps the service is not up yet
         logger.error(f"Cannot connect to RabbitMQ, the last exception was: {last_exception}")
-        return False
+        raise last_exception
     
     def _re_connect(self):
         logger.warning(f"Reconnecting to RabbitMQ")
