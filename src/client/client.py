@@ -14,7 +14,6 @@ from utils.stream_communications import *
 from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
-
 year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
 CHUNK_SIZE = 250
@@ -26,6 +25,9 @@ BOOKS_RELEVANT_COLUMNS = [0,1,2,5,6,8,9]
 REVIEWS_RELEVANT_COLUMNS = [0,1,5,6,8,9]
 BOOKS_ARGUMENT_AMOUNT = 7
 REVIEW_ARGUMENT_AMOUNT = 6
+
+# Message:
+# last_bool|book_bool|column_1|column_2|...|column_n
 
 # Book db:
 # Title|description|authors|image|previewLink|publisher|pubishedDate|infoLink|categories|ratingCount
@@ -91,7 +93,11 @@ class Client:
                     message = json.dumps(self.data.to_json())
                     send_msg(self.socket,message)
                     self.data.set_fragments([])
-
+        if self.data.amount > 0:
+            message = json.dumps(self.data.to_json())
+            send_msg(self.socket,message)
+            self.data.set_fragments([])
+    
     def _send_file(self, file_path: str, columns_to_send:  List[int]):
         with open(file_path, 'r') as data_file:
             reader = csv.reader(data_file)
