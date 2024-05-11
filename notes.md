@@ -48,3 +48,7 @@
 - Se eliminaron las llamadas repetidas a `update_data_fragment_step`. Ahora se hace una única vez por fragmento en cada nodo (y si es necesario, sino no).
 - Se redujeorn la cantidad de clones a la mínima necesaria en `update_data_fragment_step`. Como esa función demultiplexa es imposible evitar los clones, pero se redujeron al mínimo.
 - Respecto a los clones que se hacen en el nodo `counter`, fueron todos reemplazados por hacer el data fragment desde cero, ya que sólo contiene las queries que le corresponden.
+- Para tener dos EOFs (uno para libros y otro para reviews), se verificó lo siguiente:
+    - Los nodos counter, filter, y sentiment analyser no procesan el last data fragment, lo utilizan para enviar el chunk que corresponda.
+    - El joiner usa el EOF de libros para saber que ya puede comenzar a procesar reviews, y el EOF de reviews para enviar el chunk que corresponda.
+    - La función `update_data_fragment_step` actualiza el last data fragment según correponda, entendiendo que hay dos tipos (uno para books y otro para reviews).
