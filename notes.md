@@ -47,3 +47,4 @@
 **<span style="color:#7DDA58"> Arreglos: </span>**
 - Se eliminaron las llamadas repetidas a `update_data_fragment_step`. Ahora se hace una única vez por fragmento en cada nodo (y si es necesario, sino no).
 - Se redujeorn la cantidad de clones a la mínima necesaria en `update_data_fragment_step`. Como esa función demultiplexa es imposible evitar los clones, pero se redujeron al mínimo.
+- Respecto a los clones que se hacen en el nodo `counter`, fueron todos reemplazados por hacer el data fragment desde cero, ya que sólo contiene las queries que le corresponden.

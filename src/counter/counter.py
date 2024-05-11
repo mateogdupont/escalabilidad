@@ -73,7 +73,6 @@ class Counter:
             self.counted_data[query_id][group_data]["VALUES"].append(value)
             self.books[group_data] = data_fragment.get_book()
         else:
-            base_data_fragment = DataFragment(queries.copy(), None, None)
             sentiment_scores = {}
             percentile_number = None
             for group_data in self.counted_data[query_id].keys():
@@ -90,7 +89,7 @@ class Counter:
             for group_data in self.counted_data[query_id].keys():
                 if self.exit:
                     return results
-                new_data_fragment = base_data_fragment.clone()
+                new_data_fragment = DataFragment(queries.copy(), None, None)
                 new_query_info = QueryInfo()
                 new_query_info.set_percentile(percentile_result)
                 new_query_info.set_sentiment(sentiment_scores[group_data])
@@ -110,11 +109,10 @@ class Counter:
             self.counted_data[query_id][group_data]["COUNT"] += 1
             self.books[group_data] = data_fragment.get_book()
         else:
-            base_data_fragment = DataFragment(queries.copy(), None, None)
             for group_data in self.counted_data[query_id].keys():
                 if self.exit:
                     return results
-                new_data_fragment = base_data_fragment.clone()
+                new_data_fragment = DataFragment(queries.copy(), None, None)
                 new_query_info = QueryInfo()
                 new_query_info.set_n_distinct(self.counted_data[query_id][group_data]["COUNT"])
                 new_query_info.set_average(self.counted_data[query_id][group_data]["TOTAL"] / self.counted_data[query_id][group_data]["COUNT"])
@@ -139,11 +137,10 @@ class Counter:
             else:
                 logger.warning(f"Group data is not a list, it is a {type(group_data)}")
         else:
-            base_data_fragment = DataFragment(queries.copy(), None, None)
             for key, value in self.counted_data[query_id].items():
                 if self.exit:
                     return results
-                new_data_fragment = base_data_fragment.clone()
+                new_data_fragment = DataFragment(queries.copy(), None, None)
                 new_query_info = QueryInfo()
                 new_query_info.set_author(key)
                 new_query_info.set_n_distinct(len(value))
