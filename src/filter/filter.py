@@ -124,8 +124,7 @@ class Filter:
 
 
     def run(self):
-
-        while not self._exit:
+        while not self.exit:
             try:
                 msg = self.mom.consume(self.work_queue)
             except Exception as e:

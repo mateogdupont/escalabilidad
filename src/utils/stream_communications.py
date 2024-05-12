@@ -1,14 +1,16 @@
+import pickle
+
 def receive_header(client_sock):
-    complete_header = ""
-    extra_payload = ""
+    complete_header = b""
+    extra_payload = b""
     while True:
-        partial_header = client_sock.recv(4).decode('utf-8')
+        partial_header = client_sock.recv(4)
         if not partial_header:
             print("Error reading chunk header")
             break
-        if '|' in partial_header:
-            complete_header += partial_header.split('|')[0]
-            extra_payload = partial_header.split('|')[1]
+        if b'|' in partial_header:
+            complete_header += partial_header.split(b'|')[0]
+            extra_payload = partial_header.split(b'|')[1]
             break
         complete_header += partial_header
     return complete_header, extra_payload
@@ -17,30 +19,27 @@ def receive_msg(client_sock):
     header, extra_payload = receive_header(client_sock)
     if not header:
         return ""
-    expected_payload_size = int(header)
-    complete_msg = header + '|' + extra_payload
-    bytes_received = len(extra_payload)
-    while bytes_received < expected_payload_size:
-        partial_msg = client_sock.recv(expected_payload_size - bytes_received)
-        if not partial_msg:
-            print("Error reading chunk")
-            break
-        complete_msg += partial_msg.decode('utf-8')
-        bytes_received += len(partial_msg)
-    return complete_msg.split('|', 1)[1]
+    expected_payload_size = int(header.decode('utf-8'))
+    received_data = extra_payload
+    while len(received_data) < expected_payload_size:
+        chunk = client_sock.recv(min(expected_payload_size - len(received_data), 2048))
+        if chunk == b'':
+            raise RuntimeError("Socket connection broken")
+        received_data += chunk
+    return pickle.loads(received_data)
+
 
 def send_msg(socket, msg):
-    header = str(len(msg.encode('utf-8'))) + '|'
-    msg = header + msg
-    remaind_size = len(msg)
-    while remaind_size > 0:
+    msg = pickle.dumps(msg)
+    msg = str(len(msg)).encode('utf-8') + b'|' + msg
+    total_sent = 0
+    while total_sent < len(msg):
         try:
-            sent_data_size = socket.send(msg.encode('utf-8'))
+            sent = socket.send(msg[total_sent:])
         except (OSError, BrokenPipeError):
             print("Error: Broken Pipe")
             break
-        if sent_data_size == 0:
+        if sent == 0:
             print("Error sending data")
             break
-        remaind_size -= sent_data_size
-        msg = msg[sent_data_size:]
+        total_sent = total_sent + sent
