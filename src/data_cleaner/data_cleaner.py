@@ -169,7 +169,6 @@ class DataCleaner:
         while not self.exit:
             try: 
                 socket = self._socket.accept()[0]
-                # socket.settimeout(1.0)
                 self.handle_client(socket)
             except OSError as err:
                 logger.info(f"Error in socket: {err}")
