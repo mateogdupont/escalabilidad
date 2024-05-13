@@ -67,6 +67,8 @@ class Client:
         previus_read_data = []
         with open(file_path, 'r') as data_file:
             reader = csv.reader(data_file)
+            first = next(reader)
+            logger.info(f"Descarto: {first}")
             while True and not self._stop:
                 self.read_chunk(reader, is_book_file)
                 if not self.data or self._stop:

@@ -49,6 +49,7 @@ class DataCleaner:
             self._event.set()
     
     def add_and_try_to_send(self, fragment: DataFragment, node: str):
+        self.total_pass += 1
         self.clean_data[node] = self.clean_data.get(node, [])
         self.clean_data[node].append(fragment)
         if len(self.clean_data[node]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
@@ -78,7 +79,7 @@ class DataCleaner:
     # 0    1    2   3       4   5       6                   7               8           9       10                  11
     # last|book|Id|Title|Price|User_id|profileName|review/helpfulness|review/score|review/time|review/summary|review/text
     def create_review_fragment(self, unparsed_data) -> DataFragment:
-        review = Review(unparsed_data[2],unparsed_data[3],None,None,unparsed_data[7],unparsed_data[8],None,unparsed_data[10],unparsed_data[11])
+        review = Review(unparsed_data[2],unparsed_data[3],None,None,unparsed_data[7],float(unparsed_data[8]),None,unparsed_data[10],unparsed_data[11])
         if review.has_minimun_data():
             return DataFragment(self.queries.copy(), None , review)
         else:
@@ -102,7 +103,6 @@ class DataCleaner:
             fragment = self.parse_and_filter_data(data)
             if fragment:
                 amount_clean_fragments += 1
-                self.total_pass += 1
                 for value, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send(value, key)
             
