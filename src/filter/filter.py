@@ -76,7 +76,6 @@ class Filter:
         
         return False
 
-    
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
         if self.exit:
             return
@@ -97,7 +96,7 @@ class Filter:
         for fragment in chunk.get_fragments():
             if self.exit:
                 return
-            if not fragment.is_last() and self.filter_data_fragment(fragment):
+            if (not fragment.is_last()) and self.filter_data_fragment(fragment):
                 next_steps = update_data_fragment_step(fragment)
                 if len(next_steps.items()) == 0:
                     logger.info(f"Fragmento {fragment} no tiene siguiente paso")
@@ -108,11 +107,6 @@ class Filter:
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     logger.info(f"Enviando a {key}")
-                    self.add_and_try_to_send_chunk(data, key)
-            elif self.filter_data_fragment(fragment):
-                if len(update_data_fragment_step(fragment).items()) == 0:
-                    logger.info(f"Fragmento {fragment} no tiene siguiente paso")
-                for data, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send_chunk(data, key)
 
     def send_with_timeout(self):
@@ -127,7 +121,6 @@ class Filter:
                     logger.error(f"Error al enviar a {key}: {e}")
                     logger.error(f"Data: {chunk.to_json()}")
                 self.results[key] = ([], time.time())
-
 
     def run(self):
         while not self.exit:
