@@ -23,7 +23,7 @@ SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 500
 TIMEOUT = 50
 
-class Analyser:
+class analyzer:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
@@ -70,10 +70,10 @@ class Analyser:
             self.mom.ack(tag)
 
 def main() -> None:
-    analyser = Analyser()
-    analyser.run()
-    if not analyser.exit:
-        analyser.mom.close()
+    analyzer = analyzer()
+    analyzer.run()
+    if not analyzer.exit:
+        analyzer.mom.close()
 
 if __name__ == "__main__":
     main()

@@ -29,7 +29,7 @@ def publish(routing_key):
     channel = connection.channel()
 
     message = f"Hello to {routing_key}!"
-    channel.basic_publish(exchange='books-analyser_exchange',
+    channel.basic_publish(exchange='books-analyzer_exchange',
                           routing_key=routing_key,
                           body=message)
     print(f"Sent: '{message}' (msg) to '{routing_key}' (routing key).")
@@ -40,7 +40,7 @@ def main():
     load_dotenv()
 
     # List of queues and corresponding routing keys
-    queues = ['books-analyser.data_processor.filter', 'books-analyser.data_processor.counter', 'books-analyser.data_processor.sentiment_analysis', 'books-analyser.data_processor.joiner_books', 'books-analyser.data_processor.joiner_reviews', 'books-analyser.results']
+    queues = ['books-analyzer.data_processor.filter', 'books-analyzer.data_processor.counter', 'books-analyzer.data_processor.sentiment_analysis', 'books-analyzer.data_processor.joiner_books', 'books-analyzer.data_processor.joiner_reviews', 'books-analyzer.results']
     routing_keys = ['filter', 'counter', 'sentiment_analysis', 'joiner_books', 'joiner_reviews', 'results']
 
     for routing_key in routing_keys:

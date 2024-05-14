@@ -109,6 +109,11 @@ class Filter:
                 for data, key in next_steps.items():
                     logger.info(f"Enviando a {key}")
                     self.add_and_try_to_send_chunk(data, key)
+            elif self.filter_data_fragment(fragment):
+                if len(update_data_fragment_step(fragment).items()) == 0:
+                    logger.info(f"Fragmento {fragment} no tiene siguiente paso")
+                for data, key in update_data_fragment_step(fragment).items():
+                    self.add_and_try_to_send_chunk(data, key)
 
     def send_with_timeout(self):
         for key, (data, last_sent) in self.results.items():
@@ -125,8 +130,7 @@ class Filter:
 
 
     def run(self):
-
-        while not self._exit:
+        while not self.exit:
             try:
                 msg = self.mom.consume(self.work_queue)
             except Exception as e:

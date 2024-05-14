@@ -4,9 +4,6 @@ FROM python:3.9.7-slim
 COPY ./client ./client
 COPY ./utils ./utils
 
-# copy the data.zip file
-COPY ./data/data.zip ./data.zip
-
 # Copy the env file
 COPY .env ./.env
 

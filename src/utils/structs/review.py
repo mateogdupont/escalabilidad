@@ -6,7 +6,7 @@ import jsonpickle
 # + info here -> https://www.kaggle.com/datasets/mohamedbakhet/amazon-books-reviews?select=Books_rating.csv
 class Review:
 
-    def __init__(self, id: int, title: str, user_id: Optional[str], profile_name: Optional[str], helpfulness: str, score: float, time: Optional[int], summary: str, text: str) -> None:
+    def __init__(self, id: Optional[int], title: str, user_id: Optional[str], profile_name: Optional[str], helpfulness: Optional[str], score: float, time: Optional[int], summary: Optional[str], text: str) -> None:
         self.id = id
         self.title = title
         self.user_id = user_id
