@@ -1,6 +1,6 @@
-<mxfile host="Electron" modified="2024-05-05T22:58:40.004Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.2.5 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="E_Bhb7S_mByZLUn3G6u_" version="24.2.5" type="device" pages="9">
+<mxfile host="Electron" modified="2024-05-12T23:45:19.965Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.2.5 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="2uacLXPl3iFnvU_tILjR" version="24.2.5" type="device" pages="9">
   <diagram name="Diagrama de robustez" id="14UugDq65mbZu9CfkLJA">
-    <mxGraphModel dx="3748" dy="2486" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1834" dy="1643" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -994,7 +994,7 @@
             <mxPoint x="42.352499999999964" y="14.117647058823536" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="XAZfHy7jtF0z-z_NB829-372" value="Sentiment analyser" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=default;" parent="XAZfHy7jtF0z-z_NB829-368" vertex="1">
+        <mxCell id="XAZfHy7jtF0z-z_NB829-372" value="Sentiment analyzer" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=default;" parent="XAZfHy7jtF0z-z_NB829-368" vertex="1">
           <mxGeometry x="-10" y="13.53" width="66.47" height="66.47" as="geometry" />
         </mxCell>
         <mxCell id="XAZfHy7jtF0z-z_NB829-373" value="" style="endArrow=none;html=1;rounded=0;" parent="XAZfHy7jtF0z-z_NB829-368" edge="1">
@@ -1027,7 +1027,7 @@
         <mxCell id="XAZfHy7jtF0z-z_NB829-375" value="" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=none;rotation=-90;" parent="1" vertex="1">
           <mxGeometry x="1416.52" y="390" width="27.97" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="XAZfHy7jtF0z-z_NB829-376" value="to-senti-analyser" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;horizontal=1;" parent="1" vertex="1">
+        <mxCell id="XAZfHy7jtF0z-z_NB829-376" value="to-senti-analyzer" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;horizontal=1;" parent="1" vertex="1">
           <mxGeometry x="1390" y="431.01" width="81.02" height="30" as="geometry" />
         </mxCell>
         <mxCell id="XAZfHy7jtF0z-z_NB829-377" value="" style="endArrow=classic;html=1;rounded=0;" parent="1" edge="1">
@@ -3110,7 +3110,7 @@
             <mxPoint x="-27" y="7" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="TCLDhCitOrP8CAK1RdT8-1" value="&amp;lt;&amp;lt;Data Processor&amp;gt;&amp;gt;&lt;br&gt;&lt;b&gt;Sentiment analyser&lt;/b&gt;" style="html=1;dropTarget=0;whiteSpace=wrap;" parent="1" vertex="1">
+        <mxCell id="TCLDhCitOrP8CAK1RdT8-1" value="&amp;lt;&amp;lt;Data Processor&amp;gt;&amp;gt;&lt;br&gt;&lt;b&gt;Sentiment analyzer&lt;/b&gt;" style="html=1;dropTarget=0;whiteSpace=wrap;" parent="1" vertex="1">
           <mxGeometry x="335" y="-50" width="130" height="90" as="geometry" />
         </mxCell>
         <mxCell id="TCLDhCitOrP8CAK1RdT8-2" value="" style="shape=module;jettyWidth=8;jettyHeight=4;" parent="TCLDhCitOrP8CAK1RdT8-1" vertex="1">
@@ -3191,7 +3191,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="Sm2BX8zwUndxbLYEy5M-" name="Diagrama de paquetes">
-    <mxGraphModel dx="2524" dy="843" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="2284" dy="843" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -3225,10 +3225,10 @@
             <mxPoint y="30" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="CSRq7ePiJQLJGhCu3VNF-9" value="Sentiment-analyser" style="shape=folder;fontStyle=1;tabWidth=110;tabHeight=30;tabPosition=left;html=1;boundedLbl=1;labelInHeader=1;container=1;collapsible=0;whiteSpace=wrap;" parent="1" vertex="1">
+        <mxCell id="CSRq7ePiJQLJGhCu3VNF-9" value="Sentiment-analyzer" style="shape=folder;fontStyle=1;tabWidth=110;tabHeight=30;tabPosition=left;html=1;boundedLbl=1;labelInHeader=1;container=1;collapsible=0;whiteSpace=wrap;" parent="1" vertex="1">
           <mxGeometry x="560" y="180" width="150" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="CSRq7ePiJQLJGhCu3VNF-10" value="analyser.py" style="html=1;strokeColor=none;resizeWidth=1;resizeHeight=1;fillColor=none;part=1;connectable=0;allowArrows=0;deletable=0;whiteSpace=wrap;" parent="CSRq7ePiJQLJGhCu3VNF-9" vertex="1">
+        <mxCell id="CSRq7ePiJQLJGhCu3VNF-10" value="analyzer.py" style="html=1;strokeColor=none;resizeWidth=1;resizeHeight=1;fillColor=none;part=1;connectable=0;allowArrows=0;deletable=0;whiteSpace=wrap;" parent="CSRq7ePiJQLJGhCu3VNF-9" vertex="1">
           <mxGeometry width="150" height="70" relative="1" as="geometry">
             <mxPoint y="30" as="offset" />
           </mxGeometry>

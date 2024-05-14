@@ -204,109 +204,109 @@ services:
     networks:
       - network-bridge
     
-  sentiment-analyser1:
+  sentiment-analyzer1:
     build:
       context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
+      dockerfile: ./sentiment-analyzer/Dockerfile
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
   
-  sentiment-analyser2:
+  sentiment-analyzer2:
     build: 
       context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
+      dockerfile: ./sentiment-analyzer/Dockerfile
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
 
-  sentiment-analyser3:
+  sentiment-analyzer3:
     build: 
       context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
+      dockerfile: ./sentiment-analyzer/Dockerfile
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
   
-  sentiment-analyser4:
+  sentiment-analyzer4:
     build: 
       context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
+      dockerfile: ./sentiment-analyzer/Dockerfile
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
   
-  sentiment-analyser5:
+  sentiment-analyzer5:
     build: 
       context: .
-      dockerfile: ./sentiment-analyser/Dockerfile
+      dockerfile: ./sentiment-analyzer/Dockerfile
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
 
-  # sentiment-analyser6:
+  # sentiment-analyzer6:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #     dockerfile: ./sentiment-analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
   #     - network-bridge
 
-  # sentiment-analyser7:
+  # sentiment-analyzer7:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #     dockerfile: ./sentiment-analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
   #     - network-bridge
   
-  # sentiment-analyser8:
+  # sentiment-analyzer8:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #     dockerfile: ./sentiment-analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
   #     - network-bridge
   
-  # sentiment-analyser9:
+  # sentiment-analyzer9:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #     dockerfile: ./sentiment-analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
   #     - network-bridge
   
-  # sentiment-analyser10:
+  # sentiment-analyzer10:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #     dockerfile: ./sentiment-analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
   #     - network-bridge
   
-  # sentiment-analyser11:
+  # sentiment-analyzer11:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #     dockerfile: ./sentiment-analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
   #     - network-bridge
   
-  # sentiment-analyser12:
+  # sentiment-analyzer12:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyser/Dockerfile
+  #     dockerfile: ./sentiment-analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
