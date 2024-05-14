@@ -16,4 +16,4 @@ RUN pip install -r ./sentiment-analyser/requirements.txt
 ENV PYTHONPATH=/app
 
 # Sleep before starts -> gives time to the MOM to start
-ENTRYPOINT ["bash", "-c", "sleep 5 && python sentiment-analyser/analyser.py"]
+ENTRYPOINT ["bash", "-c", "sleep 10 && python sentiment-analyser/analyser.py"]
