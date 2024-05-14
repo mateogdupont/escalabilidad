@@ -18,7 +18,7 @@ import logging as logger
 
 year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
-MAX_AMOUNT_OF_FRAGMENTS = 250
+MAX_AMOUNT_OF_FRAGMENTS = 500
 LISTEN_BACKLOG = 5
 PORT = 1250
 
@@ -34,12 +34,17 @@ class DataCleaner:
         self.queries = {}
         self.total_pass = 0
         self.clean_data = {}
+        self.work_queue = None
+        self.mom = None
+        signal.signal(signal.SIGTERM, self.sigterm_handler)
+        signal.signal(signal.SIGINT, self.sigterm_handler)
+
+    def _initialice_mom(self):
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
-        signal.signal(signal.SIGTERM, self.sigterm_handler)
-        signal.signal(signal.SIGINT, self.sigterm_handler)
+
     
     def sigterm_handler(self, signal,frame):
         self._socket.close()
@@ -158,6 +163,7 @@ class DataCleaner:
         self._event = Event()
         results_proccess = Process(target=self._send_results, args=(client_socket,queries,self._event,))
         results_proccess.start()
+        self._initialice_mom()
         expected_amount_of_files =  2 if any(query in self.queries for query in [3, 4, 5]) else 1
         remainding_amount = self.receive_files(client_socket, expected_amount_of_files)
         if remainding_amount == 0:
@@ -172,22 +178,44 @@ class DataCleaner:
                 self.handle_client(socket)
             except OSError as err:
                 logger.info(f"Error in socket: {err}")
-                
+    
+    # Creates a result array
+    # ['last',Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
+    def get_result_from_datafragment(self, fragment: DataFragment) -> List[str]:
+        book_result = [""] * 5
+        query_info_results = [""] * 4
+        query = str(list(fragment.get_queries().keys())[0])
+        book = fragment.get_book()
+        if book:
+            book_result = book.get_result()
+        query_info = fragment.get_query_info()
+        if query_info:
+            if book_result[1] == "":
+                book_result[1] = query_info.get_author()
+            query_info_results = query_info.get_result()
+
+        return [str(int(fragment.is_last()))] + [query] + book_result + query_info_results
 
     def _send_results(self,socket,queries,event):
+        self._initialice_mom()
         queries_left = len(queries)
 
         while not event.is_set() and queries_left > 0:
+            results = []
             msg = self.mom.consume(self.work_queue)
             if not msg:
                 time.sleep(2)
                 continue
             (data_chunk, tag) = msg
-            message = json.dumps(data_chunk.to_json())
-            send_msg(socket,message)
-            if data_chunk.contains_last_fragment():
-                logger.info(f"Last - Data chunk: {data_chunk.to_json()}")
-                queries_left -= 1
+            for fragment in data_chunk.get_fragments():
+                if fragment.is_last():
+                    logger.info(f"Last - Data chunk: {data_chunk.to_json()}")
+                    queries_left -= 1
+
+                results.append(self.get_result_from_datafragment(fragment))
+                if event.is_set():
+                    break
+            send_msg(socket,results)
             self.mom.ack(tag)
         if not event.is_set():
             logger.info(f"All results has been delivered.")

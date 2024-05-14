@@ -16,7 +16,7 @@ import logging as logger
 import sys
 #year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
-CHUNK_SIZE = 250
+CHUNK_SIZE = 500
 BOOKS_FILE_NAME = "books_data.csv"
 REVIEWS_FILE_NAME = "Books_rating.csv"
 RESULTS_FILE_NAME = "Results.csv"
@@ -86,9 +86,9 @@ class Client:
 
 
     def _send_all_data_files(self):
-        self._send_file(self._data_path + "/" + BOOKS_FILE_NAME, True)
+        self._send_file(self._data_path + "/data/" + BOOKS_FILE_NAME, True)
         if any(query in self._queries for query in [3, 4, 5]):
-            self._send_file(self._data_path + "/" + REVIEWS_FILE_NAME, False)
+            self._send_file(self._data_path + "/data/" + REVIEWS_FILE_NAME, False)
 
     def run(self):
         self._event = Event()
@@ -104,31 +104,11 @@ class Client:
             logger.info(f"Operation was aborted due to a termination signal.")
         results_proccess.join()
     
-    # Creates a result array
-    # ['Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
-    def get_result_from_datafragment(self, fragment: DataFragment) -> List[str]:
-        book_result = [""] * 5
-        query_info_results = [""] * 4
-        query = str(list(fragment.get_queries().keys())[0])
-        book = fragment.get_book()
-        if book:
-            book_result = book.get_result()
-        query_info = fragment.get_query_info()
-        if query_info:
-            if book_result[1] == "":
-                book_result[1] = query_info.get_author()
-            query_info_results = query_info.get_result()
-
-        return [query] + book_result + query_info_results
-
     def receive_result(self, event) -> DataChunk:
         while not event.is_set():
             try:
                 chunk_msg = receive_msg(self.socket)
-                if not chunk_msg:
-                    return None
-                json_chunk_msg = json.loads(chunk_msg)
-                return DataChunk.from_json(json_chunk_msg)
+                return chunk_msg
             except socket.error as e:
                 logger.info(f"Error en el socket: {e}")
                 return None
@@ -139,15 +119,14 @@ class Client:
             writer = csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(RESULTS_COLUMNS)
             while not event.is_set():
-                chunk = self.receive_result(event)
-                if not chunk:
+                results = self.receive_result(event)
+                if not results:
                     break
-                for fragment in chunk.get_fragments():
-                    if fragment.is_last():
+                for result in results:
+                    if result[0] == '1':
                         amount_of_queries_left -= 1
                         continue
-                    result = self.get_result_from_datafragment(fragment)
-                    writer.writerow(result)
+                    writer.writerow(result[1:])
                     if event.is_set():
                         break
                 if amount_of_queries_left <= 0:
