@@ -1,7 +1,6 @@
 import csv
 import signal
 import os
-#import re
 import socket
 import time
 from typing import List
@@ -14,17 +13,12 @@ from utils.stream_communications import *
 from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
-#year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
 CHUNK_SIZE = 500
 BOOKS_FILE_NAME = "books_data.csv"
 REVIEWS_FILE_NAME = "Books_rating.csv"
 RESULTS_FILE_NAME = "Results.csv"
 RESULTS_COLUMNS = ['Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
-BOOKS_RELEVANT_COLUMNS = [0,1,2,5,6,8,9]
-REVIEWS_RELEVANT_COLUMNS = [0,1,5,6,8,9]
-BOOKS_ARGUMENT_AMOUNT = 7
-REVIEW_ARGUMENT_AMOUNT = 6
 
 # Message:
 # last_bool|book_bool|column_1|column_2|...|column_n
@@ -45,7 +39,6 @@ class Client:
         self._event = None
         self.total = 0
         self.socket = socket
-        #self.data = DataChunk([])
         self.data = []
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
@@ -68,7 +61,6 @@ class Client:
         with open(file_path, 'r') as data_file:
             reader = csv.reader(data_file)
             first = next(reader)
-            logger.info(f"Descarto: {first}")
             while True and not self._stop:
                 self.read_chunk(reader, is_book_file)
                 if not self.data or self._stop:

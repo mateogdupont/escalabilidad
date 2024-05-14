@@ -8,7 +8,7 @@ import logging as logger
 # + info here -> https://www.kaggle.com/datasets/mohamedbakhet/amazon-books-reviews?select=books_data.csv
 class Book:
     
-    def __init__(self, title: str, description: str, authors: List[str], image: Optional[str], preview_link: Optional[str], publisher: str, published_year: str, info_link: Optional[str], categories: List[str], ratings_count: float) -> None:
+    def __init__(self, title: str, description: Optional[str], authors: List[str], image: Optional[str], preview_link: Optional[str], publisher: str, published_year: str, info_link: Optional[str], categories: List[str], ratings_count: float) -> None:
         self.title = title
         self.description = description
         self.authors = authors

@@ -73,7 +73,7 @@ class DataCleaner:
     # last|book|Title|description|authors|image|previewLink|publisher|pubishedDate|infoLink|categories|ratingCount
     def create_book_fragment(self, unparsed_data):
         publish_year = self.parse_year(unparsed_data[8])
-        book = Book(unparsed_data[2],"",unparsed_data[4],None,None,unparsed_data[7],publish_year,None,unparsed_data[10],unparsed_data[11])
+        book = Book(unparsed_data[2],None,unparsed_data[4],None,None,unparsed_data[7],publish_year,None,unparsed_data[10],unparsed_data[11])
         if book.has_minimun_data():
             return DataFragment(self.queries.copy(), book , None)
         else:
@@ -84,7 +84,7 @@ class DataCleaner:
     # 0    1    2   3       4   5       6                   7               8           9       10                  11
     # last|book|Id|Title|Price|User_id|profileName|review/helpfulness|review/score|review/time|review/summary|review/text
     def create_review_fragment(self, unparsed_data) -> DataFragment:
-        review = Review(unparsed_data[2],unparsed_data[3],None,None,unparsed_data[7],float(unparsed_data[8]),None,unparsed_data[10],unparsed_data[11])
+        review = Review(None,unparsed_data[3],None,None,None,float(unparsed_data[8]),None,None,unparsed_data[11])
         if review.has_minimun_data():
             return DataFragment(self.queries.copy(), None , review)
         else:
@@ -113,12 +113,10 @@ class DataCleaner:
             
             if data[0] == 1:
                 if data[1] == 1:
-                    logger.info(f"Me llego el ultimo libro :)")
-                    book = Book("Last","",["Last"],None,None,"Last","2000",None,["Last"],0.0)
+                    book = Book("Last",None,["Last"],None,None,"Last","2000",None,["Last"],0.0)
                     last_fragment = DataFragment(self.queries.copy(),book,None)  
                 else:
-                    logger.info(f"Me llego la ultima review :)")
-                    review = Review(0,"Last",None,None,"Last",1.0,None,"Last","Last")
+                    review = Review(None,"Last",None,None,None,1.0,None,None,"Last")
                     last_fragment = DataFragment(self.queries.copy(),None,review)
                 last = True
                 last_fragment.set_as_last()
@@ -149,7 +147,6 @@ class DataCleaner:
                 break
             if last:
                 expected_amount_of_files -= 1
-                logger.info(f"Me llego un amount y espero {expected_amount_of_files}")
                 if expected_amount_of_files == 0:
                     finish = True
         return expected_amount_of_files
