@@ -271,6 +271,8 @@ def _paths(data_fragment: DataFragment, queries: dict) -> dict:
         paths[Q5] = data_fragment
     elif 5 in queries.keys():
         paths[Q5] = data_fragment.clone()
+    
+    return paths
 
 def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
     queries = data_fragment.get_queries()
