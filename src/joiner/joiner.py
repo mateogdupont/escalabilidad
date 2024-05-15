@@ -93,11 +93,8 @@ class Joiner:
         query_id = fragment.get_query_id()
         if (not fragment.is_last()) and (review is not None) and (not self.exit):
             side_table = self.books_side_tables[query_id]
-            book_name = side_table.get(review.get_book_title(), None)
-            book = None
-            if book_name is not None:
-                book = self.books[book_name]
-            if book is not None:
+            if review.get_book_title() in side_table:
+                book = self.books[review.get_book_title()]
                 fragment.set_book(book)
                 for data, key in update_data_fragment_step(fragment).items():
                     self.add_and_try_to_send_chunk(data, key)
