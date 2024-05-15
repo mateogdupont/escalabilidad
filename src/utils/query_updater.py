@@ -136,6 +136,7 @@ def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFra
     data_fragment.set_queries(queries)
 
     next_steps = {}
+    # logger.info(f"Step: {step}")
 
     if step == 0:
         if data_fragment.get_book() is not None:
@@ -257,17 +258,17 @@ def _paths(data_fragment: DataFragment, queries: dict) -> dict:
     if 1 in queries.keys():
         paths[Q1] = data_fragment
     
-    if 2 in queries.keys() and len(paths) == 0:
+    if 2 in queries.keys() and len(paths.keys()) == 0:
         paths[Q2] = data_fragment
     elif 2 in queries.keys():
         paths[Q2] = data_fragment.clone()
         
-    if (3 in queries.keys() or 4 in queries.keys()) and len(paths) == 0:
+    if (3 in queries.keys() or 4 in queries.keys()) and len(paths.keys()) == 0:
         paths[Q34] = data_fragment
     elif 3 in queries.keys() or 4 in queries.keys():
         paths[Q34] = data_fragment.clone()
 
-    if 5 in queries.keys() and len(paths) == 0:
+    if 5 in queries.keys() and len(paths.keys()) == 0:
         paths[Q5] = data_fragment
     elif 5 in queries.keys():
         paths[Q5] = data_fragment.clone()
@@ -275,13 +276,16 @@ def _paths(data_fragment: DataFragment, queries: dict) -> dict:
     return paths
 
 def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
+    # logger.info(f"Updating DataFragment\n{data_fragment.to_json()}")
     queries = data_fragment.get_queries()
     next_steps = {}
     paths = _paths(data_fragment, queries) # => we need to check if the datafragment path 
                                            # is unique or we need to split it to different
                                            # paths for each query
+    # logger.info(f"Paths: {paths}")
     
     if 1 in queries.keys():
+        # logger.info("Updating first query")
         df = paths[Q1]
         next_step = _update_first_query(df)
         if len(next_step) == 1: # the path of the datafragment in the query 1 is unique
@@ -289,6 +293,7 @@ def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment
             next_steps[datafragment] = key
             
     if 2 in queries.keys():
+        # logger.info("Updating second query")
         df = paths[Q2]
         next_step = _update_second_query(df)
         if len(next_step) == 1: # the path of the datafragment in the query 2 is unique
@@ -296,12 +301,14 @@ def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment
             next_steps[datafragment] = key
         
     if 3 in queries.keys() or 4 in queries.keys():
+        # logger.info("Updating third and fourth query")
         df = paths[Q34]
         next_step = _update_third_and_fourth_query(df)
-        for datafragment, key in _update_third_and_fourth_query(df).items(): # this for loop will have up to 2 iterations (because of the
+        for datafragment, key in next_step.items(): # this for loop will have up to 2 iterations (because of the
             next_steps[datafragment] = key                                  # demux at the end of q3, when q3 and q4 takes different paths)
     
     if 5 in queries.keys():
+        # logger.info("Updating fifth query")
         df = paths[Q5]
         next_step = _update_fifth_query(df)
         if len(next_step) == 1: # the path of the datafragment in the query 5 is unique
@@ -315,6 +322,7 @@ def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment
     #     for datafragment, key in next_steps.items():
     #         logger.info(f"El fragment es {datafragment.to_json()}")
     #         logger.info(f"El destino es {key}")
+    # logger.info(f"Next steps: {next_steps}")
     
     return next_steps
                     
