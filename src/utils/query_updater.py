@@ -172,12 +172,6 @@ def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFra
         # logger.info("queries 3-4 | step 3 | going to filter")
 
     if step == 4:
-        if 3 in queries.keys():
-            new_queries = {}
-            new_queries[3] = queries[3]
-            data_fragment.set_queries(new_queries)
-            next_steps[data_fragment] = "results"
-            # logger.info("query 3 | step 4 | going to results")
         if 4 in queries.keys():
             new_queries = {}
             new_queries[4] = queries[4]
@@ -187,6 +181,12 @@ def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFra
             new_query_info.set_filter_params(None, None, None, None, (10, "AVERAGE"))
             new_data_fragment.set_query_info(new_query_info)
             next_steps[new_data_fragment] = "filter"
+        if 3 in queries.keys():
+            new_queries = {}
+            new_queries[3] = queries[3]
+            data_fragment.set_queries(new_queries)
+            next_steps[data_fragment] = "results"
+            # logger.info("query 3 | step 4 | going to results")
             # logger.info("query 4 | step 4 | going to filter")
     
     if step == 5:
