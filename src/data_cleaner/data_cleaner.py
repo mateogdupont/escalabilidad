@@ -18,7 +18,7 @@ import logging as logger
 
 year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
-MAX_AMOUNT_OF_FRAGMENTS = 500
+MAX_AMOUNT_OF_FRAGMENTS = 800
 LISTEN_BACKLOG = 5
 PORT = 1250
 

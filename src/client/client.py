@@ -14,7 +14,7 @@ from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
 
-CHUNK_SIZE = 500
+CHUNK_SIZE = 800
 BOOKS_FILE_NAME = "books_data.csv"
 REVIEWS_FILE_NAME = "Books_rating.csv"
 RESULTS_FILE_NAME = "Results.csv"

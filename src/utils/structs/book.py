@@ -1,7 +1,8 @@
 import ast
 from typing import List, Optional
 from datetime import datetime
-import jsonpickle # type: ignore
+# import jsonpickle # type: ignore
+import pickle
 import json
 import logging as logger
 
@@ -20,12 +21,36 @@ class Book:
         self.categories = categories
         self.ratings_count = ratings_count
 
+    # def __repr__(self) -> str:
+    #     return str({
+    #         'title': self.title,
+    #         'description': self.description,
+    #         'authors': self.authors,
+    #         'image': self.image,
+    #         'preview_link': self.preview_link,
+    #         'publisher': self.publisher,
+    #         'published_year': self.published_year,
+    #         'info_link': self.info_link,
+    #         'categories': self.categories,
+    #         'ratings_count': self.ratings_count
+    #     })
+    
+    # @staticmethod
+    # def from_repr(repr_str: str) -> 'Book':
+    #     dict_repr = eval(repr_str)
+    #     if dict_repr is None:
+    #         return None
+    #     book = Book(dict_repr['title'], dict_repr['description'], dict_repr['authors'], dict_repr['image'], dict_repr['preview_link'], dict_repr['publisher'], dict_repr['published_year'], dict_repr['info_link'], dict_repr['categories'], dict_repr['ratings_count'])
+    #     return book
+
     def to_json(self) -> str:
-        return jsonpickle.encode(self)
+        # return jsonpickle.encode(self)
+        return pickle.dumps(self)
 
     @classmethod
     def from_json(cls, json_str: str) -> 'Book':
-        return jsonpickle.decode(json_str)
+        # return jsonpickle.decode(json_str)
+        return pickle.loads(json_str)
     
     def has_minimun_data(self) -> bool:
         if not self.title or not self.authors or not self.categories:

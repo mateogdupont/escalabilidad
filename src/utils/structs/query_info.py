@@ -1,5 +1,6 @@
 from typing import List, Tuple
-import jsonpickle
+# import jsonpickle
+import pickle
 import logging as logger
 
 class QueryInfo:
@@ -23,13 +24,48 @@ class QueryInfo:
         self.count_distinct = None
         self.average_column = None
         self.percentile_column = None
+    
+    # def __repr__(self) -> str:
+    #     return str({
+    #         'author': self.author,
+    #         'n_distinct': self.n_distinct,
+    #         'average': self.average,
+    #         'sentiment': self.sentiment,
+    #         'percentile': self.percentile,
+    #         'filter_on': self.filter_on,
+    #         'contains': self.contains,
+    #         'min': self.min,
+    #         'max': self.max,
+    #         'top': self.top,
+    #         'group_by': self.group_by,
+    #         'count_distinct': self.count_distinct,
+    #         'average_column': self.average_column,
+    #         'percentile_column': self.percentile_column
+    #     })
+    
+    # @staticmethod
+    # def from_repr(repr_str: str) -> 'QueryInfo':
+    #     dict_repr = eval(repr_str)
+    #     if dict_repr is None:
+    #         return None
+    #     query_info = QueryInfo()
+    #     query_info.set_author(dict_repr['author'])
+    #     query_info.set_n_distinct(dict_repr['n_distinct'])
+    #     query_info.set_average(dict_repr['average'])
+    #     query_info.set_sentiment(dict_repr['sentiment'])
+    #     query_info.set_percentile(dict_repr['percentile'])
+    #     query_info.set_filter_params(dict_repr['filter_on'], dict_repr['contains'], dict_repr['min'], dict_repr['max'], dict_repr['top'])
+    #     query_info.set_counter_params(dict_repr['group_by'], dict_repr['count_distinct'], dict_repr['average_column'], dict_repr['percentile_column'])
+    #     return query_info
 
     def to_json(self) -> str:
-        return jsonpickle.encode(self)
+        # return jsonpickle.encode(self)
+        return pickle.dumps(self)
     
     @classmethod
     def from_json(cls, json_str: str) -> 'QueryInfo':
-        return jsonpickle.decode(json_str)
+        # return jsonpickle.decode(json_str)
+        return pickle.loads(json_str)
     
     def clone(self) -> 'QueryInfo':
         new = QueryInfo()
