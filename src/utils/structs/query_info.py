@@ -1,5 +1,5 @@
 from typing import List, Tuple
-import jsonpickle
+import pickle
 import logging as logger
 
 class QueryInfo:
@@ -24,12 +24,12 @@ class QueryInfo:
         self.average_column = None
         self.percentile_column = None
 
-    def to_json(self) -> str:
-        return jsonpickle.encode(self)
+    def to_str(self) -> str:
+        return pickle.dumps(self)
     
     @classmethod
-    def from_json(cls, json_str: str) -> 'QueryInfo':
-        return jsonpickle.decode(json_str)
+    def from_str(cls, json_str: str) -> 'QueryInfo':
+        return pickle.loads(json_str)
     
     def clone(self) -> 'QueryInfo':
         new = QueryInfo()

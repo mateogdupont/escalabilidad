@@ -1,12 +1,12 @@
 from typing import List
-import jsonpickle
+import pickle
 from utils.structs.data_fragment import DataFragment
 import logging as logger
 
 
 class DataChunk:
 
-    def __init__(self, fragments: list[DataFragment]) -> None:
+    def __init__(self, fragments: 'list[DataFragment]') -> None:
         self.amount = len(fragments)
         self.fragments = fragments
         self.contains_last = False
@@ -14,18 +14,17 @@ class DataChunk:
             if fragment.is_last():
                 self.contains_last = True
     
-    def to_json(self) -> str:
-        return jsonpickle.encode(self)
+    def to_str(self) -> str:
+        return pickle.dumps(self)
     
     @classmethod
-    def from_json(cls, json_str: str) -> 'DataChunk':
-        datachunk = jsonpickle.decode(json_str, keys=True)
-        return datachunk
+    def from_str(cls, json_str: str) -> 'DataChunk':
+        return pickle.loads(json_str)
         
     def contains_last_fragment(self) -> bool:
         return self.contains_last
     
-    def set_fragments(self, fragments: list[DataFragment]) -> None:
+    def set_fragments(self, fragments: 'list[DataFragment]') -> None:
         self.fragments = fragments
         self.amount = len(fragments)
         self.contains_last = False

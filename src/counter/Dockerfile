@@ -15,4 +15,5 @@ RUN pip install -r ./counter/requirements.txt
 
 ENV PYTHONPATH / 
 
-ENTRYPOINT ["bash", "-c", "sleep 5 && python counter/counter.py"]
+# Sleep before starts -> gives time to the MOM to start
+ENTRYPOINT ["bash", "-c", "sleep 10 && python counter/counter.py"]

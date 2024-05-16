@@ -20,10 +20,10 @@ YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
-MAX_AMOUNT_OF_FRAGMENTS = 500
+MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 
-class Analyser:
+class Analyzer:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
@@ -54,7 +54,6 @@ class Analyser:
         while not self.exit:
             msg = self.mom.consume(self.work_queue)
             if not msg:
-                time.sleep(0.5)
                 continue
             data_chunk, tag = msg
             
@@ -71,10 +70,10 @@ class Analyser:
             self.mom.ack(tag)
 
 def main() -> None:
-    analyser = Analyser()
-    analyser.run()
-    if not analyser.exit:
-        analyser.mom.close()
+    analyzer = Analyzer()
+    analyzer.run()
+    if not analyzer.exit:
+        analyzer.mom.close()
 
 if __name__ == "__main__":
     main()

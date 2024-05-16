@@ -15,5 +15,5 @@ RUN pip install -r ./sentiment-analyzer/requirements.txt
 # Set the Python path to include /app
 ENV PYTHONPATH=/app
 
-# Sleep before starts -> gives time to the MOM to start
+# CMD ["python", "sentiment-analyzer/main.py"]
 ENTRYPOINT ["bash", "-c", "sleep 10 && python sentiment-analyzer/analyzer.py"]

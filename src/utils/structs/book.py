@@ -1,14 +1,14 @@
 import ast
 from typing import List, Optional
 from datetime import datetime
-import jsonpickle # type: ignore
+import pickle
 import json
 import logging as logger
 
 # + info here -> https://www.kaggle.com/datasets/mohamedbakhet/amazon-books-reviews?select=books_data.csv
 class Book:
     
-    def __init__(self, title: str, description: str, authors: List[str], image: Optional[str], preview_link: Optional[str], publisher: str, published_year: str, info_link: Optional[str], categories: List[str], ratings_count: float) -> None:
+    def __init__(self, title: str, description: Optional[str], authors: List[str], image: Optional[str], preview_link: Optional[str], publisher: str, published_year: str, info_link: Optional[str], categories: List[str], ratings_count: float) -> None:
         self.title = title
         self.description = description
         self.authors = authors
@@ -20,12 +20,12 @@ class Book:
         self.categories = categories
         self.ratings_count = ratings_count
 
-    def to_json(self) -> str:
-        return jsonpickle.encode(self)
+    def to_str(self) -> str:
+        return pickle.dumps(self)
 
     @classmethod
-    def from_json(cls, json_str: str) -> 'Book':
-        return jsonpickle.decode(json_str)
+    def from_str(cls, json_str: str) -> 'Book':
+        return pickle.loads(json_str)
     
     def has_minimun_data(self) -> bool:
         if not self.title or not self.authors or not self.categories:

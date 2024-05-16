@@ -1,6 +1,8 @@
 import socket
 import signal
 import os
+import re
+from typing import List, Tuple
 from multiprocessing import Process, Event
 from utils.structs.book import *
 from utils.structs.review import *
@@ -14,7 +16,9 @@ import sys
 import time
 import logging as logger
 
-MAX_AMOUNT_OF_FRAGMENTS = 500
+year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
+
+MAX_AMOUNT_OF_FRAGMENTS = 800
 LISTEN_BACKLOG = 5
 PORT = 1250
 
@@ -27,14 +31,20 @@ class DataCleaner:
         self._socket.listen(LISTEN_BACKLOG)
         self.exit = False
         self._event = None
+        self.queries = {}
         self.total_pass = 0
         self.clean_data = {}
+        self.work_queue = None
+        self.mom = None
+        signal.signal(signal.SIGTERM, self.sigterm_handler)
+        signal.signal(signal.SIGINT, self.sigterm_handler)
+
+    def _initialice_mom(self):
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
-        signal.signal(signal.SIGTERM, self.sigterm_handler)
-        signal.signal(signal.SIGINT, self.sigterm_handler)
+
     
     def sigterm_handler(self, signal,frame):
         self._socket.close()
@@ -43,77 +53,124 @@ class DataCleaner:
         if self._event:
             self._event.set()
     
-    def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
+    def add_and_try_to_send(self, fragment: DataFragment, node: str):
+        self.total_pass += 1
         self.clean_data[node] = self.clean_data.get(node, [])
         self.clean_data[node].append(fragment)
         if len(self.clean_data[node]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.clean_data[node])
             self.mom.publish(data_chunk, node)
             self.clean_data[node].clear()
+        
+    def parse_year(self,read_date: str):
+        if read_date:
+            result = year_regex.search(read_date)
+            return result.group(1) if result else None
+        return None
+    # Book db:
+    # Title|description|authors|image|previewLink|publisher|pubishedDate|infoLink|categories|ratingCount
+    # 0    1    2      3            4        5   6              7           8           9   10          11
+    # last|book|Title|description|authors|image|previewLink|publisher|pubishedDate|infoLink|categories|ratingCount
+    def create_book_fragment(self, unparsed_data):
+        publish_year = self.parse_year(unparsed_data[8])
+        book = Book(unparsed_data[2],None,unparsed_data[4],None,None,unparsed_data[7],publish_year,None,unparsed_data[10],unparsed_data[11])
+        if book.has_minimun_data():
+            return DataFragment(self.queries.copy(), book , None)
+        else:
+            return None
 
-    def send_clean_data(self, chunk_data: DataChunk):
-        for fragment in chunk_data.get_fragments():
+
+    # Reviews db:
+    # 0    1    2   3       4   5       6                   7               8           9       10                  11
+    # last|book|Id|Title|Price|User_id|profileName|review/helpfulness|review/score|review/time|review/summary|review/text
+    def create_review_fragment(self, unparsed_data) -> DataFragment:
+        review = Review(None,unparsed_data[3],None,None,None,float(unparsed_data[8]),None,None,unparsed_data[11])
+        if review.has_minimun_data():
+            if 5 in self.queries and not unparsed_data[11]:
+                return None
+            return DataFragment(self.queries.copy(), None , review)
+        else:
+            return None
+    
+    def parse_and_filter_data(self, unparsed_data):
+        if unparsed_data[1] == 1:
+            return self.create_book_fragment(unparsed_data)
+        else:
+            return self.create_review_fragment(unparsed_data)
+
+    def clear_and_try_to_send_data(self, unparsed_data_chunk) -> Tuple[int,bool]:
+        amount_clean_fragments = 0
+        last = False
+        for data in unparsed_data_chunk:
             if self.exit:
                 if self._event:
                     self._event.set()
-                return
-            if fragment.is_last():
-                logger.info(f"Last fragment received")
-            for data, key in update_data_fragment_step(fragment).items():
-                self.add_and_try_to_send_chunk(data, key)
+                return (0,False)
+
+            fragment = self.parse_and_filter_data(data)
+            if fragment:
+                amount_clean_fragments += 1
+                review = fragment.get_review()
+                for value, key in update_data_fragment_step(fragment).items():
+                    if not 5 in fragment.get_queries() and review:
+                        review.set_text("")
+                        fragment.set_review(review)
+                    self.add_and_try_to_send(value, key)
             
-    def has_minimun_data(self, fragment: DataFragment):
-        book = fragment.get_book()
-        review = fragment.get_review()
-        if book is not None:
-            return book.has_minimun_data()
-        elif review is not None:
-            return review.has_minimun_data()
-        else:
-            return fragment.is_last()
+            if data[0] == 1:
+                if data[1] == 1:
+                    book = Book("Last",None,["Last"],None,None,"Last","2000",None,["Last"],0.0)
+                    last_fragment = DataFragment(self.queries.copy(),book,None)  
+                else:
+                    review = Review(None,"Last",None,None,None,1.0,None,None,"Last")
+                    last_fragment = DataFragment(self.queries.copy(),None,review)
+                last = True
+                last_fragment.set_as_last()
+                for value, key in update_data_fragment_step(last_fragment).items():
+                    self.add_and_try_to_send(value, key)
 
-    def clear_data(self, chunk: DataChunk) -> DataChunk:
-        filters_fragments = list(filter(self.has_minimun_data, chunk.get_fragments()))
-        self.total_pass += len(filters_fragments)
-        chunk.set_fragments(filters_fragments)
-        return chunk
+        return (amount_clean_fragments,last)
 
-    def try_to_receive_chunk(self, client_socket) -> DataChunk:
+    def receive_and_try_to_send_clean_data(self, client_socket) -> Tuple[int, bool]:
         while not self.exit:
             try:
-                chunk_msg = receive_msg(client_socket)
-                if not chunk_msg:
-                    return None
-                json_chunk_msg = json.loads(chunk_msg)
-                return DataChunk.from_json(json_chunk_msg)
-            except socket.timeout:
-                time.sleep(1)
+                data_msg = receive_msg(client_socket)
+                if not data_msg:
+                    return (0,False)
+                return self.clear_and_try_to_send_data(data_msg)
             except socket.error as e:
                 logger.info(f"Error en el socket: {e}")
-                return None
+                return (0,False)
 
-    def handle_client(self, client_socket):
+    def receive_files(self,client_socket, expected_amount_of_files):
         finish = False
-        queries = receive_msg(client_socket)
+        while not self.exit and not finish:
+            (amount, last) = self.receive_and_try_to_send_clean_data(client_socket)
+            if amount == 0:
+                finish = True
+                if self._event:
+                    self._event.set()
+                break
+            if last:
+                expected_amount_of_files -= 1
+                if expected_amount_of_files == 0:
+                    finish = True
+        return expected_amount_of_files
+    
+    def handle_client(self, client_socket):
         try:
             queries = receive_msg(client_socket)
+            self.queries = {int(key): 0 for key in queries}
         except socket.timeout:
                 logger.info(f"Client didn't answer in time")
         self._event = Event()
         results_proccess = Process(target=self._send_results, args=(client_socket,queries,self._event,))
         results_proccess.start()
-        while not self.exit and not finish:
-            chunk = self.try_to_receive_chunk(client_socket)
-            if not chunk:
-                finish = True
-                if self._event:
-                    self._event.set()
-                break
-            self.clear_data(chunk)
-            self.send_clean_data(chunk)
-            if chunk.contains_last_fragment():
-                logger.info(f"All data was received: {self.total_pass}")
-                finish = True
+        self._initialice_mom()
+        expected_amount_of_files =  2 if any(query in self.queries for query in [3, 4, 5]) else 1
+        remainding_amount = self.receive_files(client_socket, expected_amount_of_files)
+        if remainding_amount == 0:
+            logger.info(f"All data was received: {self.total_pass}")
         results_proccess.join()
         client_socket.close()
 
@@ -121,25 +178,46 @@ class DataCleaner:
         while not self.exit:
             try: 
                 socket = self._socket.accept()[0]
-                # socket.settimeout(1.0)
                 self.handle_client(socket)
             except OSError as err:
                 logger.info(f"Error in socket: {err}")
-                
+    
+    # Creates a result array
+    # ['last',Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
+    def get_result_from_datafragment(self, fragment: DataFragment) -> List[str]:
+        book_result = [""] * 5
+        query_info_results = [""] * 4
+        query = str(list(fragment.get_queries().keys())[0])
+        book = fragment.get_book()
+        if book:
+            book_result = book.get_result()
+        query_info = fragment.get_query_info()
+        if query_info:
+            if book_result[1] == "":
+                book_result[1] = query_info.get_author()
+            query_info_results = query_info.get_result()
+
+        return [str(int(fragment.is_last()))] + [query] + book_result + query_info_results
 
     def _send_results(self,socket,queries,event):
-        queries_left = len(queries.split(','))
+        self._initialice_mom()
+        queries_left = len(queries)
+
         while not event.is_set() and queries_left > 0:
+            results = []
             msg = self.mom.consume(self.work_queue)
             if not msg:
-                time.sleep(2)
                 continue
             (data_chunk, tag) = msg
-            message = json.dumps(data_chunk.to_json())
-            send_msg(socket,message)
-            if data_chunk.contains_last_fragment():
-                logger.info(f"Last - Data chunk: {data_chunk.to_json()}")
-                queries_left -= 1
+            for fragment in data_chunk.get_fragments():
+                if fragment.is_last():
+                    logger.info(f"Last - fragment: {fragment.to_str()}")
+                    queries_left -= 1
+
+                results.append(self.get_result_from_datafragment(fragment))
+                if event.is_set():
+                    break
+            send_msg(socket,results)
             self.mom.ack(tag)
         if not event.is_set():
             logger.info(f"All results has been delivered.")

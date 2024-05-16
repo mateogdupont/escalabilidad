@@ -1,0 +1,84 @@
+@startuml
+
+class DataChunk {
+    +amount: int
+    +fragments: list<DataFragment>
+    +contains_last: bool
+    +to_json(): str
+    +from_json(json_str: str): DataChunk
+    +contains_last_fragment(): bool
+}
+
+class DataFragment {
+    +book: Book
+    +review: Review
+    +query_info: QueryInfo
+    +queries: dict<int, int>
+    +to_json(): str
+    +from_json(cls, json_str: str): DataFragment
+    +set_as_last(): void
+    +is_last(): bool
+}
+
+class QueryInfo {
+    +last: bool
+    +author: String
+    +n_distinct: int
+    +average: float
+    +sentiment: String
+    +percentile: float
+    +filter_on: String
+    +contains: bool
+    +min: int
+    +max: int
+    +top: int
+    +group_by: String
+    +count_distinct: int
+    +average_column: String
+    +percentile_column: String
+    +to_json(): str
+    +from_json(cls, json_str: str): QueryInfo
+    +set_as_last(): void
+    +is_last(): bool
+    +get_result(): list<String>
+}
+
+class Book {
+    +title: String
+    +description: String
+    +authors: list<String>
+    +image: String
+    +preview_link: String
+    +publisher: String
+    +published_year: String
+    +info_link: String
+    +categories: list<String>
+    +ratings_count: float
+    +to_json(): str
+    +from_json(cls, json_str: str): Book
+    +has_minimun_data(): bool
+    +get_result(): list<String>
+}
+
+class Review {
+    +id: int
+    +title: String
+    +user_id: String
+    +profile_name: String
+    +helpfulness: String
+    +score: float
+    +time: int
+    +summary: String
+    +text: String
+    +to_json(): str
+    +from_json(cls, json_str: str): Review
+    +with_minimum_data(title: str, text: str, score: float): Review
+    +has_minimun_data(): bool
+}
+
+DataChunk "1" -- "many" DataFragment : contains >
+DataFragment "1" -- "1" QueryInfo : uses >
+DataFragment "1" -- "0..1" Book : has_book >
+DataFragment "1" -- "0..1" Review : has_review >
+
+@enduml

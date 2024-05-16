@@ -1,5 +1,5 @@
 from typing import List, Optional
-import jsonpickle
+import pickle
 from utils.structs.book import Book
 from utils.structs.review import Review
 from utils.structs.query_info import QueryInfo
@@ -15,15 +15,14 @@ class DataFragment:
         self.queries = None
         self.set_queries(queries)
     
-    def to_json(self) -> str:
-        return jsonpickle.encode(self)
+    def to_str(self) -> str:
+        return pickle.dumps(self)
     
     @classmethod
-    def from_json(cls, json_str: str) -> 'DataFragment':
-        datafragment = jsonpickle.decode(json_str)
+    def from_str(cls, json_str: str) -> 'DataFragment':
+        datafragment = pickle.loads(json_str)
         datafragment.set_queries(datafragment.queries)
         return datafragment
-        
     
     def set_queries(self, queries: 'dict[int, int]') -> None:
         corrected = {}
@@ -47,8 +46,6 @@ class DataFragment:
         self.book = book
 
     def set_review(self, review: Review) -> None:
-        if self.review is not None:
-            raise Exception("Review already setted")
         self.review = review
     
     def get_book(self) -> Book:

@@ -18,7 +18,7 @@ YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
-MAX_AMOUNT_OF_FRAGMENTS = 250
+MAX_AMOUNT_OF_FRAGMENTS = 800
 
 class Counter:
     def __init__(self):
@@ -73,7 +73,6 @@ class Counter:
             self.counted_data[query_id][group_data]["VALUES"].append(value)
             self.books[group_data] = data_fragment.get_book()
         else:
-            base_data_fragment = DataFragment(queries.copy(), None, None)
             sentiment_scores = {}
             percentile_number = None
             for group_data in self.counted_data[query_id].keys():
@@ -90,12 +89,12 @@ class Counter:
             for group_data in self.counted_data[query_id].keys():
                 if self.exit:
                     return results
-                new_data_fragment = base_data_fragment.clone()
+                new_data_fragment = DataFragment(queries.copy(), None, None)
                 new_query_info = QueryInfo()
                 new_query_info.set_percentile(percentile_result)
                 new_query_info.set_sentiment(sentiment_scores[group_data])
                 new_data_fragment.set_query_info(new_query_info)
-                review = Review.with_minimum_data(title=group_data, text="-", score=0.0)
+                review = Review.with_minimum_data(title=group_data, score=0.0)
                 new_data_fragment.set_review(review)
                 new_data_fragment.set_book(self.books[group_data])
                 results.append(new_data_fragment)
@@ -110,16 +109,15 @@ class Counter:
             self.counted_data[query_id][group_data]["COUNT"] += 1
             self.books[group_data] = data_fragment.get_book()
         else:
-            base_data_fragment = DataFragment(queries.copy(), None, None)
             for group_data in self.counted_data[query_id].keys():
                 if self.exit:
                     return results
-                new_data_fragment = base_data_fragment.clone()
+                new_data_fragment = DataFragment(queries.copy(), None, None)
                 new_query_info = QueryInfo()
                 new_query_info.set_n_distinct(self.counted_data[query_id][group_data]["COUNT"])
                 new_query_info.set_average(self.counted_data[query_id][group_data]["TOTAL"] / self.counted_data[query_id][group_data]["COUNT"])
                 new_data_fragment.set_query_info(new_query_info)
-                review = Review.with_minimum_data(title=group_data, text="-", score=0.0)
+                review = Review.with_minimum_data(title=group_data,score=0.0)
                 new_data_fragment.set_review(review)
                 new_data_fragment.set_book(self.books[group_data])
                 results.append(new_data_fragment)
@@ -139,11 +137,10 @@ class Counter:
             else:
                 logger.warning(f"Group data is not a list, it is a {type(group_data)}")
         else:
-            base_data_fragment = DataFragment(queries.copy(), None, None)
             for key, value in self.counted_data[query_id].items():
                 if self.exit:
                     return results
-                new_data_fragment = base_data_fragment.clone()
+                new_data_fragment = DataFragment(queries.copy(), None, None)
                 new_query_info = QueryInfo()
                 new_query_info.set_author(key)
                 new_query_info.set_n_distinct(len(value))
@@ -170,7 +167,6 @@ class Counter:
         while not self.exit:
             msg = self.mom.consume(self.work_queue)
             if not msg:
-                time.sleep(0.1)
                 continue
             data_chunk, tag = msg
             for data_fragment in data_chunk.get_fragments():
