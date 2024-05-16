@@ -1,5 +1,4 @@
 from typing import List, Optional
-# import jsonpickle
 import pickle
 from utils.structs.book import Book
 from utils.structs.review import Review
@@ -15,41 +14,15 @@ class DataFragment:
         self.query_info = QueryInfo()
         self.queries = None
         self.set_queries(queries)
-
-    # def __repr__(self) -> str:
-    #     return str({
-    #         'queries': repr(self.queries),
-    #         'book': repr(self.book),
-    #         'review': repr(self.review),
-    #         'query_info': repr(self.query_info)
-    #     })
     
-    # @staticmethod
-    # def from_repr(repr_str: str) -> 'DataFragment':
-    #     dict_repr = eval(repr_str)
-    #     queries = dict_repr['queries']
-    #     if type(queries) is str:
-    #         queries = eval(queries)
-    #     queries = {int(key): int(value) for key, value in queries.items()}
-    #     book = Book.from_repr(dict_repr['book'])
-    #     review = Review.from_repr(dict_repr['review'])
-    #     query_info = QueryInfo.from_repr(dict_repr['query_info'])
-    #     data_fragment = DataFragment(queries, book, review)
-    #     data_fragment.set_query_info(query_info)
-    #     return data_fragment
-    
-    def to_json(self) -> str:
-        # return jsonpickle.encode(self)
+    def to_str(self) -> str:
         return pickle.dumps(self)
     
     @classmethod
-    def from_json(cls, json_str: str) -> 'DataFragment':
-        # datafragment = jsonpickle.decode(json_str)
-        # datafragment.set_queries(datafragment.queries)
+    def from_str(cls, json_str: str) -> 'DataFragment':
         datafragment = pickle.loads(json_str)
         datafragment.set_queries(datafragment.queries)
         return datafragment
-        
     
     def set_queries(self, queries: 'dict[int, int]') -> None:
         corrected = {}
