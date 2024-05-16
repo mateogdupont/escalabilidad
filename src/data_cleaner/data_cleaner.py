@@ -86,6 +86,8 @@ class DataCleaner:
     def create_review_fragment(self, unparsed_data) -> DataFragment:
         review = Review(None,unparsed_data[3],None,None,None,float(unparsed_data[8]),None,None,unparsed_data[11])
         if review.has_minimun_data():
+            if 5 in self.queries and not unparsed_data[11]:
+                return None
             return DataFragment(self.queries.copy(), None , review)
         else:
             return None
@@ -108,7 +110,11 @@ class DataCleaner:
             fragment = self.parse_and_filter_data(data)
             if fragment:
                 amount_clean_fragments += 1
+                review = fragment.get_review()
                 for value, key in update_data_fragment_step(fragment).items():
+                    if not 5 in fragment.get_queries() and review:
+                        review.set_text("")
+                        fragment.set_review(review)
                     self.add_and_try_to_send(value, key)
             
             if data[0] == 1:

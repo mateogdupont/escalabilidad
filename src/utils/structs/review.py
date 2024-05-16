@@ -6,7 +6,7 @@ import jsonpickle
 # + info here -> https://www.kaggle.com/datasets/mohamedbakhet/amazon-books-reviews?select=Books_rating.csv
 class Review:
 
-    def __init__(self, id: Optional[int], title: str, user_id: Optional[str], profile_name: Optional[str], helpfulness: Optional[str], score: float, time: Optional[int], summary: Optional[str], text: str) -> None:
+    def __init__(self, id: Optional[int], title: str, user_id: Optional[str], profile_name: Optional[str], helpfulness: Optional[str], score: float, time: Optional[int], summary: Optional[str], text: Optional[str]) -> None:
         self.id = id
         self.title = title
         self.user_id = user_id
@@ -18,8 +18,8 @@ class Review:
         self.text = text
     
     @classmethod
-    def with_minimum_data(cls, title: str, text: str, score: float) -> 'Review':
-        return cls(-1, title, None, None, None, score, None, None, text)
+    def with_minimum_data(cls, title: str, score: float) -> 'Review':
+        return cls(-1, title, None, None, None, score, None, None, None)
     
     def to_json(self) -> str:
         return jsonpickle.encode(self)
@@ -33,7 +33,11 @@ class Review:
             self.score = float(self.score) # if there was a header, this will fail
         except:
             return False
-        return bool(self.title and self.text)
+        return bool(self.title)
+    
+    def set_text(self, text: str) -> None:
+        self.text = text
+
     
     def get_text(self) -> str:
         return self.text

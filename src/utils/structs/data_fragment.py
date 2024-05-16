@@ -47,8 +47,6 @@ class DataFragment:
         self.book = book
 
     def set_review(self, review: Review) -> None:
-        if self.review is not None:
-            raise Exception("Review already setted")
         self.review = review
     
     def get_book(self) -> Book:
