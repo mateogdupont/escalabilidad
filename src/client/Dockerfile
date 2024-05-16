@@ -15,4 +15,4 @@ RUN pip install -r ./utils/requirements.txt
 
 ENV PYTHONPATH /
 
-ENTRYPOINT ["bash", "-c", "sleep 15 && python client/main.py .. 3,4"]
+ENTRYPOINT ["bash", "-c", "sleep 15 && python client/main.py .. 5"]
