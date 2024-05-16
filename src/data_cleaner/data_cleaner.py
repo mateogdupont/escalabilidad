@@ -211,7 +211,7 @@ class DataCleaner:
             (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
                 if fragment.is_last():
-                    logger.info(f"Last - Data chunk: {data_chunk.to_json()}")
+                    logger.info(f"Last - fragment: {fragment.to_json()}")
                     queries_left -= 1
 
                 results.append(self.get_result_from_datafragment(fragment))

@@ -56,6 +56,7 @@ class Filter:
             return query_info.get_sentiment() >= min_value
         elif query_info.filter_by_top():
             if data_fragment.is_last():
+                #logger.info(f"Me llego el ultimo fragmento {data_fragment.to_json()}")
                 for fragment in self.top_ten:
                     if self.exit:
                         return False
@@ -64,13 +65,13 @@ class Filter:
                 self.top_ten = []
 
             if len(self.top_ten) < TOP_AMOUNT:
-                # logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
+                #logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
                 self.top_ten.append(data_fragment)
                 self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
             else:
                 lowest = self.top_ten[0]
                 if data_fragment.get_query_info().get_average() > lowest.get_query_info().get_average():
-                    # logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
+                    #logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
                     self.top_ten[0] = data_fragment
                     self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
         
@@ -103,10 +104,15 @@ class Filter:
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)
             if fragment.is_last():
-                logger.info(f"Fragmento es el ultimo")
+                if fragment.get_query_info().filter_by_top():
+                    for top_fragment in self.top_ten:
+                        if self.exit:
+                            return False
+                        for data, key in update_data_fragment_step(top_fragment).items():
+                            self.add_and_try_to_send_chunk(data, key)
+                    self.top_ten = []
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
-                    logger.info(f"Enviando a {key}")
                     self.add_and_try_to_send_chunk(data, key)
 
     def send_with_timeout(self):
