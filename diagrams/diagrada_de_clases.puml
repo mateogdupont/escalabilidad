@@ -4,8 +4,8 @@ class DataChunk {
     +amount: int
     +fragments: list<DataFragment>
     +contains_last: bool
-    +to_json(): str
-    +from_json(json_str: str): DataChunk
+    +to_str(): str
+    +from_str(json_str: str): DataChunk
     +contains_last_fragment(): bool
 }
 
@@ -14,8 +14,8 @@ class DataFragment {
     +review: Review
     +query_info: QueryInfo
     +queries: dict<int, int>
-    +to_json(): str
-    +from_json(cls, json_str: str): DataFragment
+    +to_str(): str
+    +from_str(json_str: str): DataFragment
     +set_as_last(): void
     +is_last(): bool
 }
@@ -36,8 +36,8 @@ class QueryInfo {
     +count_distinct: int
     +average_column: String
     +percentile_column: String
-    +to_json(): str
-    +from_json(cls, json_str: str): QueryInfo
+    +to_str(): str
+    +from_str(son_str: str): QueryInfo
     +set_as_last(): void
     +is_last(): bool
     +get_result(): list<String>
@@ -54,8 +54,8 @@ class Book {
     +info_link: String
     +categories: list<String>
     +ratings_count: float
-    +to_json(): str
-    +from_json(cls, json_str: str): Book
+    +to_str(): str
+    +from_str(json_str: str): Book
     +has_minimun_data(): bool
     +get_result(): list<String>
 }
@@ -70,8 +70,8 @@ class Review {
     +time: int
     +summary: String
     +text: String
-    +to_json(): str
-    +from_json(cls, json_str: str): Review
+    +to_str(): str
+    +from_str(json_str: str): Review
     +with_minimum_data(title: str, text: str, score: float): Review
     +has_minimun_data(): bool
 }
