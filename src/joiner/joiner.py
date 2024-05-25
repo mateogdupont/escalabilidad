@@ -42,6 +42,18 @@ class Joiner:
     def sigterm_handler(self, signal,frame):
         self.exit = True
         self.mom.close()
+
+    def clean_data(self, query_id: str, client_id: str):
+        if client_id in self.books_side_tables.keys():
+            if query_id in self.books_side_tables[client_id].keys():
+                self.books_side_tables[client_id].pop(query_id)
+            if len(self.books_side_tables[client_id]) == 0:
+                self.books_side_tables.pop(client_id)
+        if client_id in self.side_tables_ended.keys():
+            if query_id in self.side_tables_ended[client_id]:
+                self.side_tables_ended[client_id].remove(query_id)
+            if len(self.side_tables_ended[client_id]) == 0:
+                self.side_tables_ended.pop(client_id)
     
     def is_side_table_ended(self, query_id: str, client_id: str,):
         if not client_id in self.side_tables_ended.keys():
@@ -116,6 +128,7 @@ class Joiner:
             for data, key in update_data_fragment_step(fragment).items():
                 logger.info(f"Sending to {key}")
                 self.add_and_try_to_send_chunk(data, key)
+            self.clean_data(query_id, client_id)
 
     def send_with_timeout(self):
         for key, (data, last_sent) in self.results.items():
