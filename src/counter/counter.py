@@ -34,9 +34,17 @@ class Counter:
         self.counted_data = {}
         self.books = {}
     
-    def sigterm_handler(self, signal,frame):
+    def sigterm_handler(self, signal, frame):
         self.exit = True
         self.mom.close()
+    
+    def clean_data(self, query_id: str, client_id: str):
+        if not client_id in self.counted_data.keys():
+            return
+        if query_id in self.counted_data[client_id].keys():
+            self.counted_data[client_id].pop(query_id)
+        if len(self.counted_data[client_id]) == 0:
+            self.counted_data.pop(client_id)
 
     def count_data_fragment(self, data_fragment: DataFragment) -> List[DataFragment]:
         query_info = data_fragment.get_query_info()
@@ -196,6 +204,8 @@ class Counter:
                             fragments = []
                     if len(fragments) > 0:
                         self.mom.publish(DataChunk(fragments), key)
+
+                    self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
             self.mom.ack(tag)
 
 def main():
