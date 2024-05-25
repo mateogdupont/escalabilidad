@@ -8,7 +8,8 @@ from datetime import datetime
 
 class DataFragment:
 
-    def __init__(self, queries: 'dict[int, int]', book: Optional[Book], review: Optional[Review]) -> None:
+    def __init__(self, queries: 'dict[int, int]', book: Optional[Book], review: Optional[Review], client_id: str) -> None:
+        self.client_id = client_id
         self.book = book
         self.review = review
         self.query_info = QueryInfo()
@@ -29,6 +30,9 @@ class DataFragment:
         for key, value in queries.items():
             corrected[int(key)] = int(value)
         self.queries = corrected
+    
+    def get_client_id(self) -> str:
+        return self.client_id
     
     def set_as_last(self) -> None:
         self.query_info.set_as_last()
