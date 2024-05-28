@@ -68,7 +68,6 @@ class DataCleaner:
             return result.group(1) if result else None
         return None
     # Book db:
-    # Title|description|authors|image|previewLink|publisher|pubishedDate|infoLink|categories|ratingCount
     # 0    1    2      3            4        5   6              7           8           9   10          11
     # last|book|Title|description|authors|image|previewLink|publisher|pubishedDate|infoLink|categories|ratingCount
     def create_book_fragment(self, unparsed_data):
@@ -183,7 +182,7 @@ class DataCleaner:
                 logger.info(f"Error in socket: {err}")
     
     # Creates a result array
-    # ['last',Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
+    # ['last','Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
     def get_result_from_datafragment(self, fragment: DataFragment) -> List[str]:
         book_result = [""] * 5
         query_info_results = [""] * 4
