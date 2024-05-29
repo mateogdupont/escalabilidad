@@ -4,6 +4,7 @@ import os
 import re
 from typing import List, Tuple
 from multiprocessing import Process, Event
+import uuid
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
@@ -71,11 +72,11 @@ class DataCleaner:
     # Title|description|authors|image|previewLink|publisher|pubishedDate|infoLink|categories|ratingCount
     # 0    1    2      3            4        5   6              7           8           9   10          11
     # last|book|Title|description|authors|image|previewLink|publisher|pubishedDate|infoLink|categories|ratingCount
-    def create_book_fragment(self, unparsed_data):
+    def create_book_fragment(self, unparsed_data, client_id):
         publish_year = self.parse_year(unparsed_data[8])
         book = Book(unparsed_data[2],None,unparsed_data[4],None,None,unparsed_data[7],publish_year,None,unparsed_data[10],unparsed_data[11])
         if book.has_minimun_data():
-            return DataFragment(self.queries.copy(), book , None)
+            return DataFragment(self.queries.copy(), book , None, client_id)
         else:
             return None
 
@@ -83,22 +84,22 @@ class DataCleaner:
     # Reviews db:
     # 0    1    2   3       4   5       6                   7               8           9       10                  11
     # last|book|Id|Title|Price|User_id|profileName|review/helpfulness|review/score|review/time|review/summary|review/text
-    def create_review_fragment(self, unparsed_data) -> DataFragment:
+    def create_review_fragment(self, unparsed_data, client_id) -> DataFragment:
         review = Review(None,unparsed_data[3],None,None,None,float(unparsed_data[8]),None,None,unparsed_data[11])
         if review.has_minimun_data():
             if 5 in self.queries and not unparsed_data[11]:
                 return None
-            return DataFragment(self.queries.copy(), None , review)
+            return DataFragment(self.queries.copy(), None , review, client_id)
         else:
             return None
     
-    def parse_and_filter_data(self, unparsed_data):
+    def parse_and_filter_data(self, unparsed_data, client_id):
         if unparsed_data[1] == 1:
-            return self.create_book_fragment(unparsed_data)
+            return self.create_book_fragment(unparsed_data, client_id)
         else:
-            return self.create_review_fragment(unparsed_data)
+            return self.create_review_fragment(unparsed_data, client_id)
 
-    def clear_and_try_to_send_data(self, unparsed_data_chunk) -> Tuple[int,bool]:
+    def clear_and_try_to_send_data(self, unparsed_data_chunk, client_id) -> Tuple[int,bool]:
         amount_clean_fragments = 0
         last = False
         for data in unparsed_data_chunk:
@@ -107,7 +108,7 @@ class DataCleaner:
                     self._event.set()
                 return (0,False)
 
-            fragment = self.parse_and_filter_data(data)
+            fragment = self.parse_and_filter_data(data, client_id)
             if fragment:
                 amount_clean_fragments += 1
                 review = fragment.get_review()
@@ -120,10 +121,10 @@ class DataCleaner:
             if data[0] == 1:
                 if data[1] == 1:
                     book = Book("Last",None,["Last"],None,None,"Last","2000",None,["Last"],0.0)
-                    last_fragment = DataFragment(self.queries.copy(),book,None)  
+                    last_fragment = DataFragment(self.queries.copy(),book,None, client_id)  
                 else:
                     review = Review(None,"Last",None,None,None,1.0,None,None,"Last")
-                    last_fragment = DataFragment(self.queries.copy(),None,review)
+                    last_fragment = DataFragment(self.queries.copy(),None,review, client_id)
                 last = True
                 last_fragment.set_as_last()
                 for value, key in update_data_fragment_step(last_fragment).items():
@@ -131,21 +132,21 @@ class DataCleaner:
 
         return (amount_clean_fragments,last)
 
-    def receive_and_try_to_send_clean_data(self, client_socket) -> Tuple[int, bool]:
+    def receive_and_try_to_send_clean_data(self, client_socket, client_id) -> Tuple[int, bool]:
         while not self.exit:
             try:
                 data_msg = receive_msg(client_socket)
                 if not data_msg:
                     return (0,False)
-                return self.clear_and_try_to_send_data(data_msg)
+                return self.clear_and_try_to_send_data(data_msg, client_id)
             except socket.error as e:
                 logger.info(f"Error en el socket: {e}")
                 return (0,False)
 
-    def receive_files(self,client_socket, expected_amount_of_files):
+    def receive_files(self,client_socket, expected_amount_of_files, client_id):
         finish = False
         while not self.exit and not finish:
-            (amount, last) = self.receive_and_try_to_send_clean_data(client_socket)
+            (amount, last) = self.receive_and_try_to_send_clean_data(client_socket, client_id)
             if amount == 0:
                 finish = True
                 if self._event:
@@ -158,17 +159,18 @@ class DataCleaner:
         return expected_amount_of_files
     
     def handle_client(self, client_socket):
+        client_uuid = uuid.uuid4().hex
         try:
             queries = receive_msg(client_socket)
             self.queries = {int(key): 0 for key in queries}
         except socket.timeout:
                 logger.info(f"Client didn't answer in time")
         self._event = Event()
-        results_proccess = Process(target=self._send_results, args=(client_socket,queries,self._event,))
+        results_proccess = Process(target=self._send_results, args=(client_socket,queries,self._event))
         results_proccess.start()
         self._initialice_mom()
         expected_amount_of_files =  2 if any(query in self.queries for query in [3, 4, 5]) else 1
-        remainding_amount = self.receive_files(client_socket, expected_amount_of_files)
+        remainding_amount = self.receive_files(client_socket, expected_amount_of_files, client_uuid)
         if remainding_amount == 0:
             logger.info(f"All data was received: {self.total_pass}")
         results_proccess.join()
@@ -202,7 +204,7 @@ class DataCleaner:
     def _send_results(self,socket,queries,event):
         self._initialice_mom()
         queries_left = len(queries)
-
+        client_ids = set()
         while not event.is_set() and queries_left > 0:
             results = []
             msg = self.mom.consume(self.work_queue)
@@ -210,6 +212,8 @@ class DataCleaner:
                 continue
             (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
+                client_id = fragment.get_client_id()
+                client_ids.add(client_id)
                 if fragment.is_last():
                     logger.info(f"Last - fragment: {fragment.to_str()}")
                     queries_left -= 1
@@ -221,6 +225,7 @@ class DataCleaner:
             self.mom.ack(tag)
         if not event.is_set():
             logger.info(f"All results has been delivered.")
+            logger.info(f"Total clients: {len(client_ids)} | Clients: {list(client_ids)}")
 
 
 

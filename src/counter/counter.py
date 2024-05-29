@@ -72,6 +72,7 @@ class Counter:
 
     def count_type_3(self, data_fragment, query_id, queries, group_data, value, percentile):
         results = []
+        client_id = data_fragment.get_client_id()
         if not data_fragment.is_last():    
             if value is None:
                 logger.error(f"Value is None | {data_fragment.to_json()}")
@@ -79,7 +80,6 @@ class Counter:
             if percentile is None:
                 logger.error(f"Percentile is None")
                 return results
-            client_id = data_fragment.get_client_id()
             if group_data not in self.counted_data[client_id][query_id].keys():
                 self.counted_data[client_id][query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
             self.counted_data[client_id][query_id][group_data]["VALUES"].append(value)
@@ -101,7 +101,7 @@ class Counter:
             for group_data in self.counted_data[client_id][query_id].keys():
                 if self.exit:
                     return results
-                new_data_fragment = DataFragment(queries.copy(), None, None)
+                new_data_fragment = DataFragment(queries.copy(), None, None, client_id)
                 new_query_info = QueryInfo()
                 new_query_info.set_percentile(percentile_result)
                 new_query_info.set_sentiment(sentiment_scores[group_data])
@@ -125,7 +125,7 @@ class Counter:
             for group_data in self.counted_data[client_id][query_id].keys():
                 if self.exit:
                     return results
-                new_data_fragment = DataFragment(queries.copy(), None, None)
+                new_data_fragment = DataFragment(queries.copy(), None, None, client_id)
                 new_query_info = QueryInfo()
                 new_query_info.set_n_distinct(self.counted_data[client_id][query_id][group_data]["COUNT"])
                 new_query_info.set_average(self.counted_data[client_id][query_id][group_data]["TOTAL"] / self.counted_data[client_id][query_id][group_data]["COUNT"])
@@ -154,7 +154,7 @@ class Counter:
             for key, value in self.counted_data[client_id][query_id].items():
                 if self.exit:
                     return results
-                new_data_fragment = DataFragment(queries.copy(), None, None)
+                new_data_fragment = DataFragment(queries.copy(), None, None, client_id)
                 new_query_info = QueryInfo()
                 new_query_info.set_author(key)
                 new_query_info.set_n_distinct(len(value))

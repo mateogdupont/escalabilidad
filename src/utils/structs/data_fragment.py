@@ -67,7 +67,7 @@ class DataFragment:
         return self.query_info
     
     def clone(self) -> 'DataFragment':
-        new = DataFragment(self.queries, self.book, self.review)
+        new = DataFragment(self.queries, self.book, self.review, self.client_id)
         if not self.query_info:
             self.query_info = QueryInfo()
         new.set_query_info(self.query_info.clone())
