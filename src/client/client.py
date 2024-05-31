@@ -17,9 +17,12 @@ import sys
 CHUNK_SIZE = 800
 BOOKS_FILE_NAME = "books_data.csv"
 REVIEWS_FILE_NAME = "Books_rating.csv"
-RESULTS_FILE_NAME = "Results.csv"
-RESULTS_COLUMNS = ['Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
-
+RESULTS_FILE_NAME = "Results"
+RESULTS_COLUMNS = [['Title','Author','Publisher','Publised Year','Categories'],
+                   ['Author','Distinc Amount'],
+                   ['Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average'],
+                   ['Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average'],
+                   ['Title','Author','Publisher','Publised Year','Categories','Sentiment', 'Percentile']]
 # Message:
 # last_bool|book_bool|column_1|column_2|...|column_n
 
@@ -106,25 +109,52 @@ class Client:
             except socket.error as e:
                 logger.info(f"Error en el socket: {e}")
                 return None
+            
+    def _initialize_result_files_and_writers(self):
+        result_files = []
+        result_writers = []
+        for i in self._queries.keys():
+            result_file = open(self._data_path + "/data/" + RESULTS_FILE_NAME + "_" + str(i) + "_id_" + self.id ".csv", 'w', newline='')
+            result_writers.append(csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL))
+            result_writers[i-1].writerow(RESULTS_COLUMNS[i-1])
+            result_files.append(result_file)
+        return (result_files,result_writers)
 
+    def write_result_in_file(self, result_writers, result):
+        query = int(result[1])
+        if query == 1:
+            result_index = [2,3,4,5,6]
+        elif query == 2:
+            result_index = [3,7]
+        elif query == 3 or query == 4:
+            result_index = [2,3,4,5,6,7,8]
+        else:
+            result_index = [2,3,4,5,6,9,10]
+        rows = [result[i] for i in result_index]
+        result_writers[query-1].writerow(rows)
+
+# ['last','Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
     def _handle_results(self, event):
         amount_of_queries_left = len(self._queries)
-        with open(self._data_path + "/data/" + RESULTS_FILE_NAME + "_id_" + self.id, 'w', newline='') as result_file:
-            writer = csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow(RESULTS_COLUMNS)
-            while not event.is_set():
-                results = self.receive_result(event)
-                if not results:
+        (result_files,result_writers) = self._initialize_result_files_and_writers()
+
+        while not event.is_set():
+            results = self.receive_result(event)
+            if not results:
+                break
+            for result in results:
+                if result[0] == '1':
+                    amount_of_queries_left -= 1
+                    result_files[int(result[1]) - 1].close()
+                    logger.info(f"The query {result[1]} has been processed")
+                    continue
+                self.write_result_in_file(result_writers, result)
+                if event.is_set():
                     break
-                for result in results:
-                    if result[0] == '1':
-                        amount_of_queries_left -= 1
-                        continue
-                    writer.writerow(result[1:])
-                    if event.is_set():
-                        break
-                if amount_of_queries_left <= 0:
-                    break
+            if amount_of_queries_left <= 0:
+                break
         if not event.is_set():
+            for file in result_files:
+                file.close()
             logger.info(f"All queries have been processed")
         self.socket.close()

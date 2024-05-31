@@ -161,7 +161,7 @@ class DataCleaner:
                 clients[message[0]] = message[1:]
             except Empty:
                 return
-    
+   
     def proccess_result_chunk(self,event,clients, data_chunk):
         for fragment in data_chunk.get_fragments():
                 if event.is_set():
