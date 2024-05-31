@@ -114,7 +114,7 @@ class Client:
         result_files = []
         result_writers = []
         for i in self._queries.keys():
-            result_file = open(self._data_path + "/data/" + RESULTS_FILE_NAME + "_" + str(i) + "_id_" + self.id ".csv", 'w', newline='')
+            result_file = open(self._data_path + "/data/" + RESULTS_FILE_NAME + "_" + str(i) + "_id_" + self.id + ".csv", 'w', newline='')
             result_writers.append(csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL))
             result_writers[i-1].writerow(RESULTS_COLUMNS[i-1])
             result_files.append(result_file)
