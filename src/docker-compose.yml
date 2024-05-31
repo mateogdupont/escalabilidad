@@ -42,10 +42,27 @@ services:
     build:
       context: .
       dockerfile: ./client/Dockerfile
+    environment:
+      - ID=0
     volumes:
       - ../data:/data
     networks:
       - network-bridge
+    hostname: client
+    depends_on:
+      - cleaner
+
+  client1:
+    build:
+      context: .
+      dockerfile: ./client/Dockerfile
+    environment:
+      - ID=1
+    volumes:
+      - ../data:/data
+    networks:
+      - network-bridge
+    hostname: client1
     depends_on:
       - cleaner
 

@@ -33,7 +33,7 @@ class Joiner:
         self.mom = MOM(consumer_queues)
         self.books_side_tables = {}
         self.books = {}
-        self.side_tables_ended = set()
+        self.side_tables_ended = {}
         self.results = {}
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
@@ -43,19 +43,39 @@ class Joiner:
         self.exit = True
         self.mom.close()
 
-    def save_book_in_table(self, book: Book, query_id: str):
-        if query_id not in self.books_side_tables.keys():
-            self.books_side_tables[query_id] = set()
-        self.books_side_tables[query_id].add(book.get_title())
+    def clean_data(self, query_id: str, client_id: str):
+        if client_id in self.books_side_tables.keys():
+            if query_id in self.books_side_tables[client_id].keys():
+                self.books_side_tables[client_id].pop(query_id)
+            if len(self.books_side_tables[client_id]) == 0:
+                self.books_side_tables.pop(client_id)
+        if client_id in self.side_tables_ended.keys():
+            if query_id in self.side_tables_ended[client_id]:
+                self.side_tables_ended[client_id].remove(query_id)
+            if len(self.side_tables_ended[client_id]) == 0:
+                self.side_tables_ended.pop(client_id)
+    
+    def is_side_table_ended(self, query_id: str, client_id: str,):
+        if not client_id in self.side_tables_ended.keys():
+            return False
+        return query_id in self.side_tables_ended[client_id]
+
+    def save_book_in_table(self, book: Book, query_id: str, client_id: str):
+        if client_id not in self.books_side_tables.keys():
+            self.books_side_tables[client_id] = {}
+        if query_id not in self.books_side_tables[client_id].keys():
+            self.books_side_tables[client_id][query_id] = set()
+        self.books_side_tables[client_id][query_id].add(book.get_title())
         if not book.get_title() in self.books.keys():
             self.books[book.get_title()] = book
     
     def process_book_fragment(self,fragment):
         book = fragment.get_book()
         query_id = fragment.get_query_id()
-        self.save_book_in_table(book,query_id)
+        client_id = fragment.get_client_id()
+        self.save_book_in_table(book, query_id, client_id)
 
-    def receive_all_books(self, query_id=None):
+    def receive_all_books(self, query_id=None, client_id=None):
         logger.info(f"Receiving all books for query {query_id}")
         completed = False
         while not self.exit and not completed:
@@ -67,10 +87,15 @@ class Joiner:
                 if self.exit:
                     return
                 f_query_id = fragment.get_query_id()
+                f_client_id = fragment.get_client_id()
                 if fragment.is_last():
                     logger.info(f"Finished receiving all books for query {f_query_id}")
-                    self.side_tables_ended.add(f_query_id)
-                    if query_id is None or f_query_id == query_id:
+                    if not f_client_id in self.side_tables_ended.keys():
+                        self.side_tables_ended[f_client_id] = set()
+                    self.side_tables_ended[f_client_id].add(f_query_id)
+                    wanted_client = client_id is None or f_client_id == client_id
+                    wanted_query = query_id is None or f_query_id == query_id
+                    if wanted_client and wanted_query:
                         completed = True
                 else:
                     self.process_book_fragment(fragment)
@@ -91,8 +116,9 @@ class Joiner:
     def process_review_fragment(self, fragment: DataFragment):
         review = fragment.get_review()
         query_id = fragment.get_query_id()
+        client_id = fragment.get_client_id()
         if (not fragment.is_last()) and (review is not None) and (not self.exit):
-            side_table = self.books_side_tables[query_id]
+            side_table = self.books_side_tables[client_id][query_id]
             if review.get_book_title() in side_table:
                 book = self.books[review.get_book_title()]
                 fragment.set_book(book)
@@ -102,6 +128,7 @@ class Joiner:
             for data, key in update_data_fragment_step(fragment).items():
                 logger.info(f"Sending to {key}")
                 self.add_and_try_to_send_chunk(data, key)
+            self.clean_data(query_id, client_id)
 
     def send_with_timeout(self):
         for key, (data, last_sent) in self.results.items():
@@ -123,10 +150,10 @@ class Joiner:
             for fragment in data_chunk.get_fragments():
                 if self.exit:
                     return
-                if fragment.get_query_id() not in self.side_tables_ended:
+                if not self.is_side_table_ended(fragment.get_query_id(), fragment.get_client_id()):
                     ack = False
                     self.mom.nack(tag)
-                    self.receive_all_books(fragment.get_query_id())
+                    self.receive_all_books(fragment.get_query_id(), fragment.get_client_id())
                     break
                 self.process_review_fragment(fragment)
             if ack:

@@ -36,6 +36,7 @@ class Client:
     def __init__(self, data_path: str, queries: 'dict[int, int]', socket):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
+        self.id = os.environ["ID"]
         self._data_path = data_path
         self._queries = queries
         self._stop = False
@@ -113,7 +114,7 @@ class Client:
         result_files = []
         result_writers = []
         for i in self._queries.keys():
-            result_file = open(self._data_path + "/data/" + RESULTS_FILE_NAME + "_" + str(i) + ".csv", 'w', newline='')
+            result_file = open(self._data_path + "/data/" + RESULTS_FILE_NAME + "_" + str(i) + "_id_" + self.id ".csv", 'w', newline='')
             result_writers.append(csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL))
             result_writers[i-1].writerow(RESULTS_COLUMNS[i-1])
             result_files.append(result_file)
@@ -126,7 +127,7 @@ class Client:
         elif query == 2:
             result_index = [3,7]
         elif query == 3 or query == 4:
-            result_index = [2,8]
+            result_index = [2,3,4,5,6,7,8]
         else:
             result_index = [2,3,4,5,6,9,10]
         rows = [result[i] for i in result_index]

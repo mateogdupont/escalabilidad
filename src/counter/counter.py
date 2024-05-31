@@ -34,20 +34,31 @@ class Counter:
         self.counted_data = {}
         self.books = {}
     
-    def sigterm_handler(self, signal,frame):
+    def sigterm_handler(self, signal, frame):
         self.exit = True
         self.mom.close()
+    
+    def clean_data(self, query_id: str, client_id: str):
+        if not client_id in self.counted_data.keys():
+            return
+        if query_id in self.counted_data[client_id].keys():
+            self.counted_data[client_id].pop(query_id)
+        if len(self.counted_data[client_id]) == 0:
+            self.counted_data.pop(client_id)
 
     def count_data_fragment(self, data_fragment: DataFragment) -> List[DataFragment]:
         query_info = data_fragment.get_query_info()
         group_by, count_distinct, average_column, percentile_data = query_info.get_counter_params()
         book, review = data_fragment.get_book(), data_fragment.get_review()
         query_id, queries = data_fragment.get_query_id(), data_fragment.get_queries()
+        client_id = data_fragment.get_client_id()
 
         group_data, value = self.get_counter_values(query_info, group_by, count_distinct, average_column, percentile_data, book, review)
         
-        if query_id not in self.counted_data.keys():
-            self.counted_data[query_id] = {}
+        if not client_id in self.counted_data.keys():
+            self.counted_data[client_id] = {}
+        if query_id not in self.counted_data[client_id].keys():
+            self.counted_data[client_id][query_id] = {}
         bool_set = []
         for v in [group_by, count_distinct, average_column, percentile_data]:
             bool_set.append(v is not None)
@@ -61,6 +72,7 @@ class Counter:
 
     def count_type_3(self, data_fragment, query_id, queries, group_data, value, percentile):
         results = []
+        client_id = data_fragment.get_client_id()
         if not data_fragment.is_last():    
             if value is None:
                 logger.error(f"Value is None | {data_fragment.to_json()}")
@@ -68,28 +80,28 @@ class Counter:
             if percentile is None:
                 logger.error(f"Percentile is None")
                 return results
-            if group_data not in self.counted_data[query_id].keys():
-                self.counted_data[query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
-            self.counted_data[query_id][group_data]["VALUES"].append(value)
+            if group_data not in self.counted_data[client_id][query_id].keys():
+                self.counted_data[client_id][query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
+            self.counted_data[client_id][query_id][group_data]["VALUES"].append(value)
             self.books[group_data] = data_fragment.get_book()
         else:
             sentiment_scores = {}
             percentile_number = None
-            for group_data in self.counted_data[query_id].keys():
-                if len(self.counted_data[query_id][group_data]["VALUES"]) == 0 or not self.counted_data[query_id][group_data]["PERCENTILE"]:
+            for group_data in self.counted_data[client_id][query_id].keys():
+                if len(self.counted_data[client_id][query_id][group_data]["VALUES"]) == 0 or not self.counted_data[client_id][query_id][group_data]["PERCENTILE"]:
                     logger.error(f"Error calculating percentile. Discarding group data: {group_data}")
                     continue
-                percentile_number = self.counted_data[query_id][group_data]["PERCENTILE"]
-                average_score = float(np.mean(self.counted_data[query_id][group_data]["VALUES"]))
+                percentile_number = self.counted_data[client_id][query_id][group_data]["PERCENTILE"]
+                average_score = float(np.mean(self.counted_data[client_id][query_id][group_data]["VALUES"]))
                 sentiment_scores[group_data] = average_score
             if not percentile_number:
                 logger.error(f"Percentile is None")
                 return results
             percentile_result = float(np.percentile(list(sentiment_scores.values()), percentile_number))
-            for group_data in self.counted_data[query_id].keys():
+            for group_data in self.counted_data[client_id][query_id].keys():
                 if self.exit:
                     return results
-                new_data_fragment = DataFragment(queries.copy(), None, None)
+                new_data_fragment = DataFragment(queries.copy(), None, None, client_id)
                 new_query_info = QueryInfo()
                 new_query_info.set_percentile(percentile_result)
                 new_query_info.set_sentiment(sentiment_scores[group_data])
@@ -102,20 +114,21 @@ class Counter:
 
     def count_type_2(self, data_fragment, query_id, queries, group_data, value):
         results = []
+        client_id = data_fragment.get_client_id()
         if not data_fragment.is_last():
-            if group_data not in self.counted_data[query_id].keys():
-                self.counted_data[query_id][group_data] = {"TOTAL": 0, "COUNT": 0}
-            self.counted_data[query_id][group_data]["TOTAL"] += value
-            self.counted_data[query_id][group_data]["COUNT"] += 1
+            if group_data not in self.counted_data[client_id][query_id].keys():
+                self.counted_data[client_id][query_id][group_data] = {"TOTAL": 0, "COUNT": 0}
+            self.counted_data[client_id][query_id][group_data]["TOTAL"] += value
+            self.counted_data[client_id][query_id][group_data]["COUNT"] += 1
             self.books[group_data] = data_fragment.get_book()
         else:
-            for group_data in self.counted_data[query_id].keys():
+            for group_data in self.counted_data[client_id][query_id].keys():
                 if self.exit:
                     return results
-                new_data_fragment = DataFragment(queries.copy(), None, None)
+                new_data_fragment = DataFragment(queries.copy(), None, None, client_id)
                 new_query_info = QueryInfo()
-                new_query_info.set_n_distinct(self.counted_data[query_id][group_data]["COUNT"])
-                new_query_info.set_average(self.counted_data[query_id][group_data]["TOTAL"] / self.counted_data[query_id][group_data]["COUNT"])
+                new_query_info.set_n_distinct(self.counted_data[client_id][query_id][group_data]["COUNT"])
+                new_query_info.set_average(self.counted_data[client_id][query_id][group_data]["TOTAL"] / self.counted_data[client_id][query_id][group_data]["COUNT"])
                 new_data_fragment.set_query_info(new_query_info)
                 review = Review.with_minimum_data(title=group_data,score=0.0)
                 new_data_fragment.set_review(review)
@@ -125,22 +138,23 @@ class Counter:
 
     def count_type_1(self, data_fragment, query_id, queries, group_data, value):
         results = []
+        client_id = data_fragment.get_client_id()
         if not data_fragment.is_last():
             # group data is a list  
             if type(group_data) == list:
                 for data in group_data:
                     if self.exit:
                         return results
-                    if data not in self.counted_data[query_id].keys():
-                        self.counted_data[query_id][data] = set()
-                    self.counted_data[query_id][data].add(value)
+                    if data not in self.counted_data[client_id][query_id].keys():
+                        self.counted_data[client_id][query_id][data] = set()
+                    self.counted_data[client_id][query_id][data].add(value)
             else:
                 logger.warning(f"Group data is not a list, it is a {type(group_data)}")
         else:
-            for key, value in self.counted_data[query_id].items():
+            for key, value in self.counted_data[client_id][query_id].items():
                 if self.exit:
                     return results
-                new_data_fragment = DataFragment(queries.copy(), None, None)
+                new_data_fragment = DataFragment(queries.copy(), None, None, client_id)
                 new_query_info = QueryInfo()
                 new_query_info.set_author(key)
                 new_query_info.set_n_distinct(len(value))
@@ -190,6 +204,8 @@ class Counter:
                             fragments = []
                     if len(fragments) > 0:
                         self.mom.publish(DataChunk(fragments), key)
+
+                    self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
             self.mom.ack(tag)
 
 def main():
