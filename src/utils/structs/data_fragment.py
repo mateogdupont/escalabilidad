@@ -1,10 +1,12 @@
 from typing import List, Optional
 import pickle
+import re
 from utils.structs.book import Book
 from utils.structs.review import Review
 from utils.structs.query_info import QueryInfo
 from datetime import datetime
 
+year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
 class DataFragment:
 
@@ -19,11 +21,56 @@ class DataFragment:
     def to_str(self) -> str:
         return pickle.dumps(self)
     
+    # Creates a result array
+    # ['last',Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
+    def to_result(self) -> List[str]:
+        book_result = [""] * 5
+        query_info_results = [""] * 4
+        query = str(list(self.get_queries().keys())[0])
+        book = self.get_book()
+        if book:
+            book_result = book.get_result()
+        query_info = self.get_query_info()
+        if query_info:
+            if book_result[1] == "":
+                book_result[1] = query_info.get_author()
+            query_info_results = query_info.get_result()
+
+        return [str(int(self.is_last()))] + [query] + book_result + query_info_results
+    
     @classmethod
     def from_str(cls, json_str: str) -> 'DataFragment':
         datafragment = pickle.loads(json_str)
         datafragment.set_queries(datafragment.queries)
         return datafragment
+    
+    # Review raw data:
+    # last|book|Id|Title|Price|User_id|profileName|review/helpfulness|review/score|review/time|review/summary|review/text
+    @classmethod
+    def from_raw_review_data(cls, review_data: List[str], client_id: str,queries: 'dict[int, int]') -> 'DataFragment':
+        review = Review(None,review_data[3],None,None,None,float(review_data[8]),None,None,review_data[11])
+        if review.has_minimun_data():
+            if 5 in queries and not review_data[11]:
+                return None
+            return DataFragment(queries.copy(),None , review, client_id)
+        else:
+            return None
+        
+    # Book db:
+    # last|book|Title|description|authors|image|previewLink|publisher|pubishedDate|infoLink|categories|ratingCount
+    @classmethod
+    def from_raw_book_data(cls, book_data: List[str], client_id: str,queries: 'dict[int, int]') -> 'DataFragment':
+        publish_year = None
+        if book_data[8]:
+            result = year_regex.search(book_data[8])
+            publish_year = result.group(1) if result else None
+    
+        book = Book(book_data[2],None,book_data[4],None,None,book_data[7],publish_year,None,book_data[10],book_data[11])
+        if book.has_minimun_data():
+            return DataFragment(queries.copy(), book , None, client_id)
+        else:
+            return None
+        
     
     def set_queries(self, queries: 'dict[int, int]') -> None:
         corrected = {}

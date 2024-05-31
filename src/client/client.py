@@ -33,6 +33,7 @@ class Client:
     def __init__(self, data_path: str, queries: 'dict[int, int]', socket):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
+        self.id = os.environ["ID"]
         self._data_path = data_path
         self._queries = queries
         self._stop = False
@@ -108,7 +109,7 @@ class Client:
 
     def _handle_results(self, event):
         amount_of_queries_left = len(self._queries)
-        with open(self._data_path + "/data/" + RESULTS_FILE_NAME, 'w', newline='') as result_file:
+        with open(self._data_path + "/data/" + RESULTS_FILE_NAME + "_id_" + self.id, 'w', newline='') as result_file:
             writer = csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(RESULTS_COLUMNS)
             while not event.is_set():
