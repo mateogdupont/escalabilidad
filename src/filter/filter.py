@@ -29,6 +29,7 @@ class Filter:
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
         self.results = {}
+        self.received_ids = {}
         self.top_ten = []
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
@@ -37,6 +38,22 @@ class Filter:
     def sigterm_handler(self, signal,frame):
         self.exit = True
         self.mom.close()
+
+    def save_id(self, data_fragment: DataFragment) -> bool:
+        client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
+        query_id = data_fragment.get_query_id()
+        id = data_fragment.get_id()
+        self.received_ids[client_id] = self.received_ids.get(client_id, {})
+        self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, {})
+        if id in self.received_ids[client_id][query_id]:
+            logger.warning("-----------------------------------------------")
+            logger.warning(f"Repeated id: {id} from client: {client_id} query: {query_id}")
+            logger.warning(f"Data saved: {self.received_ids[client_id][query_id][id]}")
+            logger.warning(f"Data received: {data_fragment.to_human_readable()}")
+            logger.warning("-----------------------------------------------")
+            return False
+        self.received_ids[client_id][query_id][id] = data_fragment.to_human_readable()
+        return True
 
     def filter_data_fragment(self, data_fragment: DataFragment) -> bool:
         query_info = data_fragment.get_query_info()
@@ -97,6 +114,8 @@ class Filter:
         for fragment in chunk.get_fragments():
             if self.exit:
                 return
+            if not self.save_id(fragment):
+                continue
             if (not fragment.is_last()) and self.filter_data_fragment(fragment):
                 next_steps = update_data_fragment_step(fragment)
                 if len(next_steps.items()) == 0:

@@ -27,6 +27,14 @@ class QueryInfo:
     def to_str(self) -> str:
         return pickle.dumps(self)
     
+    def to_human_readable(self) -> str:
+        info = f"Query Info"
+        info += f" - Last: {self.last}"
+        info += f" - Results: {self.author}, {self.n_distinct}, {self.average}, {self.sentiment}, {self.percentile}"
+        info += f" - Filter Params: {self.filter_on}, {self.contains}, {self.min}, {self.max}, {self.top}"
+        info += f" - Counter Params: {self.group_by}, {self.count_distinct}, {self.average_column}, {self.percentile_column}"
+        return info
+    
     @classmethod
     def from_str(cls, json_str: str) -> 'QueryInfo':
         return pickle.loads(json_str)
