@@ -10,7 +10,8 @@ year_regex = re.compile('[^\d]*(\d{4})[^\d]*')
 
 class DataFragment:
 
-    def __init__(self, queries: 'dict[int, int]', book: Optional[Book], review: Optional[Review], client_id: str) -> None:
+    def __init__(self, id: int, queries: 'dict[int, int]', book: Optional[Book], review: Optional[Review], client_id: str) -> None:
+        self.id = id
         self.client_id = client_id
         self.book = book
         self.review = review
@@ -20,6 +21,19 @@ class DataFragment:
     
     def to_str(self) -> str:
         return pickle.dumps(self)
+    
+    def to_human_readable(self) -> str:
+        book = self.book.get_title() if self.book else "None"
+        review = self.review.to_human_readable() if self.review else "None"
+        query_info = self.query_info.to_human_readable()
+        info = f"DataFragment (Id: {self.id} | Client Id: {self.client_id} | Queries: {self.queries})\n"
+        info += f"- Book title: {book}\n"
+        info += f"- Review: {review}\n"
+        info += f"- Query Info: {query_info}"
+        return info
+
+    def get_id(self) -> int:
+        return self.id
     
     # Creates a result array
     # ['last',Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
@@ -47,19 +61,19 @@ class DataFragment:
     # Review raw data:
     # last|book|Id|Title|Price|User_id|profileName|review/helpfulness|review/score|review/time|review/summary|review/text
     @classmethod
-    def from_raw_review_data(cls, review_data: List[str], client_id: str,queries: 'dict[int, int]') -> 'DataFragment':
+    def from_raw_review_data(cls, id:int, review_data: List[str], client_id: str,queries: 'dict[int, int]') -> 'DataFragment':
         review = Review(None,review_data[3],None,None,None,float(review_data[8]),None,None,review_data[11])
         if review.has_minimun_data():
             if 5 in queries and not review_data[11]:
                 return None
-            return DataFragment(queries.copy(),None , review, client_id)
+            return DataFragment(id, queries.copy(),None , review, client_id)
         else:
             return None
         
     # Book db:
     # last|book|Title|description|authors|image|previewLink|publisher|pubishedDate|infoLink|categories|ratingCount
     @classmethod
-    def from_raw_book_data(cls, book_data: List[str], client_id: str,queries: 'dict[int, int]') -> 'DataFragment':
+    def from_raw_book_data(cls, id: int, book_data: List[str], client_id: str,queries: 'dict[int, int]') -> 'DataFragment':
         publish_year = None
         if book_data[8]:
             result = year_regex.search(book_data[8])
@@ -67,7 +81,7 @@ class DataFragment:
     
         book = Book(book_data[2],None,book_data[4],None,None,book_data[7],publish_year,None,book_data[10],book_data[11])
         if book.has_minimun_data():
-            return DataFragment(queries.copy(), book , None, client_id)
+            return DataFragment(id, queries.copy(), book , None, client_id)
         else:
             return None
         
@@ -114,7 +128,7 @@ class DataFragment:
         return self.query_info
     
     def clone(self) -> 'DataFragment':
-        new = DataFragment(self.queries, self.book, self.review, self.client_id)
+        new = DataFragment(self.id, self.queries, self.book, self.review, self.client_id)
         if not self.query_info:
             self.query_info = QueryInfo()
         new.set_query_info(self.query_info.clone())

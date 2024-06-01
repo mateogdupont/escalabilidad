@@ -23,6 +23,15 @@ class Review:
     
     def to_str(self) -> str:
         return pickle.dumps(self)
+
+    def to_human_readable(self) -> str:
+        info = f"Review (Id: {self.id})"
+        info += f" - Title: {self.title}"
+        info += f" - User Id: {self.user_id}"
+        info += f" - Score: {self.score}"
+        info += f" - Time: {self.time}"
+        return info
+    
     
     @classmethod
     def from_str(cls, json_str: str) -> 'Review':

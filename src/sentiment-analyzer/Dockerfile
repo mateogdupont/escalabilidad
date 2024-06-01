@@ -7,6 +7,7 @@ COPY ./sentiment-analyzer ./sentiment-analyzer
 COPY ./utils ./utils
 
 # Install the required Python packages for utils
+RUN pip install --upgrade pip
 RUN pip install -r ./utils/requirements.txt
 
 # Install the required Python packages for the sentiment-analyzer

@@ -33,10 +33,27 @@ class Counter:
         self.exit = False
         self.counted_data = {}
         self.books = {}
+        self.received_ids = {}
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
         self.mom.close()
+    
+    def save_id(self, data_fragment: DataFragment) -> bool:
+        client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
+        query_id = data_fragment.get_query_id()
+        id = data_fragment.get_id()
+        self.received_ids[client_id] = self.received_ids.get(client_id, {})
+        self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, {})
+        if id in self.received_ids[client_id][query_id]:
+            logger.warning("-----------------------------------------------")
+            logger.warning(f"Repeated id: {id} from client: {client_id} query: {query_id}")
+            logger.warning(f"Data saved: {self.received_ids[client_id][query_id][id]}")
+            logger.warning(f"Data received: {data_fragment.to_human_readable()}")
+            logger.warning("-----------------------------------------------")
+            return False
+        self.received_ids[client_id][query_id][id] = data_fragment.to_human_readable()
+        return True
     
     def clean_data(self, query_id: str, client_id: str):
         if not client_id in self.counted_data.keys():
@@ -87,6 +104,7 @@ class Counter:
         else:
             sentiment_scores = {}
             percentile_number = None
+            next_id = data_fragment.get_id() + 1
             for group_data in self.counted_data[client_id][query_id].keys():
                 if len(self.counted_data[client_id][query_id][group_data]["VALUES"]) == 0 or not self.counted_data[client_id][query_id][group_data]["PERCENTILE"]:
                     logger.error(f"Error calculating percentile. Discarding group data: {group_data}")
@@ -101,7 +119,8 @@ class Counter:
             for group_data in self.counted_data[client_id][query_id].keys():
                 if self.exit:
                     return results
-                new_data_fragment = DataFragment(queries.copy(), None, None, client_id)
+                new_data_fragment = DataFragment(next_id, queries.copy(), None, None, client_id)
+                next_id += 1
                 new_query_info = QueryInfo()
                 new_query_info.set_percentile(percentile_result)
                 new_query_info.set_sentiment(sentiment_scores[group_data])
@@ -122,10 +141,12 @@ class Counter:
             self.counted_data[client_id][query_id][group_data]["COUNT"] += 1
             self.books[group_data] = data_fragment.get_book()
         else:
+            next_id = data_fragment.get_id() + 1
             for group_data in self.counted_data[client_id][query_id].keys():
                 if self.exit:
                     return results
-                new_data_fragment = DataFragment(queries.copy(), None, None, client_id)
+                new_data_fragment = DataFragment(next_id, queries.copy(), None, None, client_id)
+                next_id += 1
                 new_query_info = QueryInfo()
                 new_query_info.set_n_distinct(self.counted_data[client_id][query_id][group_data]["COUNT"])
                 new_query_info.set_average(self.counted_data[client_id][query_id][group_data]["TOTAL"] / self.counted_data[client_id][query_id][group_data]["COUNT"])
@@ -151,10 +172,12 @@ class Counter:
             else:
                 logger.warning(f"Group data is not a list, it is a {type(group_data)}")
         else:
+            next_id = data_fragment.get_id() + 1
             for key, value in self.counted_data[client_id][query_id].items():
                 if self.exit:
                     return results
-                new_data_fragment = DataFragment(queries.copy(), None, None, client_id)
+                new_data_fragment = DataFragment(next_id, queries.copy(), None, None, client_id)
+                next_id += 1
                 new_query_info = QueryInfo()
                 new_query_info.set_author(key)
                 new_query_info.set_n_distinct(len(value))
@@ -186,6 +209,8 @@ class Counter:
             for data_fragment in data_chunk.get_fragments():
                 if self.exit:
                     return
+                if not self.save_id(data_fragment):
+                    continue
                 results = self.count_data_fragment(data_fragment)
 
                 if data_fragment.is_last():

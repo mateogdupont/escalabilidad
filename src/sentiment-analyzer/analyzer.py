@@ -32,12 +32,29 @@ class Analyzer:
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
         self.results = {}
+        self.received_ids = {}
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
+    
+    def save_id(self, data_fragment: DataFragment) -> bool:
+        client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
+        query_id = data_fragment.get_query_id()
+        id = data_fragment.get_id()
+        self.received_ids[client_id] = self.received_ids.get(client_id, {})
+        self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, {})
+        if id in self.received_ids[client_id][query_id]:
+            logger.warning("-----------------------------------------------")
+            logger.warning(f"Repeated id: {id} from client: {client_id} query: {query_id}")
+            logger.warning(f"Data saved: {self.received_ids[client_id][query_id][id]}")
+            logger.warning(f"Data received: {data_fragment.to_human_readable()}")
+            logger.warning("-----------------------------------------------")
+            return False
+        self.received_ids[client_id][query_id][id] = data_fragment.to_human_readable()
+        return True
 
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
         if self.exit:
@@ -58,6 +75,8 @@ class Analyzer:
             data_chunk, tag = msg
             
             for data_fragment in data_chunk.get_fragments():
+                if not self.save_id(data_fragment):
+                    continue
                 if (not data_fragment.is_last()) and (not self.exit):
                     review_text = data_fragment.get_review().get_text()
                     sentiment_score = get_sentiment_score(review_text)

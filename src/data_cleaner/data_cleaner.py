@@ -63,22 +63,23 @@ class DataCleaner:
             self.mom.publish(data_chunk, node)
             self.clean_data[node].clear()
     
-    def parse_and_filter_data(self, unparsed_data, client_id):
+    def parse_and_filter_data(self, unparsed_data, client_id, next_id):
         if unparsed_data[1] == 1:
-            return DataFragment.from_raw_book_data(unparsed_data, client_id,self.queries.copy())
+            return DataFragment.from_raw_book_data(next_id, unparsed_data, client_id,self.queries.copy())
         else:
-            return DataFragment.from_raw_review_data(unparsed_data, client_id,self.queries.copy())
+            return DataFragment.from_raw_review_data(next_id, unparsed_data, client_id,self.queries.copy())
 
-    def clear_and_try_to_send_data(self, unparsed_data_chunk, client_id) -> Tuple[int,bool]:
+    def clear_and_try_to_send_data(self, unparsed_data_chunk, client_id, next_id) -> Tuple[int,bool]:
         amount_clean_fragments = 0
         last = False
         for data in unparsed_data_chunk:
             if self.exit:
                 if self._event:
                     self._event.set()
-                return (0,False)
+                return (0,False, next_id)
 
-            fragment = self.parse_and_filter_data(data, client_id)
+            fragment = self.parse_and_filter_data(data, client_id, next_id)
+            next_id += 1
             if fragment:
                 amount_clean_fragments += 1
                 review = fragment.get_review()
@@ -91,32 +92,35 @@ class DataCleaner:
             if data[0] == 1:
                 if data[1] == 1:
                     book = Book("Last",None,["Last"],None,None,"Last","2000",None,["Last"],0.0)
-                    last_fragment = DataFragment(self.queries.copy(),book,None, client_id)  
+                    last_fragment = DataFragment(next_id, self.queries.copy(),book,None, client_id)  
                 else:
                     review = Review(None,"Last",None,None,None,1.0,None,None,"Last")
-                    last_fragment = DataFragment(self.queries.copy(),None,review, client_id)
+                    last_fragment = DataFragment(next_id, self.queries.copy(),None,review, client_id)
                 last = True
                 last_fragment.set_as_last()
+                next_id += 1
                 for value, key in update_data_fragment_step(last_fragment).items():
                     self.add_and_try_to_send(value, key)
 
-        return (amount_clean_fragments,last)
+        return (amount_clean_fragments,last, next_id)
 
-    def receive_and_try_to_send_clean_data(self, client_socket, client_id) -> Tuple[int, bool]:
+    def receive_and_try_to_send_clean_data(self, client_socket, client_id, next_id) -> Tuple[int, bool]:
         while not self.exit:
             try:
                 data_msg = receive_msg(client_socket)
                 if not data_msg:
-                    return (0,False)
-                return self.clear_and_try_to_send_data(data_msg, client_id)
+                    return (0,False, next_id)
+                return self.clear_and_try_to_send_data(data_msg, client_id, next_id)
             except socket.error as e:
                 logger.info(f"Error en el socket: {e}")
-                return (0,False)
+                return (0,False, next_id)
 
     def receive_files(self,client_socket, expected_amount_of_files, client_id):
         finish = False
+        next_id = 0
         while not self.exit and not finish:
-            (amount, last) = self.receive_and_try_to_send_clean_data(client_socket, client_id)
+            (amount, last, next_id) = self.receive_and_try_to_send_clean_data(client_socket, client_id, next_id)
+            next_id += 1
             if amount == 0:
                 finish = True
                 if self._event:
@@ -162,10 +166,12 @@ class DataCleaner:
             except Empty:
                 return
    
-    def proccess_result_chunk(self,event,clients, data_chunk):
+    def proccess_result_chunk(self,event,clients, data_chunk, received_ids):
         for fragment in data_chunk.get_fragments():
                 if event.is_set():
                     break
+                if not save_id(received_ids, fragment):
+                    continue
                 client_id = fragment.get_client_id()
                 socket = clients.get(client_id)[0]
                 if not socket:
@@ -186,13 +192,14 @@ class DataCleaner:
     def results_handler(self,event):
         self._initialice_mom()
         clients = {}
+        received_ids = {}
         while not event.is_set():
             self.try_update_clients(clients)
             msg = self.mom.consume(self.work_queue)
             if not msg:
                 continue
             (data_chunk, tag) = msg
-            self.proccess_result_chunk(event,clients,data_chunk)
+            self.proccess_result_chunk(event,clients,data_chunk, received_ids)
             self.mom.ack(tag)
 
 
@@ -219,6 +226,22 @@ class DataCleaner:
         for id_, client_process in self.dict_procesos.items():
             client_process.join()
         results_proccess.join()
+
+def save_id(received_ids: dict, data_fragment: DataFragment) -> bool:
+        client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
+        query_id = data_fragment.get_query_id()
+        id = data_fragment.get_id()
+        received_ids[client_id] = received_ids.get(client_id, {})
+        received_ids[client_id][query_id] = received_ids[client_id].get(query_id, {})
+        if id in received_ids[client_id][query_id]:
+            logger.warning("-----------------------------------------------")
+            logger.warning(f"Repeated id: {id} from client: {client_id} query: {query_id}")
+            logger.warning(f"Data saved: {received_ids[client_id][query_id][id]}")
+            logger.warning(f"Data received: {data_fragment.to_human_readable()}")
+            logger.warning("-----------------------------------------------")
+            return False
+        received_ids[client_id][query_id][id] = data_fragment.to_human_readable()
+        return True
 
 def main():
     cleaner = DataCleaner()

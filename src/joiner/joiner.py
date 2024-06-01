@@ -34,6 +34,7 @@ class Joiner:
         self.books_side_tables = {}
         self.books = {}
         self.side_tables_ended = {}
+        self.received_ids = {}
         self.results = {}
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
@@ -42,6 +43,22 @@ class Joiner:
     def sigterm_handler(self, signal,frame):
         self.exit = True
         self.mom.close()
+
+    def save_id(self, data_fragment: DataFragment) -> bool:
+        client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
+        query_id = data_fragment.get_query_id()
+        id = data_fragment.get_id()
+        self.received_ids[client_id] = self.received_ids.get(client_id, {})
+        self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, {})
+        if id in self.received_ids[client_id][query_id]:
+            logger.warning("-----------------------------------------------")
+            logger.warning(f"Repeated id: {id} from client: {client_id} query: {query_id}")
+            logger.warning(f"Data saved: {self.received_ids[client_id][query_id][id]}")
+            logger.warning(f"Data received: {data_fragment.to_human_readable()}")
+            logger.warning("-----------------------------------------------")
+            return False
+        self.received_ids[client_id][query_id][id] = data_fragment.to_human_readable()
+        return True
 
     def clean_data(self, query_id: str, client_id: str):
         if client_id in self.books_side_tables.keys():
@@ -86,6 +103,8 @@ class Joiner:
             for fragment in data_chunk.get_fragments():
                 if self.exit:
                     return
+                if not self.save_id(fragment):
+                    continue
                 f_query_id = fragment.get_query_id()
                 f_client_id = fragment.get_client_id()
                 if fragment.is_last():
@@ -155,6 +174,8 @@ class Joiner:
                     self.mom.nack(tag)
                     self.receive_all_books(fragment.get_query_id(), fragment.get_client_id())
                     break
+                if not self.save_id(fragment):
+                    continue
                 self.process_review_fragment(fragment)
             if ack:
                 self.mom.ack(tag)
