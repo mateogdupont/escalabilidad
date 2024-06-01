@@ -146,16 +146,16 @@ services:
     networks:
       - network-bridge
 
-  joiner5:
-    build:
-      context: .
-      dockerfile: ./joiner/Dockerfile
-    environment:
-      - ID=5
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # joiner5:
+  #   build:
+  #     context: .
+  #     dockerfile: ./joiner/Dockerfile
+  #   environment:
+  #     - ID=5
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
   
   # joiner6:
   #   build:
@@ -248,23 +248,23 @@ services:
     networks:
       - network-bridge
   
-  sentiment-analyzer4:
-    build: 
-      context: .
-      dockerfile: ./sentiment-analyzer/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # sentiment-analyzer4:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./sentiment-analyzer/Dockerfile
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
   
-  sentiment-analyzer5:
-    build: 
-      context: .
-      dockerfile: ./sentiment-analyzer/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
+  # sentiment-analyzer5:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./sentiment-analyzer/Dockerfile
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
 
   # sentiment-analyzer6:
   #   build: 

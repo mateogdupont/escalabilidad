@@ -173,11 +173,11 @@ class Joiner:
                     ack = False
                     self.mom.nack(tag)
                     self.receive_all_books(fragment.get_query_id(), fragment.get_client_id())
-                    break
-                if not self.save_id(fragment):
-                    continue
-                self.process_review_fragment(fragment)
             if ack:
+                for fragment in data_chunk.get_fragments():
+                    if not self.save_id(fragment):
+                        continue
+                    self.process_review_fragment(fragment)
                 self.mom.ack(tag)
             self.send_with_timeout()
 
