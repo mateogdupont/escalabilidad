@@ -30,7 +30,7 @@ class Filter:
         self.mom = MOM(consumer_queues)
         self.results = {}
         self.received_ids = {}
-        self.top_ten = []
+        self.top_ten = {}
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.exit = False
@@ -59,6 +59,8 @@ class Filter:
         query_info = data_fragment.get_query_info()
         filter_on, word, min_value, max_value = query_info.get_filter_params()
         book = data_fragment.get_book()
+        client_id = data_fragment.get_client_id()
+        query_id = data_fragment.get_query_id()
 
         if (filter_on == CATEGORY_FILTER) and (book is not None):
             return word.lower() in [c.lower() for c in book.get_categories()]
@@ -72,25 +74,29 @@ class Filter:
         elif filter_on == SENTIMENT_FILTER and (query_info.get_sentiment() is not None):
             return query_info.get_sentiment() >= min_value
         elif query_info.filter_by_top():
+            self.top_ten[client_id] = self.top_ten.get(client_id, {})
+            self.top_ten[client_id][query_id] = self.top_ten[client_id].get(query_id, [])
             if data_fragment.is_last():
                 #logger.info(f"Me llego el ultimo fragmento {data_fragment.to_json()}")
-                for fragment in self.top_ten:
+                for fragment in self.top_ten[client_id][query_id]:
                     if self.exit:
                         return False
                     for data, key in update_data_fragment_step(fragment).items():
                         self.add_and_try_to_send_chunk(data, key)
-                self.top_ten = []
+                # delete query from client
+                self.top_ten[client_id].pop(query_id)
+                if len(self.top_ten[client_id].keys()) == 0:
+                    self.top_ten.pop(client_id)
 
-            if len(self.top_ten) < TOP_AMOUNT:
+            if len(self.top_ten[client_id][query_id]) < TOP_AMOUNT:
                 #logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
-                self.top_ten.append(data_fragment)
-                self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
+                self.top_ten[client_id][query_id].append(data_fragment)
             else:
-                lowest = self.top_ten[0]
+                lowest = self.top_ten[client_id][query_id][0]
                 if data_fragment.get_query_info().get_average() > lowest.get_query_info().get_average():
                     #logger.info(f"Fragmento entro al top 10 cuando hay: {len(self.top_ten)} con av: {data_fragment.get_query_info().get_average()}")
-                    self.top_ten[0] = data_fragment
-                    self.top_ten = sorted(self.top_ten, key=lambda fragment: fragment.get_query_info().get_average())
+                    self.top_ten[client_id][query_id][0] = data_fragment
+            self.top_ten[client_id][query_id] = sorted(self.top_ten[client_id][query_id], key=lambda fragment: fragment.get_query_info().get_average())
         
         return False
 
@@ -124,12 +130,16 @@ class Filter:
                     self.add_and_try_to_send_chunk(data, key)
             if fragment.is_last():
                 if fragment.get_query_info().filter_by_top():
-                    for top_fragment in self.top_ten:
+                    client_id = fragment.get_client_id()
+                    query_id = fragment.get_query_id()
+                    self.top_ten[client_id] = self.top_ten.get(client_id, {})
+                    self.top_ten[client_id][query_id] = self.top_ten[client_id].get(query_id, [])
+                    for top_fragment in self.top_ten[client_id][query_id]:
                         if self.exit:
                             return False
                         for data, key in update_data_fragment_step(top_fragment).items():
                             self.add_and_try_to_send_chunk(data, key)
-                    self.top_ten = []
+                    # self.top_ten = []
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)
