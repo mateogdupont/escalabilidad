@@ -78,15 +78,18 @@ class Analyzer:
                 if not self.save_id(data_fragment):
                     continue
                 if (not data_fragment.is_last()) and (not self.exit):
-                    review_text = data_fragment.get_review().get_text()
-                    sentiment_score = get_sentiment_score(review_text)
-                    query_info = data_fragment.get_query_info()
-                    query_info.set_sentiment(sentiment_score)
-                    data_fragment.set_query_info(query_info)
+                    self.analyze(data_fragment)
                 for fragment, key in update_data_fragment_step(data_fragment).items():
                     self.add_and_try_to_send_chunk(fragment, key)
             
             self.mom.ack(tag)
+
+    def analyze(self, data_fragment):
+        review_text = data_fragment.get_review().get_text()
+        sentiment_score = get_sentiment_score(review_text)
+        query_info = data_fragment.get_query_info()
+        query_info.set_sentiment(sentiment_score)
+        data_fragment.set_query_info(query_info)
 
 def main() -> None:
     analyzer = Analyzer()

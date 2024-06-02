@@ -214,24 +214,26 @@ class Counter:
                 results = self.count_data_fragment(data_fragment)
 
                 if data_fragment.is_last():
-                    results.append(data_fragment)
-                    key = None
-                    fragments = []
-                    for results_data_fragment in results:
-                        if self.exit:
-                            return
-                        steps = update_data_fragment_step(results_data_fragment)
-                        fragments.extend(steps.keys())
-                        key = list(steps.values())[0]
-                        chunk = DataChunk(fragments)
-                        if len(fragments) >= MAX_AMOUNT_OF_FRAGMENTS or chunk.contains_last_fragment():
-                            self.mom.publish(chunk, key)
-                            fragments = []
-                    if len(fragments) > 0:
-                        self.mom.publish(DataChunk(fragments), key)
-
+                    self.send_results(data_fragment, results)
                     self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
             self.mom.ack(tag)
+
+    def send_results(self, data_fragment, results):
+        results.append(data_fragment)
+        key = None
+        fragments = []
+        for results_data_fragment in results:
+            if self.exit:
+                return
+            steps = update_data_fragment_step(results_data_fragment)
+            fragments.extend(steps.keys())
+            key = list(steps.values())[0]
+            chunk = DataChunk(fragments)
+            if len(fragments) >= MAX_AMOUNT_OF_FRAGMENTS or chunk.contains_last_fragment():
+                self.mom.publish(chunk, key)
+                fragments = []
+        if len(fragments) > 0:
+            self.mom.publish(DataChunk(fragments), key)
 
 def main():
     counter = Counter()
