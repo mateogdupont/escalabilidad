@@ -224,7 +224,7 @@ services:
   sentiment-analyzer1:
     build:
       context: .
-      dockerfile: ./sentiment-analyzer/Dockerfile
+      dockerfile: ./sentiment_analyzer/Dockerfile
     depends_on:
       - rabbitmq
     networks:
@@ -233,7 +233,7 @@ services:
   sentiment-analyzer2:
     build: 
       context: .
-      dockerfile: ./sentiment-analyzer/Dockerfile
+      dockerfile: ./sentiment_analyzer/Dockerfile
     depends_on:
       - rabbitmq
     networks:
@@ -242,7 +242,7 @@ services:
   sentiment-analyzer3:
     build: 
       context: .
-      dockerfile: ./sentiment-analyzer/Dockerfile
+      dockerfile: ./sentiment_analyzer/Dockerfile
     depends_on:
       - rabbitmq
     networks:
@@ -251,7 +251,7 @@ services:
   # sentiment-analyzer4:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
@@ -260,7 +260,7 @@ services:
   # sentiment-analyzer5:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
@@ -269,7 +269,7 @@ services:
   # sentiment-analyzer6:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
@@ -278,7 +278,7 @@ services:
   # sentiment-analyzer7:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
@@ -287,7 +287,7 @@ services:
   # sentiment-analyzer8:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
@@ -296,7 +296,7 @@ services:
   # sentiment-analyzer9:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
@@ -305,7 +305,7 @@ services:
   # sentiment-analyzer10:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
@@ -314,7 +314,7 @@ services:
   # sentiment-analyzer11:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:
@@ -323,7 +323,7 @@ services:
   # sentiment-analyzer12:
   #   build: 
   #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
   #   depends_on:
   #     - rabbitmq
   #   networks:

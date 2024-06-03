@@ -10,14 +10,18 @@ class LogManager(BasicLogManager):
     def __init__(self, file_path: str) -> None:
         super().__init__(file_path)
     
-    def log_result(self, node: str, datafragment: DataFragment) -> None:
+    def log_result(self, nodes: List[str], datafragment: DataFragment) -> None:
         client_id = datafragment.get_client_id()
         query_id = datafragment.get_query_id()
         df_id = datafragment.get_id()
         df_str = datafragment.to_str()
+        logs = []
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
-        result_log = f"{RESULT} {node} {df_str}"
-        self._add_logs([id_log, result_log])
+        logs.append(id_log)
+        for node in nodes:
+            result_log = f"{RESULT} {node} {df_str}"
+            logs.append(result_log)
+        self._add_logs(logs)
     
     def log_query_ended(self, datafragment: DataFragment) -> None:
         client_id = datafragment.get_client_id()

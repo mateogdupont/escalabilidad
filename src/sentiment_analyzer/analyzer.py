@@ -5,6 +5,7 @@ from utils.mom.mom import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
 from utils.query_updater import *
+from sentiment_analyzer.log_manager import *
 from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
@@ -38,6 +39,7 @@ class Analyzer:
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
+        self.log_manager = LogManager(LOG_PATH)
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -67,6 +69,7 @@ class Analyzer:
         if len(self.results[node]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.results[node])
             self.mom.publish(data_chunk, node)
+            self.log_manager.log_result_sent(node)
             self.results[node] = []
     
     def run(self):
@@ -79,9 +82,17 @@ class Analyzer:
             for data_fragment in data_chunk.get_fragments():
                 if not self.save_id(data_fragment):
                     continue
-                if (not data_fragment.is_last()) and (not self.exit):
+                if self.exit:
+                    return
+                if not data_fragment.is_last():
                     self.analyze(data_fragment)
-                for fragment, key in update_data_fragment_step(data_fragment).items():
+                else:
+                    self.log_manager.log_query_ended(data_fragment)
+                next_steps = update_data_fragment_step(data_fragment)
+                if not data_fragment.is_last():
+                    nodes = list(set(next_steps.values()))
+                    self.log_manager.log_result(nodes, data_fragment)
+                for fragment, key in next_steps.items():
                     self.add_and_try_to_send_chunk(fragment, key)
             
             self.mom.ack(tag)
