@@ -130,19 +130,23 @@ class Filter:
                     self.add_and_try_to_send_chunk(data, key)
             if fragment.is_last():
                 if fragment.get_query_info().filter_by_top():
-                    client_id = fragment.get_client_id()
-                    query_id = fragment.get_query_id()
-                    self.top_ten[client_id] = self.top_ten.get(client_id, {})
-                    self.top_ten[client_id][query_id] = self.top_ten[client_id].get(query_id, [])
-                    for top_fragment in self.top_ten[client_id][query_id]:
-                        if self.exit:
-                            return False
-                        for data, key in update_data_fragment_step(top_fragment).items():
-                            self.add_and_try_to_send_chunk(data, key)
-                    # self.top_ten = []
+                    return self.send_top(fragment)
+                    
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)
+
+    def send_top(self, fragment):
+        client_id = fragment.get_client_id()
+        query_id = fragment.get_query_id()
+        self.top_ten[client_id] = self.top_ten.get(client_id, {})
+        self.top_ten[client_id][query_id] = self.top_ten[client_id].get(query_id, [])
+        for top_fragment in self.top_ten[client_id][query_id]:
+            if self.exit:
+                return False
+            for data, key in update_data_fragment_step(top_fragment).items():
+                self.add_and_try_to_send_chunk(data, key)
+        # self.top_ten = []
 
     def send_with_timeout(self):
         for key, (data, last_sent) in self.results.items():
