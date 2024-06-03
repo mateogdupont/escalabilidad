@@ -23,6 +23,8 @@ SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 
+LOG_PATH = "logs/analyzer.log"
+
 class Analyzer:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
