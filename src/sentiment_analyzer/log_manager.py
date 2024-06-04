@@ -1,3 +1,4 @@
+from typing import Tuple
 from utils.basic_log_manager import *
 from utils.structs.data_fragment import DataFragment
 
@@ -10,16 +11,18 @@ class LogManager(BasicLogManager):
     def __init__(self, file_path: str) -> None:
         super().__init__(file_path)
     
-    def log_result(self, nodes: List[str], datafragment: DataFragment) -> None:
-        client_id = datafragment.get_client_id()
-        query_id = datafragment.get_query_id()
-        df_id = datafragment.get_id()
-        df_str = datafragment.to_str()
+    def log_result(self, next_steps: List[Tuple[DataFragment, str]]) -> None:
+        if len(next_steps) == 0:
+            return
+        client_id = next_steps[0][0].get_client_id()
+        query_id = next_steps[0][0].get_query_id()
+        df_id = next_steps[0][0].get_id()
         logs = []
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
         logs.append(id_log)
-        for node in nodes:
-            result_log = f"{RESULT} {node} {df_str}"
+        for df, node in next_steps:
+            df_str = df.to_str()
+            result_log = f"{RESULT} {node} {client_id} {query_id} {df_id} {df_str}"
             logs.append(result_log)
         self._add_logs(logs)
     

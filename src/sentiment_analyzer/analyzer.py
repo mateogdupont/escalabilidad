@@ -84,17 +84,19 @@ class Analyzer:
                     continue
                 if self.exit:
                     return
+                
                 if not data_fragment.is_last():
                     self.analyze(data_fragment)
                 else:
                     self.log_manager.log_query_ended(data_fragment)
                 next_steps = update_data_fragment_step(data_fragment)
+                
                 if not data_fragment.is_last():
-                    nodes = list(set(next_steps.values()))
-                    self.log_manager.log_result(nodes, data_fragment)
+                    list_next_steps = [(fragment, key) for fragment, key in next_steps.items()]
+                    self.log_manager.log_result(list_next_steps)
+                
                 for fragment, key in next_steps.items():
                     self.add_and_try_to_send_chunk(fragment, key)
-            
             self.mom.ack(tag)
 
     def analyze(self, data_fragment):
