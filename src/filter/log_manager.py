@@ -21,6 +21,11 @@ class LogManager(BasicLogManager):
         top_log = f"{TOP_UPDATE} {client_id} {query_id} {pickle.dumps(top_ten)}"
         self._add_logs([id_log, top_log])
     
-    
+    def log_received_id(self, fragment: DataFragment) -> None:
+        client_id = fragment.get_client_id()
+        query_id = fragment.get_query_id()
+        df_id = fragment.get_id()
+        id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
+        self._add_logs([id_log])
 
     

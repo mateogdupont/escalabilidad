@@ -10,6 +10,7 @@ from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
+from filter.log_manager import *
 
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
@@ -19,6 +20,8 @@ SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 TOP_AMOUNT = 10
+
+LOG_PATH = "logs/filter.log"
 
 class Filter:
     def __init__(self):
@@ -34,6 +37,7 @@ class Filter:
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.exit = False
+        self.log_manager = LogManager(LOG_PATH)
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -111,6 +115,7 @@ class Filter:
             data_chunk = DataChunk(self.results[node][0])
             try:
                 self.mom.publish(data_chunk, node)
+                self.log_manager.log_result_sent(node)
             except Exception as e:
                 logger.error(f"Error al enviar a {node}: {e}")
                 logger.error(f"Data: {data_chunk.to_str()}")
@@ -122,13 +127,24 @@ class Filter:
                 return
             if not self.save_id(fragment):
                 continue
-            if (not fragment.is_last()) and self.filter_data_fragment(fragment):
-                next_steps = update_data_fragment_step(fragment)
-                if len(next_steps.items()) == 0:
-                    logger.info(f"Fragmento {fragment} no tiene siguiente paso")
-                for data, key in next_steps.items():
-                    self.add_and_try_to_send_chunk(data, key)
+            if not fragment.is_last():
+                if self.filter_data_fragment(fragment):
+                    next_steps = update_data_fragment_step(fragment)
+                    if len(next_steps.items()) == 0:
+                        logger.info(f"Fragmento {fragment} no tiene siguiente paso")
+                    list_next_steps = [(fragment, key) for fragment, key in next_steps.items()]
+                    self.log_manager.log_result(list_next_steps)
+                    for data, key in next_steps.items():
+                        self.add_and_try_to_send_chunk(data, key)
+                elif fragment.get_query_info().filter_by_top():
+                    client_id = fragment.get_client_id()
+                    query_id = fragment.get_query_id()
+                    top_ten = self.top_ten.get(client_id, {}).get(query_id, [])
+                    self.log_manager.log_top_update(fragment, top_ten)
+                else:
+                    self.log_manager.log_received_id(fragment)
             if fragment.is_last():
+                self.log_manager.log_query_ended(fragment)
                 if fragment.get_query_info().filter_by_top():
                     return self.send_top(fragment)
                     
@@ -136,7 +152,7 @@ class Filter:
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)
 
-    def send_top(self, fragment):
+    def send_top(self, fragment): # TODO: Manejar log
         client_id = fragment.get_client_id()
         query_id = fragment.get_query_id()
         self.top_ten[client_id] = self.top_ten.get(client_id, {})
@@ -156,6 +172,7 @@ class Filter:
                 chunk = DataChunk(data)
                 try:
                     self.mom.publish(chunk, key)
+                    self.log_manager.log_result_sent(node)
                 except Exception as e:
                     logger.error(f"Error al enviar a {key}: {e}")
                     logger.error(f"Data: {chunk.to_str()}")
