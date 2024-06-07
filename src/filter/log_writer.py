@@ -1,5 +1,5 @@
 from typing import Tuple
-from utils.basic_log_writer import *
+from utils.log_manager.basic_log_writer import *
 from utils.structs.data_fragment import DataFragment
 import pickle
 

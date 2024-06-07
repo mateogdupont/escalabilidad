@@ -48,7 +48,7 @@ class Counter:
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
-        self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, {})
+        self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
         if id in self.received_ids[client_id][query_id]:
             logger.warning("-----------------------------------------------")
             logger.warning(f"Repeated id: {id} from client: {client_id} query: {query_id}")
@@ -56,7 +56,7 @@ class Counter:
             logger.warning(f"Data received: {data_fragment.to_human_readable()}")
             logger.warning("-----------------------------------------------")
             return False
-        self.received_ids[client_id][query_id][id] = data_fragment.to_human_readable()
+        self.received_ids[client_id][query_id].add(id)
         return True
     
     def clean_data(self, query_id: str, client_id: str):
