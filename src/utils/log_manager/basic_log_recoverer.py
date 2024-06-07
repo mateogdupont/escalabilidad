@@ -9,7 +9,7 @@ RESULT_PARTS = 4
 
 class BasicLogRecoverer:
     def __init__(self, file_path: str) -> None:
-        self.file = open(file_path, "r")
+        self.file_path = file_path
         self.receive_ids = {}
         self.results = {}
         self.ended_queries = {}
