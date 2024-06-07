@@ -2,7 +2,7 @@ import sys
 import os
 import signal
 from multiprocessing import Process, Event
-from counter.log_manager import LogManager
+from counter.log_writer import LogWriter
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
@@ -37,7 +37,7 @@ class Counter:
         self.counted_data = {}
         self.books = {}
         self.received_ids = {}
-        self.log_manager = LogManager(PATH)
+        self.log_writer = LogWriter(PATH)
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
@@ -218,15 +218,15 @@ class Counter:
                 results = self.count_data_fragment(data_fragment)
 
                 if data_fragment.is_last():
-                    self.log_manager.log_query_ended(data_fragment)
+                    self.log_writer.log_query_ended(data_fragment)
                     self.send_results(data_fragment, results)
-                    self.log_manager.log_counted_data_sent(data_fragment)
+                    self.log_writer.log_counted_data_sent(data_fragment)
                     self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
                 else:
                     client_id = data_fragment.get_client_id()
                     query_id = data_fragment.get_query_id()
                     counted_data = self.counted_data(client_id, query_id)
-                    self.log_manager.log_counted_data(data_fragment, counted_data)
+                    self.log_writer.log_counted_data(data_fragment, counted_data)
             self.mom.ack(tag)
 
     def send_results(self, data_fragment, results):

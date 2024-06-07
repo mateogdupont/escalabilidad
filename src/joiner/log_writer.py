@@ -1,5 +1,5 @@
 from typing import Tuple
-from utils.basic_log_manager import *
+from utils.basic_log_writer import *
 from utils.structs.book import Book
 from utils.structs.data_fragment import DataFragment
 
@@ -15,7 +15,7 @@ RESULT = "RESULT"                       # <node> <time> <datafragment como str>
 QUERY_ENDED = "QUERY_ENDED"             # <client_id> <query_id>
 RESULT_SENT = "RESULT_SENT"             # <node>
 
-class LogManager(BasicLogManager):
+class LogWriter(BasicLogWriter):
     def __init__(self, file_path: str) -> None:
         super().__init__(file_path)
 

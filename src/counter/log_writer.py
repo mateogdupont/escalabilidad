@@ -1,5 +1,5 @@
 from typing import Tuple
-from utils.basic_log_manager import *
+from utils.basic_log_writer import *
 from utils.structs.data_fragment import DataFragment
 import pickle
 
@@ -8,7 +8,7 @@ COUNTED_DATA = "COUNTED_DATA"           # <client_id> <query_id> <self.counted_d
 QUERY_ENDED = "QUERY_ENDED"             # <client_id> <query_id>
 COUNTED_DATA_SENT = "COUNTED_DATA_SENT" # <client_id> <query_id>
 
-class LogManager(BasicLogManager):
+class LogWriter(BasicLogWriter):
     def __init__(self, file_path: str) -> None:
         super().__init__(file_path)
 

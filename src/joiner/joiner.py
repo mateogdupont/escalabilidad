@@ -11,7 +11,7 @@ from dotenv import load_dotenv # type: ignore
 import sys
 import time
 import logging as logger
-from joiner.log_manager import *
+from joiner.log_writer import *
 
 
 CATEGORY_FILTER = "CATEGORY"
@@ -43,8 +43,8 @@ class Joiner:
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
-        self.log_manager_books = LogManager(LOG_PATH_BOOKS)
-        self.log_manager_reviews = LogManager(LOG_PATH_REVIEWS)
+        self.log_writer_books = LogWriter(LOG_PATH_BOOKS)
+        self.log_writer_reviews = LogWriter(LOG_PATH_REVIEWS)
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -91,7 +91,7 @@ class Joiner:
         self.books_side_tables[client_id][query_id].add(book.get_title())
         if not book.get_title() in self.books.keys():
             self.books[book.get_title()] = book
-            self.log_manager_books.log_book(book)
+            self.log_writer_books.log_book(book)
     
     def process_book_fragment(self,fragment):
         book = fragment.get_book()
@@ -123,10 +123,10 @@ class Joiner:
                     wanted_query = query_id is None or f_query_id == query_id
                     if wanted_client and wanted_query:
                         completed = True
-                    self.log_manager_books.log_side_table_ended(fragment)
+                    self.log_writer_books.log_side_table_ended(fragment)
                 else:
                     self.process_book_fragment(fragment)
-                    self.log_manager_books.log_side_table_update(fragment)
+                    self.log_writer_books.log_side_table_update(fragment)
             self.mom.ack(tag)
 
     def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
@@ -139,7 +139,7 @@ class Joiner:
         if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.results[node][0])
             self.mom.publish(data_chunk, node)
-            self.log_manager_reviews.log_result_sent(node)
+            self.log_writer_reviews.log_result_sent(node)
             self.results[node] = ([], time.time())
 
     def process_review_fragment(self, fragment: DataFragment):
@@ -153,11 +153,11 @@ class Joiner:
                 fragment.set_book(book)
                 next_steps = update_data_fragment_step(fragment)
                 list_next_steps = [(fragment, key) for fragment, key in next_steps.items()]
-                self.log_manager_reviews.log_result(list_next_steps)
+                self.log_writer_reviews.log_result(list_next_steps)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)
         if (fragment.is_last()) and (not self.exit):
-            self.log_manager_reviews.log_query_ended(fragment)
+            self.log_writer_reviews.log_query_ended(fragment)
             for data, key in update_data_fragment_step(fragment).items():
                 logger.info(f"Sending to {key}")
                 self.add_and_try_to_send_chunk(data, key)
@@ -170,7 +170,7 @@ class Joiner:
             if (len(data) > 0) and (time.time() - last_sent > TIMEOUT):
                 chunk = DataChunk(data)
                 self.mom.publish(chunk, key)
-                self.log_manager_reviews.log_result_sent(key)
+                self.log_writer_reviews.log_result_sent(key)
                 self.results[key] = ([], time.time())
 
     def run(self):

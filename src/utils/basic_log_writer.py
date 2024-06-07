@@ -6,7 +6,7 @@ RESULT = "RESULT"           # <node> [<time>] <datafragment como str>
 QUERY_ENDED = "QUERY_ENDED" # <client_id> <query_id>
 RESULT_SENT = "RESULT_SENT" # <node>
 
-class BasicLogManager:
+class BasicLogWriter:
     def __init__(self, file_path: str) -> None:
         self.file = open(file_path, "a")
 
