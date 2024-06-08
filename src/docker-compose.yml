@@ -182,6 +182,28 @@ services:
     environment:
       - LOG_QUEUE=log.sentiment_analyzer3
 
+  sentiment-analyzer4:
+    build: 
+      context: .
+      dockerfile: ./sentiment_analyzer/Dockerfile
+    depends_on:
+      - rabbitmq
+    networks:
+      - network-bridge
+    environment:
+      - LOG_QUEUE=log.sentiment_analyzer4
+
+  sentiment-analyzer5:
+    build: 
+      context: .
+      dockerfile: ./sentiment_analyzer/Dockerfile
+    depends_on:
+      - rabbitmq
+    networks:
+      - network-bridge
+    environment:
+      - LOG_QUEUE=log.sentiment_analyzer5
+
 networks:
   network-bridge:
 

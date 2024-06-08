@@ -270,6 +270,26 @@
                 "x-queue-type": "classic",
                 "x-max-priority": 5
             }
+        },
+        {
+            "name": "log.sentiment_analyzer4",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-queue-type": "classic",
+                "x-max-priority": 5
+            }
+        },
+        {
+            "name": "log.sentiment_analyzer5",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-queue-type": "classic",
+                "x-max-priority": 5
+            }
         }
     ],
     "exchanges": [
@@ -472,6 +492,22 @@
             "source": "books-analyzer_exchange",
             "vhost": "/",
             "destination": "log.sentiment_analyzer3",
+            "destination_type": "queue",
+            "routing_key": "log_sentiment_analyzer",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
+            "destination": "log.sentiment_analyzer4",
+            "destination_type": "queue",
+            "routing_key": "log_sentiment_analyzer",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
+            "destination": "log.sentiment_analyzer5",
             "destination_type": "queue",
             "routing_key": "log_sentiment_analyzer",
             "arguments": {}
