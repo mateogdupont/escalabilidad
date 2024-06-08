@@ -10,7 +10,7 @@ from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
-from filter.log_writer import *
+from log_writer import *
 
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
@@ -20,8 +20,6 @@ SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 TOP_AMOUNT = 10
-
-LOG_PATH = "logs/filter.log"
 
 class Filter:
     def __init__(self):
@@ -37,7 +35,7 @@ class Filter:
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.exit = False
-        self.log_writer = LogWriter(LOG_PATH)
+        self.log_writer = LogWriter(os.environ["LOG_PATH"])
     
     def sigterm_handler(self, signal,frame):
         self.exit = True

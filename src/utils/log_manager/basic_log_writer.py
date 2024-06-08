@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional, Tuple
 from utils.structs.data_fragment import DataFragment
 
@@ -8,6 +9,8 @@ RESULT_SENT = "RESULT_SENT" # <node>
 
 class BasicLogWriter:
     def __init__(self, file_path: str) -> None:
+        if not os.path.exists(file_path):
+            open(file_path, "w").close()
         self.file = open(file_path, "a")
 
     def _add_logs(self, logs: List[str]) -> None:

@@ -11,7 +11,7 @@ from dotenv import load_dotenv # type: ignore
 import sys
 import time
 import logging as logger
-from joiner.log_writer import *
+from log_writer import *
 
 
 CATEGORY_FILTER = "CATEGORY"
@@ -19,9 +19,6 @@ YEAR_FILTER = "YEAR"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 MAX_WAIT_TIME = 60 * 15
-
-LOG_PATH_BOOKS = "logs/joiner_books.log"
-LOG_PATH_REVIEWS = "logs/joiner_reviews.log"
 
 class Joiner:
     def __init__(self):
@@ -43,8 +40,8 @@ class Joiner:
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
-        self.log_writer_books = LogWriter(LOG_PATH_BOOKS)
-        self.log_writer_reviews = LogWriter(LOG_PATH_REVIEWS)
+        self.log_writer_books = LogWriter(os.environ["LOG_PATH_BOOKS"])
+        self.log_writer_reviews = LogWriter(os.environ["LOG_PATH_REVIEWS"])
     
     def sigterm_handler(self, signal,frame):
         self.exit = True

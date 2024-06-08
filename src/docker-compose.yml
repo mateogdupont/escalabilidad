@@ -52,28 +52,28 @@ services:
     depends_on:
       - cleaner
 
-  client1:
-    build:
-      context: .
-      dockerfile: ./client/Dockerfile
-    environment:
-      - ID=1
-    volumes:
-      - ../data:/data
-    networks:
-      - network-bridge
-    hostname: client1
-    depends_on:
-      - cleaner
+  # client1:
+  #   build:
+  #     context: .
+  #     dockerfile: ./client/Dockerfile
+  #   environment:
+  #     - ID=1
+  #   volumes:
+  #     - ../data:/data
+  #   networks:
+  #     - network-bridge
+  #   hostname: client1
+  #   depends_on:
+  #     - cleaner
 
   cleaner:
-    build:
-      context: .
-      dockerfile: ./data_cleaner/Dockerfile
-    networks:
-      - network-bridge
-    depends_on:
-      - rabbitmq
+      build:
+        context: .
+        dockerfile: ./data_cleaner/Dockerfile
+      networks:
+        - network-bridge
+      depends_on:
+        - rabbitmq
 
   filter1:
     build:
@@ -83,6 +83,10 @@ services:
       - rabbitmq
     networks:
       - network-bridge
+    volumes:
+      - ../logs:/logs
+    environment:
+      - LOG_PATH=/logs/filter1.log
   
   # filter2:
   #   build:
@@ -108,10 +112,14 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=1
+      - LOG_PATH_BOOKS=/logs/joiner1_books.log
+      - LOG_PATH_REVIEWS=/logs/joiner1_reviews.log
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
+    volumes:
+      - ../logs:/logs
   
   joiner2:
     build:
@@ -119,10 +127,14 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=2
+      - LOG_PATH_BOOKS=/logs/joiner2_books.log
+      - LOG_PATH_REVIEWS=/logs/joiner2_reviews.log
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
+    volumes:
+      - ../logs:/logs
 
   joiner3:
     build:
@@ -130,10 +142,14 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=3
+      - LOG_PATH_BOOKS=/logs/joiner3_books.log
+      - LOG_PATH_REVIEWS=/logs/joiner3_reviews.log
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
+    volumes:
+      - ../logs:/logs
 
   joiner4:
     build:
@@ -141,10 +157,14 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=4
+      - LOG_PATH_BOOKS=/logs/joiner4_books.log
+      - LOG_PATH_REVIEWS=/logs/joiner4_reviews.log
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
+    volumes:
+      - ../logs:/logs
 
   # joiner5:
   #   build:
@@ -220,6 +240,10 @@ services:
       - rabbitmq
     networks:
       - network-bridge
+    volumes:
+      - ../logs:/logs
+    environment:
+      - LOG_PATH=/logs/counter.log
     
   sentiment-analyzer1:
     build:
@@ -229,6 +253,10 @@ services:
       - rabbitmq
     networks:
       - network-bridge
+    volumes:
+      - ../logs:/logs
+    environment:
+      - LOG_PATH=/logs/sentiment_analyzer1.log
   
   sentiment-analyzer2:
     build: 
@@ -238,6 +266,10 @@ services:
       - rabbitmq
     networks:
       - network-bridge
+    volumes:
+      - ../logs:/logs
+    environment:
+      - LOG_PATH=/logs/sentiment_analyzer2.log
 
   sentiment-analyzer3:
     build: 
@@ -247,6 +279,10 @@ services:
       - rabbitmq
     networks:
       - network-bridge
+    volumes:
+      - ../logs:/logs
+    environment:
+      - LOG_PATH=/logs/sentiment_analyzer3.log
   
   # sentiment-analyzer4:
   #   build: 

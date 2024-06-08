@@ -2,7 +2,7 @@ import sys
 import os
 import signal
 from multiprocessing import Process, Event
-from counter.log_writer import LogWriter
+from log_writer import LogWriter
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
@@ -21,8 +21,6 @@ DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 
-PATH = "counter.log"
-
 class Counter:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -37,7 +35,7 @@ class Counter:
         self.counted_data = {}
         self.books = {}
         self.received_ids = {}
-        self.log_writer = LogWriter(PATH)
+        self.log_writer = LogWriter(os.environ["LOG_PATH"])
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
@@ -225,7 +223,7 @@ class Counter:
                 else:
                     client_id = data_fragment.get_client_id()
                     query_id = data_fragment.get_query_id()
-                    counted_data = self.counted_data(client_id, query_id)
+                    counted_data = self.counted_data[client_id][query_id]
                     self.log_writer.log_counted_data(data_fragment, counted_data)
             self.mom.ack(tag)
 

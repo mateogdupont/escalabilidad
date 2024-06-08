@@ -5,7 +5,7 @@ from utils.mom.mom import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
 from utils.query_updater import *
-from sentiment_analyzer.log_writer import *
+from log_writer import *
 from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
@@ -24,8 +24,6 @@ SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 
-LOG_PATH = "logs/analyzer.log"
-
 class Analyzer:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -39,7 +37,7 @@ class Analyzer:
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
-        self.log_writer = LogWriter(LOG_PATH)
+        self.log_writer = LogWriter(os.environ["LOG_PATH"])
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
