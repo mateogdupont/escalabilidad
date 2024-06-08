@@ -1,25 +1,37 @@
 import os
 from typing import List, Optional, Tuple
+from utils.mom.mom import MOM
 from utils.structs.data_fragment import DataFragment
+
+HIGH = 3
+MEDIUM = 2
+LOW = 1
 
 RECEIVED_ID = "RECEIVED_ID" # <client_id> <query_id> <df_id>
 RESULT = "RESULT"           # <node> [<time>] <datafragment como str>
 QUERY_ENDED = "QUERY_ENDED" # <client_id> <query_id>
 RESULT_SENT = "RESULT_SENT" # <node>
 
-class BasicLogWriter:
-    def __init__(self, file_path: str) -> None:
-        if not os.path.exists(file_path):
-            open(file_path, "w").close()
-        self.file = open(file_path, "a")
+RECEIVED_ID_PRIORITY = LOW
+RESULT_PRIORITY = LOW
+QUERY_ENDED_PRIORITY = MEDIUM
+RESULT_SENT_PRIORITY = MEDIUM
 
-    def _add_logs(self, logs: List[str]) -> None:
-        logs = "\n".join(logs) + "\n"
-        self.file.write(logs)
-        self.file.flush()
+class BasicLogWriter:
+    def __init__(self, log_queue: str, routing_key: str) -> None:
+        self.mom = MOM({log_queue: True})
+        self.queue_name = log_queue
+        self.routing_key = routing_key
+
+    def _add_logs(self, logs: dict) -> None:
+        for log, priority in logs.items():
+            if priority == LOW:
+                self.mom.publish_log(self.queue_name, log, priority)
+            else:
+                self.mom.publish_log_global(self.routing_key, log, priority)
 
     def close(self) -> None:
-        self.file.close()
+        pass
 
     def log_result(self, next_steps: List[Tuple[DataFragment, str]], time: Optional[float] =None) -> None:
         if len(next_steps) == 0:
@@ -27,13 +39,13 @@ class BasicLogWriter:
         client_id = next_steps[0][0].get_client_id()
         query_id = next_steps[0][0].get_query_id()
         df_id = next_steps[0][0].get_id()
-        logs = []
+        logs = {}
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
-        logs.append(id_log)
+        logs[id_log] = RECEIVED_ID_PRIORITY
         for df, node in next_steps:
             df_str = df.to_str()
             result_log = f"{RESULT} {node} {time} {client_id} {query_id} {df_id} {df_str}"
-            logs.append(result_log)
+            logs[result_log] = RESULT_PRIORITY
         self._add_logs(logs)
     
     def log_query_ended(self, datafragment: DataFragment) -> None:
@@ -42,7 +54,8 @@ class BasicLogWriter:
         df_id = datafragment.get_id()
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
         ended_log = f"{QUERY_ENDED} {client_id} {query_id}"
-        self._add_logs([id_log, ended_log])
+        logs = {id_log: RECEIVED_ID_PRIORITY, ended_log: QUERY_ENDED_PRIORITY}
+        self._add_logs(logs)
     
     def log_result_sent(self, node: str) -> None:
-        self._add_logs([f"{RESULT_SENT} {node}"])
+        self._add_logs({f"{RESULT_SENT} {node}": RESULT_SENT_PRIORITY})

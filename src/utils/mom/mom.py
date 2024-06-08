@@ -74,15 +74,43 @@ class MOM:
     def _nack(self, delivery_tag: int) -> None:
         self.channel.basic_nack(delivery_tag=delivery_tag)
     
-    def publish(self, data_chunk: DataChunk, key: str) -> None:
+    def publish(self, data_chunk: DataChunk, key: str, priority: int = 1) -> None:
         if data_chunk is None or data_chunk.get_fragments() is None or len(data_chunk.get_fragments()) == 0 or data_chunk.to_str() is None:
             logger.error(f"DataChunk is None")
-        self._execute(self._publish, data_chunk, key)
+        self._execute(self._publish, data_chunk, key, priority)
             
-    def _publish(self, data_chunk: DataChunk, key: str) -> None:
+    def _publish(self, data_chunk: DataChunk, key: str, priority: int = 1) -> None:
         self.channel.basic_publish(exchange=self.exchange,
                                     routing_key=key,
-                                    body=data_chunk.to_str())
+                                    body=data_chunk.to_str(),
+                                    properties=pika.BasicProperties(
+                                        delivery_mode=2,
+                                        priority=priority
+                                    ))
+    
+    def publish_log(self, queue_name: str, message: str, priority: int = 1) -> None:
+        self._execute(self._publish_log, queue_name, message, priority)
+
+    def _publish_log(self, queue_name: str, message: str, priority: int = 1) -> None:
+        self.channel.basic_publish(exchange="",
+                                      routing_key=queue_name,
+                                      body=message,
+                                        properties=pika.BasicProperties(
+                                            delivery_mode=2,
+                                            priority=priority
+                                        ))
+    
+    def publish_log_global(self, key: str, message: str, priority: int = 1) -> None:
+        self._execute(self._publish_log_global, key, message, priority)
+
+    def _publish_log_global(self, key: str, message: str, priority: int = 1) -> None:
+        self.channel.basic_publish(exchange=self.exchange,
+                                      routing_key=key,
+                                      body=message,
+                                        properties=pika.BasicProperties(
+                                            delivery_mode=2,
+                                            priority=priority
+                                        ))
 
     def close(self):
         try:

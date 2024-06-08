@@ -37,7 +37,9 @@ class Analyzer:
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
-        self.log_writer = LogWriter(os.environ["LOG_PATH"])
+        log_queue = os.environ["LOG_QUEUE"]
+        log_key = os.environ["LOG_KEY"]
+        self.log_writer = LogWriter(log_queue, log_key)
     
     def sigterm_handler(self, signal,frame):
         self.exit = True

@@ -1,11 +1,14 @@
+import json
 from typing import Tuple
 from utils.log_manager.basic_log_writer import *
 from utils.structs.book import Book
 from utils.structs.data_fragment import DataFragment
 
+TITLE = "TITLE"
+AUTHOR = "AUTHOR"
+
 # Books logs
-BOOK_T = "BOOK_T"                       # <book title>
-BOOK_DF = "BOOK_DF"                     # <datafragment como str>
+BOOK = "BOOK"                           # <book title> <datafragment como str> # se hace en formato json
 RECEIVED_ID = "RECEIVED_ID"             # <client_id> <query_id> <df_id>
 SIDE_TABLE_UPDATE = "SIDE_TABLE_UPDATE" # <client_id> <query_id> <book title>
 SIDE_TABLE_ENDED = "SIDE_TABLE_ENDED"   # <client_id> <query_id>
@@ -16,16 +19,20 @@ RESULT = "RESULT"                       # <node> <time> <datafragment como str>
 QUERY_ENDED = "QUERY_ENDED"             # <client_id> <query_id>
 RESULT_SENT = "RESULT_SENT"             # <node>
 
+BOOK_PRIORITY = HIGH
+SIDE_TABLE_UPDATE_PRIORITY = LOW
+SIDE_TABLE_ENDED_PRIORITY = MEDIUM
+
 class LogWriter(BasicLogWriter):
-    def __init__(self, file_path: str) -> None:
-        super().__init__(file_path)
+    def __init__(self, log_queue: str, routing_key: str) -> None:
+        super().__init__(log_queue, routing_key)
 
     def log_book(self, book: Book) -> None:
         book_title = book.get_title()
         book_str = book.to_str()
-        t_log = f"{BOOK_T} {book_title}"
-        df_log = f"{BOOK_DF} {book_str}"
-        self._add_logs([t_log, df_log])
+        json_dict = {TITLE: book_title, AUTHOR: book_str}
+        log = f"{BOOK} {json.dumps(json_dict)}"
+        self._add_logs({log: BOOK_PRIORITY})
 
     def log_side_table_update(self, fragment: DataFragment) -> None:
         client_id = fragment.get_client_id()
@@ -34,7 +41,7 @@ class LogWriter(BasicLogWriter):
         book_title = fragment.get_book().get_title()
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
         update_log = f"{SIDE_TABLE_UPDATE} {client_id} {query_id} {book_title}"
-        self._add_logs([id_log, update_log])
+        self._add_logs({id_log: RECEIVED_ID_PRIORITY, update_log: SIDE_TABLE_UPDATE_PRIORITY})
     
     def log_side_table_ended(self, fragment: DataFragment) -> None:
         client_id = fragment.get_client_id()
@@ -42,4 +49,4 @@ class LogWriter(BasicLogWriter):
         df_id = fragment.get_id()
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
         ended_log = f"{SIDE_TABLE_ENDED} {client_id} {query_id}"
-        self._add_logs([id_log, ended_log])
+        self._add_logs({id_log: RECEIVED_ID_PRIORITY, ended_log: SIDE_TABLE_ENDED_PRIORITY})

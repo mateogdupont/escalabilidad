@@ -40,8 +40,12 @@ class Joiner:
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
-        self.log_writer_books = LogWriter(os.environ["LOG_PATH_BOOKS"])
-        self.log_writer_reviews = LogWriter(os.environ["LOG_PATH_REVIEWS"])
+        log_queue_books = os.environ["LOG_QUEUE_BOOKS"]
+        log_key_books = os.environ["LOG_KEY_BOOKS"]
+        self.log_writer_books = LogWriter(log_queue_books, log_key_books)
+        log_queue_reviews = os.environ["LOG_QUEUE_REVIEWS"]
+        log_key_reviews = os.environ["LOG_KEY_REVIEWS"]
+        self.log_writer_reviews = LogWriter(log_queue_reviews, log_key_reviews)
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
