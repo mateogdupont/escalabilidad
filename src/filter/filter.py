@@ -142,6 +142,7 @@ class Filter:
                     top_ten = self.top_ten.get(client_id, {}).get(query_id, [])
                     # self.log_writer.log_top_update(fragment, top_ten)
                 else:
+                    pass
                     # self.log_writer.log_received_id(fragment)
             if fragment.is_last():
                 # self.log_writer.log_query_ended(fragment)

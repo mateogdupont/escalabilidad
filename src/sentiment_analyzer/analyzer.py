@@ -88,6 +88,7 @@ class Analyzer:
                 if not data_fragment.is_last():
                     self.analyze(data_fragment)
                 else:
+                    pass
                     # self.log_writer.log_query_ended(data_fragment)
                 next_steps = update_data_fragment_step(data_fragment)
                 
