@@ -83,10 +83,8 @@ services:
       - rabbitmq
     networks:
       - network-bridge
-    volumes:
-      - ../logs:/logs
     environment:
-      - LOG_PATH=/logs/filter1.log
+      - LOG_QUEUE=log.filter1
   
   # filter2:
   #   build:
@@ -112,14 +110,12 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=1
-      - LOG_PATH_BOOKS=/logs/joiner1_books.log
-      - LOG_PATH_REVIEWS=/logs/joiner1_reviews.log
+      - LOG_QUEUE_BOOKS=log.joiner1_books
+      - LOG_QUEUE_REVIEWS=log.joiner1_reviews
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
-    volumes:
-      - ../logs:/logs
   
   joiner2:
     build:
@@ -127,14 +123,12 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=2
-      - LOG_PATH_BOOKS=/logs/joiner2_books.log
-      - LOG_PATH_REVIEWS=/logs/joiner2_reviews.log
+      - LOG_QUEUE_BOOKS=log.joiner2_books
+      - LOG_QUEUE_REVIEWS=log.joiner2_reviews
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
-    volumes:
-      - ../logs:/logs
 
   joiner3:
     build:
@@ -142,14 +136,12 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=3
-      - LOG_PATH_BOOKS=/logs/joiner3_books.log
-      - LOG_PATH_REVIEWS=/logs/joiner3_reviews.log
+      - LOG_QUEUE_BOOKS=log.joiner3_books
+      - LOG_QUEUE_REVIEWS=log.joiner3_reviews
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
-    volumes:
-      - ../logs:/logs
 
   joiner4:
     build:
@@ -157,14 +149,12 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=4
-      - LOG_PATH_BOOKS=/logs/joiner4_books.log
-      - LOG_PATH_REVIEWS=/logs/joiner4_reviews.log
+      - LOG_QUEUE_BOOKS=log.joiner4_books
+      - LOG_QUEUE_REVIEWS=log.joiner4_reviews
     depends_on:
       - rabbitmq
     networks:
       - network-bridge
-    volumes:
-      - ../logs:/logs
 
   # joiner5:
   #   build:
@@ -240,10 +230,8 @@ services:
       - rabbitmq
     networks:
       - network-bridge
-    volumes:
-      - ../logs:/logs
     environment:
-      - LOG_PATH=/logs/counter.log
+      - LOG_QUEUE=log.counter
     
   sentiment-analyzer1:
     build:
@@ -253,10 +241,8 @@ services:
       - rabbitmq
     networks:
       - network-bridge
-    volumes:
-      - ../logs:/logs
     environment:
-      - LOG_PATH=/logs/sentiment_analyzer1.log
+      - LOG_QUEUE=log.sentiment_analyzer1
   
   sentiment-analyzer2:
     build: 
@@ -266,10 +252,8 @@ services:
       - rabbitmq
     networks:
       - network-bridge
-    volumes:
-      - ../logs:/logs
     environment:
-      - LOG_PATH=/logs/sentiment_analyzer2.log
+      - LOG_QUEUE=log.sentiment_analyzer2
 
   sentiment-analyzer3:
     build: 
@@ -279,10 +263,8 @@ services:
       - rabbitmq
     networks:
       - network-bridge
-    volumes:
-      - ../logs:/logs
     environment:
-      - LOG_PATH=/logs/sentiment_analyzer3.log
+      - LOG_QUEUE=log.sentiment_analyzer3
   
   # sentiment-analyzer4:
   #   build: 
