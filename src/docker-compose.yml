@@ -65,6 +65,8 @@ services:
     build:
       context: .
       dockerfile: ./filter/Dockerfile
+    environment:
+      - ID=1
     networks:
       - network-bridge
   

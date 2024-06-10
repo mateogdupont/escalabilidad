@@ -1,21 +1,26 @@
 import signal
 import os
 import time
+import socket
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
 from utils.structs.data_chunk import *
 from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
+from multiprocessing import Process, Event
 from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
 
+load_dotenv()
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
+NODE_TYPE=os.environ["NODE_TYPE"]
+HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 TOP_AMOUNT = 10
@@ -23,7 +28,6 @@ TOP_AMOUNT = 10
 class Filter:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
-        load_dotenv()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = list(consumer_queues.keys())[0]
@@ -31,6 +35,9 @@ class Filter:
         self.results = {}
         self.received_ids = {}
         self.top_ten = []
+        self.event = None
+        self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
+        self.id=NODE_TYPE+"."+os.environ["ID"]
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.exit = False
@@ -38,6 +45,8 @@ class Filter:
     def sigterm_handler(self, signal,frame):
         self.exit = True
         self.mom.close()
+        if self.event:
+            self.event.set()
 
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
@@ -55,7 +64,7 @@ class Filter:
         self.received_ids[client_id][query_id][id] = data_fragment.to_human_readable()
         return True
 
-    def filter_data_fragment(self, data_fragment: DataFragment) -> bool:
+    def filter_data_fragment(self, data_fragment: DataFragment, event) -> bool:
         query_info = data_fragment.get_query_info()
         filter_on, word, min_value, max_value = query_info.get_filter_params()
         book = data_fragment.get_book()
@@ -75,7 +84,7 @@ class Filter:
             if data_fragment.is_last():
                 #logger.info(f"Me llego el ultimo fragmento {data_fragment.to_json()}")
                 for fragment in self.top_ten:
-                    if self.exit:
+                    if event.is_set():
                         return False
                     for data, key in update_data_fragment_step(fragment).items():
                         self.add_and_try_to_send_chunk(data, key)
@@ -94,8 +103,8 @@ class Filter:
         
         return False
 
-    def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
-        if self.exit:
+    def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str,event):
+        if event.is_set():
             return
         if not node in self.results.keys():
             self.results[node] = ([], time.time())
@@ -110,33 +119,33 @@ class Filter:
                 logger.error(f"Data: {data_chunk.to_str()}")
             self.results[node] = ([], time.time())
         
-    def filter_data_chunk(self,chunk: DataChunk):
+    def filter_data_chunk(self,chunk: DataChunk, event):
         for fragment in chunk.get_fragments():
-            if self.exit:
+            if event.is_set():
                 return
             if not self.save_id(fragment):
                 continue
-            if (not fragment.is_last()) and self.filter_data_fragment(fragment):
+            if (not fragment.is_last()) and self.filter_data_fragment(fragment,event):
                 next_steps = update_data_fragment_step(fragment)
                 if len(next_steps.items()) == 0:
                     logger.info(f"Fragmento {fragment} no tiene siguiente paso")
                 for data, key in next_steps.items():
-                    self.add_and_try_to_send_chunk(data, key)
+                    self.add_and_try_to_send_chunk(data, key, event)
             if fragment.is_last():
                 if fragment.get_query_info().filter_by_top():
                     for top_fragment in self.top_ten:
-                        if self.exit:
+                        if event.is_set():
                             return False
                         for data, key in update_data_fragment_step(top_fragment).items():
-                            self.add_and_try_to_send_chunk(data, key)
+                            self.add_and_try_to_send_chunk(data, key, event)
                     self.top_ten = []
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
-                    self.add_and_try_to_send_chunk(data, key)
+                    self.add_and_try_to_send_chunk(data, key, event)
 
-    def send_with_timeout(self):
+    def send_with_timeout(self,event):
         for key, (data, last_sent) in self.results.items():
-            if self.exit:
+            if event.is_set():
                 return
             if (len(data) > 0) and (time.time() - last_sent > TIMEOUT):
                 chunk = DataChunk(data)
@@ -147,8 +156,8 @@ class Filter:
                     logger.error(f"Data: {chunk.to_str()}")
                 self.results[key] = ([], time.time())
 
-    def run(self):
-        while not self.exit:
+    def run_filter(self, event):
+         while not event.is_set():
             try:
                 msg = self.mom.consume(self.work_queue)
             except Exception as e:
@@ -156,16 +165,30 @@ class Filter:
                 return
               
             if not msg:
-                self.send_with_timeout()
+                self.send_with_timeout(event)
                 continue
             data_chunk, tag = msg
             # logger.info(f"Recibi data | {data_chunk.to_json()}")
-            self.filter_data_chunk(data_chunk)
+            self.filter_data_chunk(data_chunk,event)
             try:
                 self.mom.ack(tag)
             except Exception as e:
                 logger.error(f"Error al hacer ack de {tag}: {e}")
-            self.send_with_timeout()
+            self.send_with_timeout(event)
+
+    def run(self):
+        
+        self.event = Event()
+        hartbeat_proccess = Process(target=self.run_filter, args=(self.event,))
+        hartbeat_proccess.start()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        while not self.exit and hartbeat_proccess.is_alive():
+            msg = self.id + "$"
+            logger.info(f"Voy a mandar {msg} a { self.medic_addres}")
+            sock.sendto(msg.encode(), self.medic_addres)
+            time.sleep(HARTBEAT_INTERVAL)
+        hartbeat_proccess.join()
+        
 
 def main():
     filter = Filter()
