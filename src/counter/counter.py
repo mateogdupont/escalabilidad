@@ -84,7 +84,7 @@ class Counter:
             self.counted_data[client_id][query_id] = {}
 
         if query_info.filter_by_top():
-            self.count_top(data_fragment, query_id)
+            return self.count_top(data_fragment, query_id)
 
         bool_set = []
         for v in [group_by, count_distinct, average_column, percentile_data]:
@@ -116,8 +116,7 @@ class Counter:
             for fragment in top:
                 if self.exit:
                     return results
-                for data, key in update_data_fragment_step(fragment).items():
-                    results.append(data)
+                results.append(fragment)
             self.counted_data[client_id][query_id].pop(TOP)
             self.clean_data(query_id, client_id)
         return results
