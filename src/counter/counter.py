@@ -1,6 +1,7 @@
 import sys
 import os
 import signal
+import socket
 from multiprocessing import Process, Event
 from utils.structs.book import *
 from utils.structs.review import *
@@ -13,6 +14,9 @@ import time
 import numpy as np
 import logging as logger
 
+load_dotenv()
+NODE_TYPE=os.environ["NODE_TYPE"]
+HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
@@ -23,21 +27,25 @@ MAX_AMOUNT_OF_FRAGMENTS = 800
 class Counter:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
-        load_dotenv()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
-        signal.signal(signal.SIGTERM, self.sigterm_handler)
-        signal.signal(signal.SIGINT, self.sigterm_handler)
+        self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
+        self.id= os.environ["ID"]
+        self.event = None
         self.exit = False
         self.counted_data = {}
         self.books = {}
         self.received_ids = {}
+        signal.signal(signal.SIGTERM, self.sigterm_handler)
+        signal.signal(signal.SIGINT, self.sigterm_handler)
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
         self.mom.close()
+        if self.event:
+            self.event.set()
     
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
@@ -63,7 +71,7 @@ class Counter:
         if len(self.counted_data[client_id]) == 0:
             self.counted_data.pop(client_id)
 
-    def count_data_fragment(self, data_fragment: DataFragment) -> List[DataFragment]:
+    def count_data_fragment(self, data_fragment: DataFragment, event) -> List[DataFragment]:
         query_info = data_fragment.get_query_info()
         group_by, count_distinct, average_column, percentile_data = query_info.get_counter_params()
         book, review = data_fragment.get_book(), data_fragment.get_review()
@@ -80,14 +88,14 @@ class Counter:
         for v in [group_by, count_distinct, average_column, percentile_data]:
             bool_set.append(v is not None)
         if [True, True, False, False] == bool_set: # for query 2
-            return self.count_type_1(data_fragment, query_id, queries, group_data, value)
+            return self.count_type_1(data_fragment, query_id, queries, group_data, value,event)
         if [True, True, True, False] == bool_set: # for queries 3 and 4
-            return self.count_type_2(data_fragment, query_id, queries, group_data, value)
+            return self.count_type_2(data_fragment, query_id, queries, group_data, value,event)
         if [True, False, False, True] == bool_set: # for query 5
-            return self.count_type_3(data_fragment, query_id, queries, group_data, value, percentile_data[0])
+            return self.count_type_3(data_fragment, query_id, queries, group_data, value, percentile_data[0],event)
         return []
 
-    def count_type_3(self, data_fragment, query_id, queries, group_data, value, percentile):
+    def count_type_3(self, data_fragment, query_id, queries, group_data, value, percentile, event):
         results = []
         client_id = data_fragment.get_client_id()
         if not data_fragment.is_last():    
@@ -117,7 +125,7 @@ class Counter:
                 return results
             percentile_result = float(np.percentile(list(sentiment_scores.values()), percentile_number))
             for group_data in self.counted_data[client_id][query_id].keys():
-                if self.exit:
+                if event.is_set():
                     return results
                 new_data_fragment = DataFragment(next_id, queries.copy(), None, None, client_id)
                 next_id += 1
@@ -131,7 +139,7 @@ class Counter:
                 results.append(new_data_fragment)
         return results
 
-    def count_type_2(self, data_fragment, query_id, queries, group_data, value):
+    def count_type_2(self, data_fragment, query_id, queries, group_data, value, event):
         results = []
         client_id = data_fragment.get_client_id()
         if not data_fragment.is_last():
@@ -143,7 +151,7 @@ class Counter:
         else:
             next_id = data_fragment.get_id() + 1
             for group_data in self.counted_data[client_id][query_id].keys():
-                if self.exit:
+                if event.is_set():
                     return results
                 new_data_fragment = DataFragment(next_id, queries.copy(), None, None, client_id)
                 next_id += 1
@@ -157,14 +165,14 @@ class Counter:
                 results.append(new_data_fragment)
         return results
 
-    def count_type_1(self, data_fragment, query_id, queries, group_data, value):
+    def count_type_1(self, data_fragment, query_id, queries, group_data, value, event):
         results = []
         client_id = data_fragment.get_client_id()
         if not data_fragment.is_last():
             # group data is a list  
             if type(group_data) == list:
                 for data in group_data:
-                    if self.exit:
+                    if event.is_set():
                         return results
                     if data not in self.counted_data[client_id][query_id].keys():
                         self.counted_data[client_id][query_id][data] = set()
@@ -174,7 +182,7 @@ class Counter:
         else:
             next_id = data_fragment.get_id() + 1
             for key, value in self.counted_data[client_id][query_id].items():
-                if self.exit:
+                if event.is_set():
                     return results
                 new_data_fragment = DataFragment(next_id, queries.copy(), None, None, client_id)
                 next_id += 1
@@ -199,26 +207,27 @@ class Counter:
         elif (percentile_data is not None) and (query_info.get_sentiment() is not None):
             value = query_info.get_sentiment()
         return group_data, value
-            
-    def run(self):
-        while not self.exit:
+    
+
+    def run_counter(self, event):
+        while not event.is_set():
             msg = self.mom.consume(self.work_queue)
             if not msg:
                 continue
             data_chunk, tag = msg
             for data_fragment in data_chunk.get_fragments():
-                if self.exit:
+                if event.is_set():
                     return
                 if not self.save_id(data_fragment):
                     continue
-                results = self.count_data_fragment(data_fragment)
+                results = self.count_data_fragment(data_fragment, event)
 
                 if data_fragment.is_last():
                     results.append(data_fragment)
                     key = None
                     fragments = []
                     for results_data_fragment in results:
-                        if self.exit:
+                        if event.is_set():
                             return
                         steps = update_data_fragment_step(results_data_fragment)
                         fragments.extend(steps.keys())
@@ -232,6 +241,19 @@ class Counter:
 
                     self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
             self.mom.ack(tag)
+
+    def run(self):
+        self.event = Event()
+        counter_proccess = Process(target=self.run_counter, args=(self.event,))
+        counter_proccess.start()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        while not self.exit and counter_proccess.is_alive():
+            msg = NODE_TYPE + "." + self.id + "$"
+            logger.info(f"Voy a mandar {msg} a { self.medic_addres}")
+            sock.sendto(msg.encode(), self.medic_addres)
+            time.sleep(HARTBEAT_INTERVAL)
+        counter_proccess.join()
+
 
 def main():
     counter = Counter()

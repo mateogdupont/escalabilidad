@@ -2,7 +2,7 @@ version: '3.7'
 name: 'amazon-books-analyzer'
 
 services:
-  rabbitmq:
+  rabbitmq1:
     build:
       context: rabbitmq/
       dockerfile: Dockerfile
@@ -12,14 +12,8 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-}
     volumes:
-      - type: bind
-        source: ./rabbitmq/config/rabbitmq.conf
-        target: /etc/rabbitmq/rabbitmq.conf
-        read_only: true
-      - type: bind
-        source: ./rabbitmq/config/definitions.json
-        target: /etc/rabbitmq/definitions.json
-        read_only: true
+      - ./rabbitmq/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ./rabbitmq/config/definitions.json:/etc/rabbitmq/definitions.json
       - type: volume
         source: rabbitmq
         target: /var/lib/rabbitmq
@@ -33,24 +27,8 @@ services:
   #   build:
   #     context: rabbitmq-test/
   #     dockerfile: Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
-
-  client:
-    build:
-      context: .
-      dockerfile: ./client/Dockerfile
-    environment:
-      - ID=0
-    volumes:
-      - ../data:/data
-    networks:
-      - network-bridge
-    hostname: client
-    depends_on:
-      - cleaner
 
   client1:
     build:
@@ -62,25 +40,33 @@ services:
       - ../data:/data
     networks:
       - network-bridge
-    hostname: client1
-    depends_on:
-      - cleaner
+    hostname: client
 
-  cleaner:
+  client2:
+    build:
+      context: .
+      dockerfile: ./client/Dockerfile
+    environment:
+      - ID=2
+    volumes:
+      - ../data:/data
+    networks:
+      - network-bridge
+    hostname: client1
+
+  cleaner1:
     build:
       context: .
       dockerfile: ./data_cleaner/Dockerfile
     networks:
       - network-bridge
-    depends_on:
-      - rabbitmq
 
   filter1:
     build:
       context: .
       dockerfile: ./filter/Dockerfile
-    depends_on:
-      - rabbitmq
+    environment:
+      - ID=1
     networks:
       - network-bridge
   
@@ -88,8 +74,6 @@ services:
   #   build:
   #     context: .
   #     dockerfile: ./filter/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
 
@@ -97,8 +81,6 @@ services:
   #   build:
   #     context: .
   #     dockerfile: ./filter/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
 
@@ -108,8 +90,6 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=1
-    depends_on:
-      - rabbitmq
     networks:
       - network-bridge
   
@@ -119,8 +99,6 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=2
-    depends_on:
-      - rabbitmq
     networks:
       - network-bridge
 
@@ -130,8 +108,6 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=3
-    depends_on:
-      - rabbitmq
     networks:
       - network-bridge
 
@@ -141,8 +117,6 @@ services:
       dockerfile: ./joiner/Dockerfile
     environment:
       - ID=4
-    depends_on:
-      - rabbitmq
     networks:
       - network-bridge
 
@@ -152,8 +126,6 @@ services:
   #     dockerfile: ./joiner/Dockerfile
   #   environment:
   #     - ID=5
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
   
@@ -163,8 +135,6 @@ services:
   #     dockerfile: ./joiner/Dockerfile
   #   environment:
   #     - ID=6
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
 
@@ -174,8 +144,6 @@ services:
   #     dockerfile: ./joiner/Dockerfile
   #   environment:
   #     - ID=7
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
 
@@ -185,8 +153,6 @@ services:
   #     dockerfile: ./joiner/Dockerfile
   #   environment:
   #     - ID=8
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge 
 
@@ -196,8 +162,6 @@ services:
   #     dockerfile: ./joiner/Dockerfile
   #   environment:
   #     - ID=9
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge 
   
@@ -207,17 +171,15 @@ services:
   #     dockerfile: ./joiner/Dockerfile
   #   environment:
   #     - ID=10
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge 
 
-  counter:
+  counter1:
     build:
       context: .
       dockerfile: ./counter/Dockerfile
-    depends_on:
-      - rabbitmq
+    environment:
+      - ID=1
     networks:
       - network-bridge
     
@@ -225,8 +187,8 @@ services:
     build:
       context: .
       dockerfile: ./sentiment-analyzer/Dockerfile
-    depends_on:
-      - rabbitmq
+    environment:
+      - ID=1
     networks:
       - network-bridge
   
@@ -234,8 +196,8 @@ services:
     build: 
       context: .
       dockerfile: ./sentiment-analyzer/Dockerfile
-    depends_on:
-      - rabbitmq
+    environment:
+      - ID=2
     networks:
       - network-bridge
 
@@ -243,8 +205,8 @@ services:
     build: 
       context: .
       dockerfile: ./sentiment-analyzer/Dockerfile
-    depends_on:
-      - rabbitmq
+    environment:
+      - ID=3
     networks:
       - network-bridge
   
@@ -252,8 +214,6 @@ services:
   #   build: 
   #     context: .
   #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
   
@@ -261,8 +221,6 @@ services:
   #   build: 
   #     context: .
   #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
 
@@ -270,8 +228,6 @@ services:
   #   build: 
   #     context: .
   #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
 
@@ -279,8 +235,6 @@ services:
   #   build: 
   #     context: .
   #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
   
@@ -288,8 +242,6 @@ services:
   #   build: 
   #     context: .
   #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
   
@@ -297,8 +249,6 @@ services:
   #   build: 
   #     context: .
   #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
   
@@ -306,8 +256,6 @@ services:
   #   build: 
   #     context: .
   #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
   
@@ -315,8 +263,6 @@ services:
   #   build: 
   #     context: .
   #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
   
@@ -324,10 +270,19 @@ services:
   #   build: 
   #     context: .
   #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
+  medic:
+    build:
+      context: .
+      dockerfile: ./medic/Dockerfile
+    environment:
+      - ID=0
+    networks:
+      - network-bridge
+    hostname: medic
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
 networks:
   network-bridge:

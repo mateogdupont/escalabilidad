@@ -4,7 +4,7 @@ import socket
 from client import Client
 
 PORT = 1250
-CLEANER_IP = 'cleaner'
+CLEANER_IP = 'cleaner1'
 # App must be executed with the following format:
 # python main.py PATH_OF_DATA_DIRECTORY QUERIES
 # Example of use:
