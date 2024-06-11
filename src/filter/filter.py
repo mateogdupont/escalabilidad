@@ -37,7 +37,7 @@ class Filter:
         self.top_ten = []
         self.event = None
         self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
-        self.id=NODE_TYPE+"."+os.environ["ID"]
+        self.id= os.environ["ID"]
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.exit = False
@@ -179,15 +179,15 @@ class Filter:
     def run(self):
         
         self.event = Event()
-        hartbeat_proccess = Process(target=self.run_filter, args=(self.event,))
-        hartbeat_proccess.start()
+        filter_proccess = Process(target=self.run_filter, args=(self.event,))
+        filter_proccess.start()
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        while not self.exit and hartbeat_proccess.is_alive():
-            msg = self.id + "$"
+        while not self.exit and filter_proccess.is_alive():
+            msg = NODE_TYPE+ "." + self.id + "$"
             logger.info(f"Voy a mandar {msg} a { self.medic_addres}")
             sock.sendto(msg.encode(), self.medic_addres)
             time.sleep(HARTBEAT_INTERVAL)
-        hartbeat_proccess.join()
+        filter_proccess.join()
         
 
 def main():
