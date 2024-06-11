@@ -178,6 +178,8 @@ services:
     build:
       context: .
       dockerfile: ./counter/Dockerfile
+    environment:
+      - ID=1
     networks:
       - network-bridge
     
@@ -185,6 +187,8 @@ services:
     build:
       context: .
       dockerfile: ./sentiment-analyzer/Dockerfile
+    environment:
+      - ID=1
     networks:
       - network-bridge
   
@@ -192,6 +196,8 @@ services:
     build: 
       context: .
       dockerfile: ./sentiment-analyzer/Dockerfile
+    environment:
+      - ID=2
     networks:
       - network-bridge
 
@@ -199,6 +205,8 @@ services:
     build: 
       context: .
       dockerfile: ./sentiment-analyzer/Dockerfile
+    environment:
+      - ID=3
     networks:
       - network-bridge
   
