@@ -156,37 +156,18 @@ class Filter:
                     logger.error(f"Data: {chunk.to_str()}")
                 self.results[key] = ([], time.time())
 
-    # def callback(self, ch, method, properties, body):
-    #     # event = Event()  # Create an event object
-    #     # while not event.is_set():
-    #         data_chunk = DataChunk.from_str(body)
-    #         self.filter_data_chunk(data_chunk, event)
-    #         try:
-    #             ch.basic_ack(delivery_tag=method.delivery_tag)
-    #         except Exception as e:
-    #             logger.error(f"Error al hacer ack de {method.delivery_tag}: {e}")
-    #         self.send_with_timeout(event)
+    def callback(self, ch, method, properties, body,event):
+        try:
+            data_chunk = DataChunk.from_str(body)
+            self.filter_data_chunk(data_chunk,event)
+            self.mom.ack(delivery_tag=method.delivery_tag)
+            self.send_with_timeout(event)
+        except Exception as e:
+            logger.error(f"Error en callback: {e}")
 
     def run_filter(self, event):
         while not event.is_set():
-            try:
-                msg = self.mom.consume(self.work_queue)
-            except Exception as e:
-                logger.error(f"Error al consumir de {self.work_queue}: {e}")
-                return
-              
-            if not msg:
-                self.send_with_timeout(event)
-                continue
-            data_chunk, tag = msg
-            # logger.info(f"Recibi data | {data_chunk.to_json()}")
-            self.filter_data_chunk(data_chunk,event)
-            try:
-                self.mom.ack(tag)
-            except Exception as e:
-                logger.error(f"Error al hacer ack de {tag}: {e}")
-            self.send_with_timeout(event)
-            # self.mom.consume_with_callback(self.work_queue, self.callback)
+            self.mom.consume_with_callback(self.work_queue, self.callback, event)
 
     def run(self):
         self.event = Event()

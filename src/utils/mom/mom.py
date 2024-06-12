@@ -62,10 +62,12 @@ class MOM:
         data_chunk = DataChunk.from_str(body)
         return data_chunk, method.delivery_tag
     
-    def consume_with_callback(self, queue: str, callback: Any) -> None:
+    def consume_with_callback(self, queue: str, callback: Any, *args) -> None:
         if not queue in self.consumer_queues:
             raise ValueError(f"Queue '{queue}' not found in consumer_queues.")
-        self._execute(self._consume_with_callback, queue, callback)
+        def internal_callback(ch, method, properties, body):
+            callback(ch, method, properties, body, *args)
+        self._execute(self._consume_with_callback, queue, internal_callback)
     
     def _consume_with_callback(self, queue: str, callback: Any) -> None:
         self.channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=False)
