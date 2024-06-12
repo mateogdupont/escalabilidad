@@ -249,7 +249,6 @@ class Counter:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.exit and counter_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
-            logger.info(f"Voy a mandar {msg} a { self.medic_addres}")
             sock.sendto(msg.encode(), self.medic_addres)
             time.sleep(HARTBEAT_INTERVAL)
         counter_proccess.join()

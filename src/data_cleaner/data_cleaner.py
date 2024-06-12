@@ -183,7 +183,6 @@ class DataCleaner:
                     logger.info(f"Last para {client_id}")
                     queries_left = clients[client_id][1]
                     if queries_left == 1:
-                        logger.info(f"Era el ultimo asique mato al client {client_id} en los results")
                         socket.close()
                         del clients[client_id]
                     else:
@@ -214,7 +213,6 @@ class DataCleaner:
                 self.try_clean_processes()
                 if len(self.clients_processes.keys()) < MAX_AMOUNT_OF_CLIENTS:
                     client_uuid = uuid.uuid4().hex
-                    logger.info(f"Voy a crear el hilo con id: {client_uuid} para socket: {socket}")
                     client_proccess = Process(target=self.handle_client, args=(socket,client_uuid))
                     client_proccess.start()
                     self.clients_processes[client_uuid] = client_proccess

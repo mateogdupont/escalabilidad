@@ -156,8 +156,19 @@ class Filter:
                     logger.error(f"Data: {chunk.to_str()}")
                 self.results[key] = ([], time.time())
 
+    # def callback(self, ch, method, properties, body):
+    #     # event = Event()  # Create an event object
+    #     # while not event.is_set():
+    #         data_chunk = DataChunk.from_str(body)
+    #         self.filter_data_chunk(data_chunk, event)
+    #         try:
+    #             ch.basic_ack(delivery_tag=method.delivery_tag)
+    #         except Exception as e:
+    #             logger.error(f"Error al hacer ack de {method.delivery_tag}: {e}")
+    #         self.send_with_timeout(event)
+
     def run_filter(self, event):
-         while not event.is_set():
+        while not event.is_set():
             try:
                 msg = self.mom.consume(self.work_queue)
             except Exception as e:
@@ -175,6 +186,7 @@ class Filter:
             except Exception as e:
                 logger.error(f"Error al hacer ack de {tag}: {e}")
             self.send_with_timeout(event)
+            # self.mom.consume_with_callback(self.work_queue, self.callback)
 
     def run(self):
         self.event = Event()
@@ -183,7 +195,6 @@ class Filter:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.exit and filter_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
-            logger.info(f"Voy a mandar {msg} a { self.medic_addres}")
             sock.sendto(msg.encode(), self.medic_addres)
             time.sleep(HARTBEAT_INTERVAL)
         filter_proccess.join()

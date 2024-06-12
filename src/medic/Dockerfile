@@ -12,10 +12,14 @@ RUN apt-get update && \
 # Copy the application directory
 COPY . .
 
+
 # Install the required Python packages for utils
 RUN pip install --upgrade pip
 RUN pip install -r ./utils/requirements.txt
 
 ENV PYTHONPATH /
+
+# darle permisos al lunch_node.sh
+RUN chmod +x medic/lunch_node.sh
 
 ENTRYPOINT ["bash", "-c", "python medic/medic.py"]

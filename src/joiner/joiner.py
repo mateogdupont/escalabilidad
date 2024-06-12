@@ -153,7 +153,6 @@ class Joiner:
                     self.add_and_try_to_send_chunk(data, key, event)
         if (fragment.is_last()) and (not event.is_set()):
             for data, key in update_data_fragment_step(fragment).items():
-                logger.info(f"Sending to {key}")
                 self.add_and_try_to_send_chunk(data, key, event)
             self.clean_data(query_id, client_id)
 
@@ -197,7 +196,6 @@ class Joiner:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.exit and joiner_proccess.is_alive():
             msg = NODE_TYPE+ "." + self.id + "$"
-            logger.info(f"Voy a mandar {msg} a { self.medic_addres}")
             sock.sendto(msg.encode(), self.medic_addres)
             time.sleep(HARTBEAT_INTERVAL)
         joiner_proccess.join()

@@ -77,6 +77,25 @@ class Analyzer:
             self.mom.publish(data_chunk, node)
             self.results[node] = []
 
+    # def callback(self, ch, method, properties, body):
+    #     event = Event()  # Create an event object
+    #     while not event.is_set():
+    #         data_chunk = DataChunk.from_str(body)
+
+    #         for data_fragment in data_chunk.get_fragments():
+    #             if not self.save_id(data_fragment):
+    #                 continue
+    #             if (not data_fragment.is_last()) and (not event.is_set()):
+    #                 review_text = data_fragment.get_review().get_text()
+    #                 sentiment_score = get_sentiment_score(review_text)
+    #                 query_info = data_fragment.get_query_info()
+    #                 query_info.set_sentiment(sentiment_score)
+    #                 data_fragment.set_query_info(query_info)
+    #             for fragment, key in update_data_fragment_step(data_fragment).items():
+    #                 self.add_and_try_to_send_chunk(fragment, key, event)
+
+    #         ch.basic_ack(delivery_tag=method.delivery_tag)
+
     def run_analizer(self, event):
         while not event.is_set():
             msg = self.mom.consume(self.work_queue)
@@ -97,6 +116,7 @@ class Analyzer:
                     self.add_and_try_to_send_chunk(fragment, key, event)
             
             self.mom.ack(tag)
+        # self.mom.consume_with_callback(self.work_queue, self.callback)
 
     def run(self):
         self.event = Event()
@@ -105,7 +125,6 @@ class Analyzer:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.exit and analyzer_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
-            logger.info(f"Voy a mandar {msg} a { self.medic_addres}")
             sock.sendto(msg.encode(), self.medic_addres)
             time.sleep(HARTBEAT_INTERVAL)
         analyzer_proccess.join()
