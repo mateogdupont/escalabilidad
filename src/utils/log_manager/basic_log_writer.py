@@ -29,7 +29,7 @@ class BasicLogWriter:
         self.queue_name = log_queue
         self.routing_key = routing_key
 
-    def _add_logs(self, logs: dict) -> None:
+    def _add_logs(self, logs: dict) -> None: # TODO: qué pasa si se cae a mitad de los logs?
         for log, priority in logs.items():
             if priority == LOW:
                 self.mom.publish_log(self.queue_name, log, priority)
