@@ -106,6 +106,7 @@ class Joiner:
         while not event.is_set() and not completed:
             msg = self.mom.consume(self.books_queue)
             if not msg:
+                time.sleep(1)
                 continue
             (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
@@ -165,29 +166,31 @@ class Joiner:
                 self.mom.publish(chunk, key)
                 self.results[key] = ([], time.time())
 
-
-    def run_joiner(self, event):
-        self.receive_all_books(event)
-        while not event.is_set():
-            msg = self.mom.consume(self.reviews_queue)
-            if not msg:
-                continue
-            (data_chunk, tag) = msg
+    def callback(self, ch, method, properties, body,event):
+        try:
+            data_chunk = DataChunk.from_str(body)
             ack = True
             for fragment in data_chunk.get_fragments():
                 if event.is_set():
                     return
                 if not self.is_side_table_ended(fragment.get_query_id(), fragment.get_client_id()):
                     ack = False
-                    self.mom.nack(tag)
+                    self.mom.nack(delivery_tag=method.delivery_tag)
                     self.receive_all_books(event, fragment.get_query_id(), fragment.get_client_id())
             if ack:
                 for fragment in data_chunk.get_fragments():
                     if not self.save_id(fragment):
                         continue
                     self.process_review_fragment(fragment, event)
-                self.mom.ack(tag)
+                self.mom.ack(delivery_tag=method.delivery_tag)
             self.send_with_timeout(event)
+        except Exception as e:
+            logger.error(f"Error en callback: {e}")
+
+    def run_joiner(self, event):
+        self.receive_all_books(event)
+        while not event.is_set():
+            self.mom.consume_with_callback(self.reviews_queue, self.callback, event)
 
     def run(self):
         self.event = Event()

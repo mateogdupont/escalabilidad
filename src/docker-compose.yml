@@ -40,19 +40,19 @@ services:
       - ../data:/data
     networks:
       - network-bridge
-    hostname: client
+    hostname: client1
 
-  # client2:
-  #   build:
-  #     context: .
-  #     dockerfile: ./client/Dockerfile
-  #   environment:
-  #     - ID=2
-  #   volumes:
-  #     - ../data:/data
-  #   networks:
-  #     - network-bridge
-  #   hostname: client1
+  client2:
+    build:
+      context: .
+      dockerfile: ./client/Dockerfile
+    environment:
+      - ID=2
+    volumes:
+      - ../data:/data
+    networks:
+      - network-bridge
+    hostname: client2
 
   cleaner1:
     build:

@@ -209,12 +209,9 @@ class Counter:
         return group_data, value
     
 
-    def run_counter(self, event):
-        while not event.is_set():
-            msg = self.mom.consume(self.work_queue)
-            if not msg:
-                continue
-            data_chunk, tag = msg
+    def callback(self, ch, method, properties, body,event):
+        try:
+            data_chunk = DataChunk.from_str(body)
             for data_fragment in data_chunk.get_fragments():
                 if event.is_set():
                     return
@@ -240,7 +237,13 @@ class Counter:
                         self.mom.publish(DataChunk(fragments), key)
 
                     self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
-            self.mom.ack(tag)
+            self.mom.ack(delivery_tag=method.delivery_tag)
+        except Exception as e:
+            logger.error(f"Error en callback: {e}")
+
+    def run_counter(self, event):
+        while not event.is_set():
+            self.mom.consume_with_callback(self.work_queue, self.callback, event)
 
     def run(self):
         self.event = Event()

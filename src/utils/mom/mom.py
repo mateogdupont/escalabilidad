@@ -30,7 +30,7 @@ class MOM:
                 return
             except Exception as e:
                 last_exception = e
-                sleep(0.1) # wait a little before trying again, perhaps the service is not up yet
+                sleep(0.5) # wait a little before trying again, perhaps the service is not up yet
         logger.error(f"Cannot connect to RabbitMQ, the last exception was: {last_exception}")
         raise last_exception
     
