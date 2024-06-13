@@ -90,6 +90,12 @@ class Analyzer:
                 else:
                     pass
                     self.log_writer.log_query_ended(data_fragment)
+
+                # the text is no longer needed
+                review = data_fragment.get_review()
+                review.set_text(None)
+                data_fragment.set_review(review)
+
                 next_steps = update_data_fragment_step(data_fragment)
                 
                 if not data_fragment.is_last():
