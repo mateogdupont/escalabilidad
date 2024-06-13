@@ -30,7 +30,7 @@ class MOM:
                 return
             except Exception as e:
                 last_exception = e
-                sleep(0.1) # wait a little before trying again, perhaps the service is not up yet
+                sleep(0.5) # wait a little before trying again, perhaps the service is not up yet
         logger.error(f"Cannot connect to RabbitMQ, the last exception was: {last_exception}")
         raise last_exception
     
@@ -61,6 +61,17 @@ class MOM:
             return None
         data_chunk = DataChunk.from_str(body)
         return data_chunk, method.delivery_tag
+    
+    def consume_with_callback(self, queue: str, callback: Any, *args) -> None:
+        if not queue in self.consumer_queues:
+            raise ValueError(f"Queue '{queue}' not found in consumer_queues.")
+        def internal_callback(ch, method, properties, body):
+            callback(ch, method, properties, body, *args)
+        self._execute(self._consume_with_callback, queue, internal_callback)
+    
+    def _consume_with_callback(self, queue: str, callback: Any) -> None:
+        self.channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=False)
+        self.channel.start_consuming()
     
     def ack(self, delivery_tag: int) -> None:
         self._execute(self._ack, delivery_tag)

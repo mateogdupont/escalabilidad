@@ -8,5 +8,5 @@ fi
 # Accede al argumento del string pasado desde Python
 container=$1
 
-# Imprime el string recibido desde Python
-docker compose up -d "$container"
+# Imprime el string recibido desde Python (ver qué flags son necesarias -> ver el force recreate)
+docker compose up -d --no-deps "$container" 

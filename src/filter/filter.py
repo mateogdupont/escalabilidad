@@ -156,25 +156,18 @@ class Filter:
                     logger.error(f"Data: {chunk.to_str()}")
                 self.results[key] = ([], time.time())
 
-    def run_filter(self, event):
-         while not event.is_set():
-            try:
-                msg = self.mom.consume(self.work_queue)
-            except Exception as e:
-                logger.error(f"Error al consumir de {self.work_queue}: {e}")
-                return
-              
-            if not msg:
-                self.send_with_timeout(event)
-                continue
-            data_chunk, tag = msg
-            # logger.info(f"Recibi data | {data_chunk.to_json()}")
+    def callback(self, ch, method, properties, body,event):
+        try:
+            data_chunk = DataChunk.from_str(body)
             self.filter_data_chunk(data_chunk,event)
-            try:
-                self.mom.ack(tag)
-            except Exception as e:
-                logger.error(f"Error al hacer ack de {tag}: {e}")
+            self.mom.ack(delivery_tag=method.delivery_tag)
             self.send_with_timeout(event)
+        except Exception as e:
+            logger.error(f"Error en callback: {e}")
+
+    def run_filter(self, event):
+        while not event.is_set():
+            self.mom.consume_with_callback(self.work_queue, self.callback, event)
 
     def run(self):
         self.event = Event()
@@ -183,7 +176,6 @@ class Filter:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.exit and filter_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
-            logger.info(f"Voy a mandar {msg} a { self.medic_addres}")
             sock.sendto(msg.encode(), self.medic_addres)
             time.sleep(HARTBEAT_INTERVAL)
         filter_proccess.join()

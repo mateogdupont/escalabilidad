@@ -40,7 +40,7 @@ services:
       - ../data:/data
     networks:
       - network-bridge
-    hostname: client
+    hostname: client1
 
   client2:
     build:
@@ -52,7 +52,7 @@ services:
       - ../data:/data
     networks:
       - network-bridge
-    hostname: client1
+    hostname: client2
 
   cleaner1:
     build:
@@ -60,6 +60,9 @@ services:
       dockerfile: ./data_cleaner/Dockerfile
     networks:
       - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
 
   filter1:
     build:
@@ -69,6 +72,9 @@ services:
       - ID=1
     networks:
       - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
   
   # filter2:
   #   build:
@@ -76,6 +82,9 @@ services:
   #     dockerfile: ./filter/Dockerfile
   #   networks:
   #     - network-bridge
+  # depends_on:
+  #     - rabbitmq1
+  # - medic
 
   # filter3:
   #   build:
@@ -83,6 +92,9 @@ services:
   #     dockerfile: ./filter/Dockerfile
   #   networks:
   #     - network-bridge
+  # depends_on:
+  #     - rabbitmq1
+  # - medic
 
   joiner1:
     build:
@@ -92,6 +104,9 @@ services:
       - ID=1
     networks:
       - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
   
   joiner2:
     build:
@@ -101,6 +116,9 @@ services:
       - ID=2
     networks:
       - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
 
   joiner3:
     build:
@@ -110,6 +128,9 @@ services:
       - ID=3
     networks:
       - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
 
   joiner4:
     build:
@@ -119,60 +140,9 @@ services:
       - ID=4
     networks:
       - network-bridge
-
-  # joiner5:
-  #   build:
-  #     context: .
-  #     dockerfile: ./joiner/Dockerfile
-  #   environment:
-  #     - ID=5
-  #   networks:
-  #     - network-bridge
-  
-  # joiner6:
-  #   build:
-  #     context: .
-  #     dockerfile: ./joiner/Dockerfile
-  #   environment:
-  #     - ID=6
-  #   networks:
-  #     - network-bridge
-
-  # joiner7:
-  #   build:
-  #     context: .
-  #     dockerfile: ./joiner/Dockerfile
-  #   environment:
-  #     - ID=7
-  #   networks:
-  #     - network-bridge
-
-  # joiner8:
-  #   build:
-  #     context: .
-  #     dockerfile: ./joiner/Dockerfile
-  #   environment:
-  #     - ID=8
-  #   networks:
-  #     - network-bridge 
-
-  # joiner9:
-  #   build:
-  #     context: .
-  #     dockerfile: ./joiner/Dockerfile
-  #   environment:
-  #     - ID=9
-  #   networks:
-  #     - network-bridge 
-  
-  # joiner10:
-  #   build:
-  #     context: .
-  #     dockerfile: ./joiner/Dockerfile
-  #   environment:
-  #     - ID=10
-  #   networks:
-  #     - network-bridge 
+    depends_on:
+      - rabbitmq1
+      - medic
 
   counter1:
     build:
@@ -182,6 +152,9 @@ services:
       - ID=1
     networks:
       - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
     
   sentiment-analyzer1:
     build:
@@ -191,6 +164,9 @@ services:
       - ID=1
     networks:
       - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
   
   sentiment-analyzer2:
     build: 
@@ -200,6 +176,9 @@ services:
       - ID=2
     networks:
       - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
 
   sentiment-analyzer3:
     build: 
@@ -209,69 +188,10 @@ services:
       - ID=3
     networks:
       - network-bridge
-  
-  # sentiment-analyzer4:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   networks:
-  #     - network-bridge
-  
-  # sentiment-analyzer5:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   networks:
-  #     - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
 
-  # sentiment-analyzer6:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   networks:
-  #     - network-bridge
-
-  # sentiment-analyzer7:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   networks:
-  #     - network-bridge
-  
-  # sentiment-analyzer8:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   networks:
-  #     - network-bridge
-  
-  # sentiment-analyzer9:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   networks:
-  #     - network-bridge
-  
-  # sentiment-analyzer10:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   networks:
-  #     - network-bridge
-  
-  # sentiment-analyzer11:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   networks:
-  #     - network-bridge
-  
-  # sentiment-analyzer12:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./sentiment-analyzer/Dockerfile
-  #   networks:
-  #     - network-bridge
   medic:
     build:
       context: .

@@ -161,33 +161,38 @@ class DataCleaner:
     def try_update_clients(self, clients):
         while True:
             try:
+                # logger.info(f"Antes de pedir a {self.clients_to_results_queue}")
                 message = self.clients_to_results_queue.get(False)
+                # logger.info(f"Despues de pedir")
                 clients[message[0]] = message[1:]
             except Empty:
                 return
    
     def proccess_result_chunk(self,event,clients, data_chunk, received_ids):
+        # logger.info(f"Entre a process")
         for fragment in data_chunk.get_fragments():
-                if event.is_set():
-                    break
-                if not save_id(received_ids, fragment):
-                    continue
-                client_id = fragment.get_client_id()
-                socket = clients.get(client_id)[0]
-                if not socket:
-                    logger.info(f"Read result for unregistered client")
-                    continue
-                send_msg(socket,[fragment.to_result()])
+            # logger.info(f"Entre a process con fragment")
+            if event.is_set():
+                break
+            if not save_id(received_ids, fragment):
+                # logger.info(f"3: No save id {received_ids}")
+                continue
+            client_id = fragment.get_client_id()
+            socket = clients.get(client_id)[0]
+            if not socket:
+                logger.info(f"Read result for unregistered client")
+                continue
+            send_msg(socket,[fragment.to_result()])
 
-                if fragment.is_last():
-                    logger.info(f"Last para {client_id}")
-                    queries_left = clients[client_id][1]
-                    if queries_left == 1:
-                        logger.info(f"Era el ultimo asique mato al client {client_id} en los results")
-                        socket.close()
-                        del clients[client_id]
-                    else:
-                        clients[client_id] = [socket, queries_left - 1]
+            if fragment.is_last():
+                logger.info(f"Last para {client_id}")
+                queries_left = clients[client_id][1]
+                if queries_left == 1:
+                    # logger.info(f"Era el ultimo asique mato al client {client_id} en los results")
+                    socket.close()
+                    del clients[client_id]
+                else:
+                    clients[client_id] = [socket, queries_left - 1]
 
     def results_handler(self,event):
         self._initialice_mom()
@@ -197,11 +202,11 @@ class DataCleaner:
             self.try_update_clients(clients)
             msg = self.mom.consume(self.work_queue)
             if not msg:
+                time.sleep(1)
                 continue
             (data_chunk, tag) = msg
             self.proccess_result_chunk(event,clients,data_chunk, received_ids)
             self.mom.ack(tag)
-
 
     def run(self):
         self._event = Event()
@@ -214,7 +219,7 @@ class DataCleaner:
                 self.try_clean_processes()
                 if len(self.clients_processes.keys()) < MAX_AMOUNT_OF_CLIENTS:
                     client_uuid = uuid.uuid4().hex
-                    logger.info(f"Voy a crear el hilo con id: {client_uuid} para socket: {socket}")
+                    # logger.info(f"Voy a crear el hilo con id: {client_uuid} para socket: {socket}")
                     client_proccess = Process(target=self.handle_client, args=(socket,client_uuid))
                     client_proccess.start()
                     self.clients_processes[client_uuid] = client_proccess
