@@ -39,7 +39,7 @@ class Analyzer:
         signal.signal(signal.SIGINT, self.sigterm_handler)
         log_queue = os.environ["LOG_QUEUE"]
         log_key = os.environ["LOG_KEY"]
-        self.log_writer = LogWriter(log_queue, log_key)
+        # self.log_writer = LogWriter(log_queue, log_key)
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -69,7 +69,7 @@ class Analyzer:
         if len(self.results[node]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.results[node])
             self.mom.publish(data_chunk, node)
-            self.log_writer.log_result_sent(node)
+            # self.log_writer.log_result_sent(node)
             self.results[node] = []
     
     def run(self):
@@ -88,12 +88,13 @@ class Analyzer:
                 if not data_fragment.is_last():
                     self.analyze(data_fragment)
                 else:
-                    self.log_writer.log_query_ended(data_fragment)
+                    pass
+                    # self.log_writer.log_query_ended(data_fragment)
                 next_steps = update_data_fragment_step(data_fragment)
                 
                 if not data_fragment.is_last():
                     list_next_steps = [(fragment, key) for fragment, key in next_steps.items()]
-                    self.log_writer.log_result(list_next_steps)
+                    # self.log_writer.log_result(list_next_steps)
                 
                 for fragment, key in next_steps.items():
                     self.add_and_try_to_send_chunk(fragment, key)

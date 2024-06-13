@@ -20,6 +20,7 @@ TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
+TOP = "TOP"
 
 class Counter:
     def __init__(self):
@@ -38,7 +39,7 @@ class Counter:
 
         log_queue = os.environ["LOG_QUEUE"]
         log_key = os.environ["LOG_KEY"]
-        self.log_writer = LogWriter(log_queue, log_key)
+        # self.log_writer = LogWriter(log_queue, log_key)
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
@@ -81,6 +82,10 @@ class Counter:
             self.counted_data[client_id] = {}
         if query_id not in self.counted_data[client_id].keys():
             self.counted_data[client_id][query_id] = {}
+
+        if query_info.filter_by_top():
+            return self.count_top(data_fragment, query_id)
+
         bool_set = []
         for v in [group_by, count_distinct, average_column, percentile_data]:
             bool_set.append(v is not None)
@@ -91,6 +96,30 @@ class Counter:
         if [True, False, False, True] == bool_set: # for query 5
             return self.count_type_3(data_fragment, query_id, queries, group_data, value, percentile_data[0])
         return []
+    
+    def count_top(self, data_fragment, query_id):
+        results = []
+        client_id = data_fragment.get_client_id()
+        query_info = data_fragment.get_query_info()
+        top_amount = query_info.get_top()[0]
+        if not data_fragment.is_last(): 
+            self.counted_data[client_id][query_id][TOP] = self.counted_data[client_id][query_id].get(TOP, [])
+            if len(self.counted_data[client_id][query_id][TOP]) < top_amount:
+                self.counted_data[client_id][query_id][TOP].append(data_fragment)
+            else:
+                lowest = self.counted_data[client_id][query_id][TOP][0]
+                if data_fragment.get_query_info().get_average() > lowest.get_query_info().get_average():
+                    self.counted_data[client_id][query_id][TOP][0] = data_fragment
+            self.counted_data[client_id][query_id][TOP] = sorted(self.counted_data[client_id][query_id][TOP], key=lambda fragment: fragment.get_query_info().get_average())
+        else:
+            top = self.counted_data[client_id][query_id][TOP]
+            for fragment in top:
+                if self.exit:
+                    return results
+                results.append(fragment)
+            self.counted_data[client_id][query_id].pop(TOP)
+            self.clean_data(query_id, client_id)
+        return results
 
     def count_type_3(self, data_fragment, query_id, queries, group_data, value, percentile):
         results = []
@@ -219,15 +248,15 @@ class Counter:
                 results = self.count_data_fragment(data_fragment)
 
                 if data_fragment.is_last():
-                    self.log_writer.log_query_ended(data_fragment)
+                    # self.log_writer.log_query_ended(data_fragment)
                     self.send_results(data_fragment, results)
-                    self.log_writer.log_counted_data_sent(data_fragment)
+                    # self.log_writer.log_counted_data_sent(data_fragment)
                     self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
                 else:
                     client_id = data_fragment.get_client_id()
                     query_id = data_fragment.get_query_id()
                     counted_data = self.counted_data[client_id][query_id]
-                    self.log_writer.log_counted_data(data_fragment, counted_data)
+                    # self.log_writer.log_counted_data(data_fragment, counted_data)
             self.mom.ack(tag)
 
     def send_results(self, data_fragment, results):
