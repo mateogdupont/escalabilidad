@@ -8,7 +8,7 @@ TITLE = "TITLE"
 AUTHOR = "AUTHOR"
 
 # Books logs
-BOOK = "BOOK"                           # <book title> <datafragment como str> # se hace en formato json
+BOOK = "BOOK"                           # <book title> <datafragment como str> # se hace en formato dict
 RECEIVED_ID = "RECEIVED_ID"             # <client_id> <query_id> <df_id>
 SIDE_TABLE_UPDATE = "SIDE_TABLE_UPDATE" # <client_id> <query_id> <book title>
 SIDE_TABLE_ENDED = "SIDE_TABLE_ENDED"   # <client_id> <query_id>
@@ -19,20 +19,12 @@ RESULT = "RESULT"                       # <node> <time> <datafragment como str>
 QUERY_ENDED = "QUERY_ENDED"             # <client_id> <query_id>
 RESULT_SENT = "RESULT_SENT"             # <node>
 
-BOOK_PRIORITY = HIGH
 SIDE_TABLE_UPDATE_PRIORITY = LOW
 SIDE_TABLE_ENDED_PRIORITY = MEDIUM
 
 class LogWriter(BasicLogWriter):
     def __init__(self, log_queue: str, routing_key: str) -> None:
         super().__init__(log_queue, routing_key)
-
-    def log_book(self, book: Book) -> None:
-        book_title = book.get_title()
-        book_str = book.to_str()
-        json_dict = {TITLE: book_title, AUTHOR: book_str}
-        log = f"{BOOK} {json.dumps(json_dict)}"
-        self._add_logs({log: BOOK_PRIORITY})
 
     def log_side_table_update(self, fragment: DataFragment) -> None:
         client_id = fragment.get_client_id()

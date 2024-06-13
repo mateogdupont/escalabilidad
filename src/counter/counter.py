@@ -135,6 +135,9 @@ class Counter:
                 self.counted_data[client_id][query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
             self.counted_data[client_id][query_id][group_data]["VALUES"].append(value)
             self.books[group_data] = data_fragment.get_book()
+            self.log_writer.log_book(data_fragment.get_book())
+            count_info = {"PERCENTILE": percentile, "NEW_VALUE": value}
+            self.log_writer.log_counted_data(data_fragment, repr(count_info))
         else:
             sentiment_scores = {}
             percentile_number = None
@@ -174,6 +177,9 @@ class Counter:
             self.counted_data[client_id][query_id][group_data]["TOTAL"] += value
             self.counted_data[client_id][query_id][group_data]["COUNT"] += 1
             self.books[group_data] = data_fragment.get_book()
+            self.log_writer.log_book(data_fragment.get_book())
+            count_info = {"NEW_VALUE": value}
+            self.log_writer.log_counted_data(data_fragment, repr(count_info))
         else:
             next_id = data_fragment.get_id() + 1
             for group_data in self.counted_data[client_id][query_id].keys():
@@ -203,6 +209,8 @@ class Counter:
                     if data not in self.counted_data[client_id][query_id].keys():
                         self.counted_data[client_id][query_id][data] = set()
                     self.counted_data[client_id][query_id][data].add(value)
+                    count_info = {"NEW_VALUE": value}
+                    self.log_writer.log_counted_data(data_fragment, repr(count_info))
             else:
                 logger.warning(f"Group data is not a list, it is a {type(group_data)}")
         else:
@@ -252,11 +260,7 @@ class Counter:
                     self.send_results(data_fragment, results)
                     # self.log_writer.log_counted_data_sent(data_fragment)
                     self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
-                else:
-                    client_id = data_fragment.get_client_id()
-                    query_id = data_fragment.get_query_id()
-                    counted_data = self.counted_data[client_id][query_id]
-                    # self.log_writer.log_counted_data(data_fragment, counted_data)
+                    
             self.mom.ack(tag)
 
     def send_results(self, data_fragment, results):

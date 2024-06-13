@@ -1,21 +1,27 @@
 import os
 from typing import List, Optional, Tuple
 from utils.mom.mom import MOM
+from utils.structs.book import Book
 from utils.structs.data_fragment import DataFragment
 
 HIGH = 3
 MEDIUM = 2
 LOW = 1
 
+BOOK_PRIORITY = HIGH
+RECEIVED_ID_PRIORITY = LOW
+RESULT_PRIORITY = LOW
+QUERY_ENDED_PRIORITY = MEDIUM
+RESULT_SENT_PRIORITY = MEDIUM
+
+BOOK = "BOOK"               # <book title> <datafragment como str>
 RECEIVED_ID = "RECEIVED_ID" # <client_id> <query_id> <df_id>
 RESULT = "RESULT"           # <node> [<time>] <datafragment como str>
 QUERY_ENDED = "QUERY_ENDED" # <client_id> <query_id>
 RESULT_SENT = "RESULT_SENT" # <node>
 
-RECEIVED_ID_PRIORITY = LOW
-RESULT_PRIORITY = LOW
-QUERY_ENDED_PRIORITY = MEDIUM
-RESULT_SENT_PRIORITY = MEDIUM
+TITLE = "TITLE"
+AUTHOR = "AUTHOR"
 
 class BasicLogWriter:
     def __init__(self, log_queue: str, routing_key: str) -> None:
@@ -59,3 +65,11 @@ class BasicLogWriter:
     
     def log_result_sent(self, node: str) -> None:
         self._add_logs({f"{RESULT_SENT} {node}": RESULT_SENT_PRIORITY})
+    
+    def log_book(self, book: Book) -> None:
+        book_title = book.get_title()
+        book_str = book.to_str()
+        book_info = {TITLE: book_title, AUTHOR: book_str}
+        log = f"{BOOK} {repr(book_info)}"
+        self._add_logs({log: BOOK_PRIORITY})
+
