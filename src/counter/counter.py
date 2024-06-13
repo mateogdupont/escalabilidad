@@ -39,7 +39,7 @@ class Counter:
 
         log_queue = os.environ["LOG_QUEUE"]
         log_key = os.environ["LOG_KEY"]
-        # self.log_writer = LogWriter(log_queue, log_key)
+        self.log_writer = LogWriter(log_queue, log_key)
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
@@ -256,9 +256,9 @@ class Counter:
                 results = self.count_data_fragment(data_fragment)
 
                 if data_fragment.is_last():
-                    # self.log_writer.log_query_ended(data_fragment)
+                    self.log_writer.log_query_ended(data_fragment)
                     self.send_results(data_fragment, results)
-                    # self.log_writer.log_counted_data_sent(data_fragment)
+                    self.log_writer.log_counted_data_sent(data_fragment)
                     self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
                     
             self.mom.ack(tag)

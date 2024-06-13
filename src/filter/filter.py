@@ -35,7 +35,7 @@ class Filter:
         self.exit = False
         log_queue = os.environ["LOG_QUEUE"]
         log_key = os.environ["LOG_KEY"]
-        # # self.log_writer = LogWriter(log_queue, log_key)
+        # self.log_writer = LogWriter(log_queue, log_key)
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -89,7 +89,7 @@ class Filter:
             data_chunk = DataChunk(self.results[node][0])
             try:
                 self.mom.publish(data_chunk, node)
-                # self.log_writer.log_result_sent(node)
+                self.log_writer.log_result_sent(node)
             except Exception as e:
                 logger.error(f"Error al enviar a {node}: {e}")
                 logger.error(f"Data: {data_chunk.to_str()}")
@@ -107,14 +107,14 @@ class Filter:
                     if len(next_steps.items()) == 0:
                         logger.info(f"Fragmento {fragment} no tiene siguiente paso")
                     list_next_steps = [(fragment, key) for fragment, key in next_steps.items()]
-                    # self.log_writer.log_result(list_next_steps)
+                    self.log_writer.log_result(list_next_steps)
                     for data, key in next_steps.items():
                         self.add_and_try_to_send_chunk(data, key)
                 else:
                     pass
-                    # self.log_writer.log_received_id(fragment)
+                    self.log_writer.log_received_id(fragment)
             if fragment.is_last():
-                # self.log_writer.log_query_ended(fragment)
+                self.log_writer.log_query_ended(fragment)
                     
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
@@ -128,7 +128,7 @@ class Filter:
                 chunk = DataChunk(data)
                 try:
                     self.mom.publish(chunk, key)
-                    # self.log_writer.log_result_sent(node)
+                    self.log_writer.log_result_sent(node)
                 except Exception as e:
                     logger.error(f"Error al enviar a {key}: {e}")
                     logger.error(f"Data: {chunk.to_str()}")
