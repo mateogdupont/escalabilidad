@@ -35,7 +35,7 @@ class Filter:
         self.exit = False
         log_queue = os.environ["LOG_QUEUE"]
         log_key = os.environ["LOG_KEY"]
-        # self.log_writer = LogWriter(log_queue, log_key)
+        self.log_writer = LogWriter(log_queue, log_key)
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
