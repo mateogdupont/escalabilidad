@@ -19,9 +19,6 @@ RESULT = "RESULT"                       # <node> <time> <datafragment como str>
 QUERY_ENDED = "QUERY_ENDED"             # <client_id> <query_id>
 RESULT_SENT = "RESULT_SENT"             # <node>
 
-SIDE_TABLE_UPDATE_PRIORITY = LOW
-SIDE_TABLE_ENDED_PRIORITY = MEDIUM
-
 class LogWriter(BasicLogWriter):
     def __init__(self, log_queue: str, routing_key: str) -> None:
         super().__init__(log_queue, routing_key)
@@ -33,7 +30,7 @@ class LogWriter(BasicLogWriter):
         book_title = fragment.get_book().get_title()
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
         update_log = f"{SIDE_TABLE_UPDATE} {client_id} {query_id} {book_title}"
-        self._add_logs({id_log: RECEIVED_ID_PRIORITY, update_log: SIDE_TABLE_UPDATE_PRIORITY})
+        self._add_logs([id_log, update_log])
     
     def log_side_table_ended(self, fragment: DataFragment) -> None:
         client_id = fragment.get_client_id()
@@ -41,4 +38,4 @@ class LogWriter(BasicLogWriter):
         df_id = fragment.get_id()
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
         ended_log = f"{SIDE_TABLE_ENDED} {client_id} {query_id}"
-        self._add_logs({id_log: RECEIVED_ID_PRIORITY, ended_log: SIDE_TABLE_ENDED_PRIORITY})
+        self._add_logs([id_log, ended_log])

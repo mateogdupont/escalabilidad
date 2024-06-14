@@ -8,8 +8,6 @@ RESULT = "RESULT"           # <node> <time> <datafragment como str>
 QUERY_ENDED = "QUERY_ENDED" # <client_id> <query_id>
 RESULT_SENT = "RESULT_SENT" # <node>
 
-TOP_UPDATE_PRIORITY = LOW
-
 class LogWriter(BasicLogWriter):
     def __init__(self, log_queue: str, routing_key: str) -> None:
         super().__init__(log_queue, routing_key)
@@ -19,6 +17,6 @@ class LogWriter(BasicLogWriter):
         query_id = fragment.get_query_id()
         df_id = fragment.get_id()
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
-        self._add_logs({id_log: RECEIVED_ID_PRIORITY})
+        self._add_logs([id_log])
 
     

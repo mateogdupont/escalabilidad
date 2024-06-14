@@ -40,12 +40,8 @@ class Joiner:
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
-        log_queue_books = os.environ["LOG_QUEUE_BOOKS"]
-        log_key_books = os.environ["LOG_KEY_BOOKS"]
-        self.log_writer_books = LogWriter(log_queue_books, log_key_books)
-        log_queue_reviews = os.environ["LOG_QUEUE_REVIEWS"]
-        log_key_reviews = os.environ["LOG_KEY_REVIEWS"]
-        self.log_writer_reviews = LogWriter(log_queue_reviews, log_key_reviews)
+        self.log_writer_books = LogWriter(os.environ["LOG_PATH_BOOKS"])
+        self.log_writer_reviews = LogWriter(os.environ["LOG_PATH_REVIEWS"])
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -58,11 +54,6 @@ class Joiner:
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
         self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
         if id in self.received_ids[client_id][query_id]:
-            logger.warning("-----------------------------------------------")
-            logger.warning(f"Repeated id: {id} from client: {client_id} query: {query_id}")
-            logger.warning(f"Data saved: {self.received_ids[client_id][query_id][id]}")
-            logger.warning(f"Data received: {data_fragment.to_human_readable()}")
-            logger.warning("-----------------------------------------------")
             return False
         self.received_ids[client_id][query_id].add(id)
         return True

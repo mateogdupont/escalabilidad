@@ -37,9 +37,7 @@ class Analyzer:
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
-        log_queue = os.environ["LOG_QUEUE"]
-        log_key = os.environ["LOG_KEY"]
-        self.log_writer = LogWriter(log_queue, log_key)
+        self.log_writer = LogWriter(os.environ["LOG_PATH"])
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -51,11 +49,6 @@ class Analyzer:
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
         self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
         if id in self.received_ids[client_id][query_id]:
-            logger.warning("-----------------------------------------------")
-            logger.warning(f"Repeated id: {id} from client: {client_id} query: {query_id}")
-            logger.warning(f"Data saved: {self.received_ids[client_id][query_id][id]}")
-            logger.warning(f"Data received: {data_fragment.to_human_readable()}")
-            logger.warning("-----------------------------------------------")
             return False
         self.received_ids[client_id][query_id].add(id)
         return True
