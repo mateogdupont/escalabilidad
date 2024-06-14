@@ -25,12 +25,12 @@ class MOM:
         for _ in range(MAX_TRIES):
             try:
                 credentials = pika.PlainCredentials(os.environ["RABBITMQ_DEFAULT_USER"], os.environ["RABBITMQ_DEFAULT_PASS"])
-                self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', credentials=credentials))
+                self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', credentials=credentials, heartbeat=60*60))
                 self.channel = self.connection.channel()
                 return
             except Exception as e:
                 last_exception = e
-                sleep(0.1) # wait a little before trying again, perhaps the service is not up yet
+                sleep(0.5) # wait a little before trying again, perhaps the service is not up yet
         logger.error(f"Cannot connect to RabbitMQ, the last exception was: {last_exception}")
         raise last_exception
     
@@ -62,6 +62,17 @@ class MOM:
         data_chunk = DataChunk.from_str(body)
         return data_chunk, method.delivery_tag
     
+    def consume_with_callback(self, queue: str, callback: Any, *args) -> None:
+        if not queue in self.consumer_queues:
+            raise ValueError(f"Queue '{queue}' not found in consumer_queues.")
+        def internal_callback(ch, method, properties, body):
+            callback(ch, method, properties, body, *args)
+        self._execute(self._consume_with_callback, queue, internal_callback)
+    
+    def _consume_with_callback(self, queue: str, callback: Any) -> None:
+        self.channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=False)
+        self.channel.start_consuming()
+    
     def ack(self, delivery_tag: int) -> None:
         self._execute(self._ack, delivery_tag)
     
@@ -74,43 +85,18 @@ class MOM:
     def _nack(self, delivery_tag: int) -> None:
         self.channel.basic_nack(delivery_tag=delivery_tag)
     
-    def publish(self, data_chunk: DataChunk, key: str, priority: int = 1) -> None:
+    def publish(self, data_chunk: DataChunk, key: str) -> None:
         if data_chunk is None or data_chunk.get_fragments() is None or len(data_chunk.get_fragments()) == 0 or data_chunk.to_str() is None:
             logger.error(f"DataChunk is None")
-        self._execute(self._publish, data_chunk, key, priority)
+        self._execute(self._publish, data_chunk, key)
             
-    def _publish(self, data_chunk: DataChunk, key: str, priority: int = 1) -> None:
+    def _publish(self, data_chunk: DataChunk, key: str) -> None:
         self.channel.basic_publish(exchange=self.exchange,
                                     routing_key=key,
                                     body=data_chunk.to_str(),
                                     properties=pika.BasicProperties(
-                                        delivery_mode=2,
-                                        priority=priority
+                                        delivery_mode = 2, # make message persistent
                                     ))
-    
-    def publish_log(self, queue_name: str, message: str, priority: int = 1) -> None:
-        self._execute(self._publish_log, queue_name, message, priority)
-
-    def _publish_log(self, queue_name: str, message: str, priority: int = 1) -> None:
-        self.channel.basic_publish(exchange="",
-                                      routing_key=queue_name,
-                                      body=message,
-                                        properties=pika.BasicProperties(
-                                            delivery_mode=2,
-                                            priority=priority
-                                        ))
-    
-    def publish_log_global(self, key: str, message: str, priority: int = 1) -> None:
-        self._execute(self._publish_log_global, key, message, priority)
-
-    def _publish_log_global(self, key: str, message: str, priority: int = 1) -> None:
-        self.channel.basic_publish(exchange=self.exchange,
-                                      routing_key=key,
-                                      body=message,
-                                        properties=pika.BasicProperties(
-                                            delivery_mode=2,
-                                            priority=priority
-                                        ))
 
     def close(self):
         try:

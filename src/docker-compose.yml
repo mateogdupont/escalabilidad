@@ -87,18 +87,18 @@ services:
     environment:
       - LOG_PATH=/logs/filter1.log
   
-  filter2:
-    build:
-      context: .
-      dockerfile: ./filter/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
-    volumes:
-      - ../logs:/logs
-    environment:
-      - LOG_PATH=/logs/filter2.log
+  # filter2:
+  #   build:
+  #     context: .
+  #     dockerfile: ./filter/Dockerfile
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - network-bridge
+  #   volumes:
+  #     - ../logs:/logs
+  #   environment:
+  #     - LOG_PATH=/logs/filter2.log
 
   # filter3:
   #   build:
