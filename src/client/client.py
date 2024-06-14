@@ -145,9 +145,9 @@ class Client:
                 break
             for result in results:
                 if result[0] == '1':
+                    logger.info(f"The query {result[1]} has been processed")
                     amount_of_queries_left -= 1
                     result_files[int(result[1])].close()
-                    logger.info(f"The query {result[1]} has been processed")
                     continue
                 self.write_result_in_file(result_writers, result)
                 if event.is_set():
