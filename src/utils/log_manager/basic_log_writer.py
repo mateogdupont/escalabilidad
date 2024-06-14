@@ -33,7 +33,7 @@ class BasicLogWriter:
         client_id = next_steps[0][0].get_client_id()
         query_id = next_steps[0][0].get_query_id()
         df_id = next_steps[0][0].get_id()
-        logs = {}
+        logs = []
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
         logs.append(id_log)
         for df, node in next_steps:
