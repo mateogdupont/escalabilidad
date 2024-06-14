@@ -104,13 +104,19 @@ class Counter:
         top_amount = query_info.get_top()[0]
         if not data_fragment.is_last(): 
             self.counted_data[client_id][query_id][TOP] = self.counted_data[client_id][query_id].get(TOP, [])
+            added = False
             if len(self.counted_data[client_id][query_id][TOP]) < top_amount:
                 self.counted_data[client_id][query_id][TOP].append(data_fragment)
+                added = True
             else:
                 lowest = self.counted_data[client_id][query_id][TOP][0]
                 if data_fragment.get_query_info().get_average() > lowest.get_query_info().get_average():
                     self.counted_data[client_id][query_id][TOP][0] = data_fragment
-            self.counted_data[client_id][query_id][TOP] = sorted(self.counted_data[client_id][query_id][TOP], key=lambda fragment: fragment.get_query_info().get_average())
+                    added = True
+            if added:
+                self.counted_data[client_id][query_id][TOP] = sorted(self.counted_data[client_id][query_id][TOP], key=lambda fragment: fragment.get_query_info().get_average())
+                count_info = {"NEW_VALUE": data_fragment.to_str()}
+                self.log_writer.log_counted_data(data_fragment, repr(count_info))
         else:
             top = self.counted_data[client_id][query_id][TOP]
             for fragment in top:
