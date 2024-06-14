@@ -137,6 +137,7 @@ class Client:
         except Exception as e:
             logger.info(f"Error writing in file: {e}")
             logger.info(f"Query: {query}")
+            logger.info(f"rows: {rows}")
 
 # ['last','Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
     def _handle_results(self, event):
