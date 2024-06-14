@@ -10,8 +10,8 @@ QUERY_ENDED = "QUERY_ENDED"             # <client_id> <query_id>
 COUNTED_DATA_SENT = "COUNTED_DATA_SENT" # <client_id> <query_id>
 
 class LogWriter(BasicLogWriter):
-    def __init__(self, log_queue: str, routing_key: str) -> None:
-        super().__init__(log_queue, routing_key)
+    def __init__(self, file_path: str) -> None:
+        super().__init__(file_path)
 
     def log_counted_data(self, fragment: DataFragment, count_info: str) -> None:
         client_id = fragment.get_client_id()
