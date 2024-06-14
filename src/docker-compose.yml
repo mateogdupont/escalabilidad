@@ -95,6 +95,10 @@ services:
       - rabbitmq
     networks:
       - network-bridge
+    volumes:
+      - ../logs:/logs
+    environment:
+      - LOG_PATH=/logs/filter2.log
 
   # filter3:
   #   build:
@@ -104,6 +108,10 @@ services:
   #     - rabbitmq
   #   networks:
   #     - network-bridge
+  #   volumes:
+  #     - ../logs:/logs
+  #   environment:
+  #     - LOG_PATH=/logs/filter3.log
 
   joiner1:
     build:
