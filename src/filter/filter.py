@@ -104,7 +104,7 @@ class Filter:
                     if len(next_steps.items()) == 0:
                         logger.info(f"Fragmento {fragment} no tiene siguiente paso")
                     list_next_steps = [(fragment, key) for fragment, key in next_steps.items()]
-                    self.log_writer.log_result(list_next_steps)
+                    self.log_writer.log_result(list_next_steps, time=time.time())
                     for data, key in next_steps.items():
                         self.add_and_try_to_send_chunk(data, key)
                 else:
