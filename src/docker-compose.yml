@@ -1,7 +1,7 @@
 name: 'amazon-books-analyzer'
 
 services:
-  rabbitmq:
+  rabbitmq1:
     build:
       context: rabbitmq/
       dockerfile: Dockerfile
@@ -11,14 +11,8 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-}
     volumes:
-      - type: bind
-        source: ./rabbitmq/config/rabbitmq.conf
-        target: /etc/rabbitmq/rabbitmq.conf
-        read_only: true
-      - type: bind
-        source: ./rabbitmq/config/definitions.json
-        target: /etc/rabbitmq/definitions.json
-        read_only: true
+      - ./rabbitmq/config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ./rabbitmq/config/definitions.json:/etc/rabbitmq/definitions.json
       - type: volume
         source: rabbitmq
         target: /var/lib/rabbitmq
@@ -32,86 +26,85 @@ services:
   #   build:
   #     context: rabbitmq-test/
   #     dockerfile: Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
 
-  client:
+  client1:
     build:
       context: .
       dockerfile: ./client/Dockerfile
     environment:
-      - ID=0
+      - ID=1
     volumes:
       - ../data:/data
     networks:
       - network-bridge
-    hostname: client
-    depends_on:
-      - cleaner
+    hostname: client1
 
-  # client1:
+  # client2:
   #   build:
   #     context: .
   #     dockerfile: ./client/Dockerfile
   #   environment:
-  #     - ID=1
+  #     - ID=2
   #   volumes:
   #     - ../data:/data
   #   networks:
   #     - network-bridge
-  #   hostname: client1
-  #   depends_on:
-  #     - cleaner
+  #   hostname: client2
 
-  cleaner:
-      build:
-        context: .
-        dockerfile: ./data_cleaner/Dockerfile
-      networks:
-        - network-bridge
-      depends_on:
-        - rabbitmq
+  cleaner1:
+    build:
+      context: .
+      dockerfile: ./data_cleaner/Dockerfile
+    networks:
+      - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
 
   filter1:
     build:
       context: .
       dockerfile: ./filter/Dockerfile
-    depends_on:
-      - rabbitmq
+    environment:
+      - ID=1
     networks:
       - network-bridge
+      - LOG_PATH=/logs/filter1.log
     volumes:
       - ../logs:/logs
-    environment:
-      - LOG_PATH=/logs/filter1.log
+    depends_on:
+      - rabbitmq1
+      - medic
   
   # filter2:
   #   build:
   #     context: .
   #     dockerfile: ./filter/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
   #   volumes:
   #     - ../logs:/logs
   #   environment:
   #     - LOG_PATH=/logs/filter2.log
+  # depends_on:
+  #     - rabbitmq1
+  # - medic
 
   # filter3:
   #   build:
   #     context: .
   #     dockerfile: ./filter/Dockerfile
-  #   depends_on:
-  #     - rabbitmq
   #   networks:
   #     - network-bridge
   #   volumes:
   #     - ../logs:/logs
   #   environment:
   #     - LOG_PATH=/logs/filter3.log
+  # depends_on:
+  #     - rabbitmq1
+  # - medic
 
   joiner1:
     build:
@@ -121,12 +114,13 @@ services:
       - ID=1
       - LOG_PATH_BOOKS=/logs/joiner1_books.log
       - LOG_PATH_REVIEWS=/logs/joiner1_reviews.log
-    depends_on:
-      - rabbitmq
     networks:
       - network-bridge
     volumes:
       - ../logs:/logs
+    depends_on:
+      - rabbitmq1
+      - medic
   
   joiner2:
     build:
@@ -136,12 +130,13 @@ services:
       - ID=2
       - LOG_PATH_BOOKS=/logs/joiner2_books.log
       - LOG_PATH_REVIEWS=/logs/joiner2_reviews.log
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
     volumes:
       - ../logs:/logs
+    networks:
+      - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
 
   joiner3:
     build:
@@ -151,12 +146,13 @@ services:
       - ID=3
       - LOG_PATH_BOOKS=/logs/joiner3_books.log
       - LOG_PATH_REVIEWS=/logs/joiner3_reviews.log
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
     volumes:
       - ../logs:/logs
+    networks:
+      - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
 
   joiner4:
     build:
@@ -173,83 +169,107 @@ services:
     volumes:
       - ../logs:/logs
 
-  counter:
+  counter1:
     build:
       context: .
       dockerfile: ./counter/Dockerfile
-    depends_on:
-      - rabbitmq
+    environment:
+      - ID=1
+      - LOG_PATH=/logs/counter.log
     networks:
       - network-bridge
     volumes:
       - ../logs:/logs
-    environment:
-      - LOG_PATH=/logs/counter.log
+    depends_on:
+      - rabbitmq1
+      - medic
     
   sentiment-analyzer1:
     build:
       context: .
       dockerfile: ./sentiment_analyzer/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
     volumes:
       - ../logs:/logs
     environment:
       - LOG_PATH=/logs/sentiment_analyzer1.log
+      - ID=1
+    networks:
+      - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
   
   sentiment-analyzer2:
     build: 
       context: .
       dockerfile: ./sentiment_analyzer/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
     volumes:
       - ../logs:/logs
     environment:
       - LOG_PATH=/logs/sentiment_analyzer2.log
-
+      - ID=2
+    networks:
+      - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
+  
   sentiment-analyzer3:
     build: 
       context: .
       dockerfile: ./sentiment_analyzer/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
     volumes:
       - ../logs:/logs
     environment:
       - LOG_PATH=/logs/sentiment_analyzer3.log
-  
+      - ID=3
+    networks:
+      - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
+
   sentiment-analyzer4:
     build: 
       context: .
       dockerfile: ./sentiment_analyzer/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
     volumes:
       - ../logs:/logs
     environment:
       - LOG_PATH=/logs/sentiment_analyzer4.log
+      - ID=4
+    networks:
+      - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
   
   sentiment-analyzer5:
     build: 
       context: .
       dockerfile: ./sentiment_analyzer/Dockerfile
-    depends_on:
-      - rabbitmq
-    networks:
-      - network-bridge
     volumes:
       - ../logs:/logs
     environment:
       - LOG_PATH=/logs/sentiment_analyzer5.log
+      - ID=5
+    networks:
+      - network-bridge
+    depends_on:
+      - rabbitmq1
+      - medic
+
+  medic:
+    build:
+      context: .
+      dockerfile: ./medic/Dockerfile
+    environment:
+      - ID=0
+    networks:
+      - network-bridge
+    hostname: medic
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
 networks:
   network-bridge:

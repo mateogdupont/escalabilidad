@@ -1,12 +1,14 @@
 import sys
 import os
 import signal
+import socket
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
 from utils.structs.data_chunk import *
 from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
+from multiprocessing import Process, Event
 from dotenv import load_dotenv # type: ignore
 import sys
 import time
@@ -14,16 +16,17 @@ import logging as logger
 from log_manager.log_writer import *
 from log_manager.log_recoverer import *
 
-
+load_dotenv()
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
+NODE_TYPE=os.environ["NODE_TYPE"]
+HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 MAX_WAIT_TIME = 60 * 15
 
 class Joiner:
     def __init__(self):
-        load_dotenv()
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         log_recoverer_reviews = LogRecoverer(os.environ["LOG_PATH_REVIEWS"])
         log_recoverer_reviews.recover_data()
@@ -37,6 +40,7 @@ class Joiner:
         self.reviews_queue = os.environ["REVIEWS_QUEUE"]
         consumer_queues[self.books_queue] = consumer_queues[os.environ["BOOKS_QUEUE"]]
         consumer_queues.pop(os.environ["BOOKS_QUEUE"])
+        self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
         self.mom = MOM(consumer_queues)
         self.books_side_tables = log_recoverer_books.get_books_side_tables()
         self.books = log_recoverer_books.get_books()
@@ -44,6 +48,7 @@ class Joiner:
         self.received_ids = log_recoverer_reviews.get_received_ids()
         self.results = log_recoverer_reviews.get_results()
         self.exit = False
+        self.event = None
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.log_writer_books = LogWriter(os.environ["LOG_PATH_BOOKS"])
@@ -54,6 +59,9 @@ class Joiner:
         self.mom.close()
         self.log_writer_books.close()
         self.log_writer_reviews.close()
+        if self.event:
+            self.event.set()
+
 
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
@@ -99,16 +107,17 @@ class Joiner:
         client_id = fragment.get_client_id()
         self.save_book_in_table(book, query_id, client_id)
 
-    def receive_all_books(self, query_id=None, client_id=None):
+    def receive_all_books(self, event, query_id=None, client_id=None):
         logger.info(f"Receiving all books for query {query_id}")
         completed = False
-        while not self.exit and not completed:
+        while not event.is_set() and not completed:
             msg = self.mom.consume(self.books_queue)
             if not msg:
+                time.sleep(1)
                 continue
             (data_chunk, tag) = msg
             for fragment in data_chunk.get_fragments():
-                if self.exit:
+                if event.is_set():
                     return
                 if not self.save_id(fragment):
                     continue
@@ -129,8 +138,8 @@ class Joiner:
                     self.log_writer_books.log_side_table_update(fragment)
             self.mom.ack(tag)
 
-    def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str):
-        if self.exit:
+    def add_and_try_to_send_chunk(self, fragment: DataFragment, node: str, event):
+        if event.is_set():
             return
         if not node in self.results.keys():
             self.results[node] = ([], time.time())
@@ -142,11 +151,11 @@ class Joiner:
             self.log_writer_reviews.log_result_sent(node)
             self.results[node] = ([], time.time())
 
-    def process_review_fragment(self, fragment: DataFragment):
+    def process_review_fragment(self, fragment: DataFragment,event):
         review = fragment.get_review()
         query_id = fragment.get_query_id()
         client_id = fragment.get_client_id()
-        if (not fragment.is_last()) and (review is not None) and (not self.exit):
+        if (not fragment.is_last()) and (review is not None) and (not event.is_set()):
             side_table = self.books_side_tables[client_id][query_id]
             if review.get_book_title() in side_table:
                 book = self.books[review.get_book_title()]
@@ -154,18 +163,18 @@ class Joiner:
                 next_steps = update_data_fragment_step(fragment)
                 list_next_steps = [(fragment, key) for fragment, key in next_steps.items()]
                 self.log_writer_reviews.log_result(list_next_steps, time=time.time())
+
                 for data, key in next_steps.items():
-                    self.add_and_try_to_send_chunk(data, key)
-        if (fragment.is_last()) and (not self.exit):
+                    self.add_and_try_to_send_chunk(data, key, event)
+        if (fragment.is_last()) and (not event.is_set()):
             self.log_writer_reviews.log_query_ended(fragment)
             for data, key in update_data_fragment_step(fragment).items():
-                logger.info(f"Sending to {key}")
-                self.add_and_try_to_send_chunk(data, key)
+                self.add_and_try_to_send_chunk(data, key, event)
             self.clean_data(query_id, client_id)
 
-    def send_with_timeout(self):
+    def send_with_timeout(self,event):
         for key, (data, last_sent) in self.results.items():
-            if self.exit:
+            if event.is_set():
                 return
             if (len(data) > 0) and (time.time() - last_sent > TIMEOUT):
                 chunk = DataChunk(data)
@@ -173,30 +182,44 @@ class Joiner:
                 self.log_writer_reviews.log_result_sent(key)
                 self.results[key] = ([], time.time())
 
-    def run(self):
-        if len(self.books_side_tables) == 0:
-            self.receive_all_books()
-        while not self.exit:
-            msg = self.mom.consume(self.reviews_queue)
-            if not msg:
-                continue
-            (data_chunk, tag) = msg
+    def callback(self, ch, method, properties, body,event):
+        try:
+            data_chunk = DataChunk.from_str(body)
             ack = True
             for fragment in data_chunk.get_fragments():
-                if self.exit:
+                if event.is_set():
                     return
                 if not self.is_side_table_ended(fragment.get_query_id(), fragment.get_client_id()):
                     ack = False
-                    self.mom.nack(tag)
-                    self.receive_all_books(fragment.get_query_id(), fragment.get_client_id())
+                    self.mom.nack(delivery_tag=method.delivery_tag)
+                    self.receive_all_books(event, fragment.get_query_id(), fragment.get_client_id())
             if ack:
                 for fragment in data_chunk.get_fragments():
                     if not self.save_id(fragment):
                         continue
-                    self.process_review_fragment(fragment)
-                self.mom.ack(tag)
-            self.send_with_timeout()
+                    self.process_review_fragment(fragment, event)
+                self.mom.ack(delivery_tag=method.delivery_tag)
+            self.send_with_timeout(event)
+        except Exception as e:
+            logger.error(f"Error en callback: {e}")
 
+    def run_joiner(self, event):
+        if len(self.books_side_tables) == 0:
+            self.receive_all_books(event)
+        while not event.is_set():
+            self.mom.consume_with_callback(self.reviews_queue, self.callback, event)
+
+    def run(self):
+        self.event = Event()
+        joiner_proccess = Process(target=self.run_joiner, args=(self.event,))
+        joiner_proccess.start()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        while not self.exit and joiner_proccess.is_alive():
+            msg = NODE_TYPE+ "." + self.id + "$"
+            sock.sendto(msg.encode(), self.medic_addres)
+            time.sleep(HARTBEAT_INTERVAL)
+        joiner_proccess.join()
+        
 def main():
     joiner = Joiner()
     joiner.run()
