@@ -10,7 +10,7 @@ from utils.query_updater import update_data_fragment_step
 from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
-from filter.log_manager.log_writer import *
+from log_manager.log_writer import *
 from log_manager.log_recoverer import *
 
 CATEGORY_FILTER = "CATEGORY"

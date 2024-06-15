@@ -2,7 +2,7 @@ import sys
 import os
 import signal
 from multiprocessing import Process, Event
-from counter.log_manager.log_writer import LogWriter
+from log_manager.log_writer import LogWriter
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *

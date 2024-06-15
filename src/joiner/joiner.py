@@ -11,7 +11,7 @@ from dotenv import load_dotenv # type: ignore
 import sys
 import time
 import logging as logger
-from joiner.log_manager.log_writer import *
+from log_manager.log_writer import *
 from log_manager.log_recoverer import *
 
 
