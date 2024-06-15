@@ -101,7 +101,7 @@ class BasicLogRecoverer:
         parts = line.split(SEP)
         if len(parts) < BOOK_PARTS:
             return False
-        _, book_str = parts
+        book_str = parts[1:]
         book = Book.from_str(book_str.encode())
         self.books[book.get_title()] = book
         return True
