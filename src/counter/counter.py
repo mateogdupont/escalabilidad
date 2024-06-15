@@ -2,7 +2,7 @@ import sys
 import os
 import signal
 from multiprocessing import Process, Event
-from log_writer import LogWriter
+from counter.log_manager.log_writer import LogWriter
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
@@ -107,7 +107,7 @@ class Counter:
                     added = True
             if added:
                 self.counted_data[client_id][query_id][TOP] = sorted(self.counted_data[client_id][query_id][TOP], key=lambda fragment: fragment.get_query_info().get_average())
-                count_info = {"NEW_VALUE": data_fragment.to_str()}
+                count_info = {"TOP": data_fragment.to_str(), "AMOUNT": top_amount}
                 self.log_writer.log_counted_data(data_fragment, repr(count_info))
         else:
             top = self.counted_data[client_id][query_id][TOP]
@@ -132,9 +132,9 @@ class Counter:
             if group_data not in self.counted_data[client_id][query_id].keys():
                 self.counted_data[client_id][query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
             self.counted_data[client_id][query_id][group_data]["VALUES"].append(value)
-            self.books[group_data] = data_fragment.get_book()
+            self.books[group_data] = data_fragment.get_book() #TODO: redo this log if needed
             self.log_writer.log_book(data_fragment.get_book())
-            count_info = {"PERCENTILE": percentile, "NEW_VALUE": value}
+            count_info = {"PERCENTILE": percentile, "VALUE": value, "GROUP_DATA": group_data}
             self.log_writer.log_counted_data(data_fragment, repr(count_info))
         else:
             sentiment_scores = {}
@@ -174,9 +174,9 @@ class Counter:
                 self.counted_data[client_id][query_id][group_data] = {"TOTAL": 0, "COUNT": 0}
             self.counted_data[client_id][query_id][group_data]["TOTAL"] += value
             self.counted_data[client_id][query_id][group_data]["COUNT"] += 1
-            self.books[group_data] = data_fragment.get_book()
+            self.books[group_data] = data_fragment.get_book() #TODO: redo this log if needed
             self.log_writer.log_book(data_fragment.get_book())
-            count_info = {"NEW_VALUE": value}
+            count_info = {"2": 2, "VALUE": value, "GROUP_DATA": group_data}
             self.log_writer.log_counted_data(data_fragment, repr(count_info))
         else:
             next_id = data_fragment.get_id() + 1
@@ -207,7 +207,7 @@ class Counter:
                     if data not in self.counted_data[client_id][query_id].keys():
                         self.counted_data[client_id][query_id][data] = set()
                     self.counted_data[client_id][query_id][data].add(value)
-                    count_info = {"NEW_VALUE": value}
+                    count_info = {"1": 1, "NEW_VALUE": value, "GROUP_DATA": data}
                     self.log_writer.log_counted_data(data_fragment, repr(count_info))
             else:
                 logger.warning(f"Group data is not a list, it is a {type(group_data)}")

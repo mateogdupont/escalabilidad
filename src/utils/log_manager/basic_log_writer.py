@@ -4,14 +4,14 @@ from utils.mom.mom import MOM
 from utils.structs.book import Book
 from utils.structs.data_fragment import DataFragment
 
-BOOK = "BOOK"               # <book title> <datafragment como str>
+BOOK = "BOOK"               # <datafragment como str>
 RECEIVED_ID = "RECEIVED_ID" # <client_id> <query_id> <df_id>
 RESULT = "RESULT"           # <node> [<time>] <datafragment como str>
 QUERY_ENDED = "QUERY_ENDED" # <client_id> <query_id>
 RESULT_SENT = "RESULT_SENT" # <node>
 
 TITLE = "TITLE"
-AUTHOR = "AUTHOR"
+BOOK_STR = "BOOK_STR"
 
 class BasicLogWriter:
     def __init__(self, file_path: str) -> None:
@@ -21,7 +21,7 @@ class BasicLogWriter:
 
     def _add_logs(self, logs: List[str]) -> None: # TODO: qué pasa si se cae a mitad de los logs
         logs = "\n".join(logs) + "\n"
-        self.file.write(logs)
+        self.file.write(logs) # TODO: invert this, write as a stack
         self.file.flush()
 
     def close(self) -> None:
@@ -38,7 +38,7 @@ class BasicLogWriter:
         logs.append(id_log)
         for df, node in next_steps:
             df_str = df.to_str()
-            result_log = f"{RESULT} {node} {time} {client_id} {query_id} {df_id} {df_str}"
+            result_log = f"{RESULT} {node} {time} {client_id} {query_id} {df_str}"
             logs.append(result_log)
         self._add_logs(logs)
     
@@ -54,8 +54,5 @@ class BasicLogWriter:
         self._add_logs([f"{RESULT_SENT} {node}"])
     
     def log_book(self, book: Book) -> None:
-        book_title = book.get_title()
-        book_str = book.to_str()
-        book_info = {TITLE: book_title, AUTHOR: book_str}
-        self._add_logs([f"{BOOK} {repr(book_info)}"])
+        self._add_logs([f"{BOOK} {book.to_str()}"])
 

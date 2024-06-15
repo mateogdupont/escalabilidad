@@ -5,7 +5,7 @@ from utils.mom.mom import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
 from utils.query_updater import *
-from log_writer import *
+from sentiment_analyzer.log_manager.log_writer import *
 from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys

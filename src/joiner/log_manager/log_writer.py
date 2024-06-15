@@ -4,11 +4,8 @@ from utils.log_manager.basic_log_writer import *
 from utils.structs.book import Book
 from utils.structs.data_fragment import DataFragment
 
-TITLE = "TITLE"
-AUTHOR = "AUTHOR"
-
 # Books logs
-BOOK = "BOOK"                           # <book title> <datafragment como str> # se hace en formato dict
+BOOK = "BOOK"                           # <datafragment como str> # se hace en formato dict
 RECEIVED_ID = "RECEIVED_ID"             # <client_id> <query_id> <df_id>
 SIDE_TABLE_UPDATE = "SIDE_TABLE_UPDATE" # <client_id> <query_id> <book title>
 SIDE_TABLE_ENDED = "SIDE_TABLE_ENDED"   # <client_id> <query_id>
