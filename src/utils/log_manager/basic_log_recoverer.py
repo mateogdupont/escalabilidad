@@ -20,6 +20,9 @@ RESULT = "RESULT"
 QUERY_ENDED = "QUERY_ENDED"
 RESULT_SENT = "RESULT_SENT"
 
+# TODO: review parts, some fields can contain sep
+# TODO: merge main
+
 class BasicLogRecoverer:
     def __init__(self, file_path: str) -> None:
         self.file_path = file_path
