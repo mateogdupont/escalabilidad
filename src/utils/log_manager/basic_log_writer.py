@@ -54,4 +54,4 @@ class BasicLogWriter:
         self._add_logs([f"{RESULT_SENT} {node}"])
     
     def log_book(self, book: Book) -> None:
-        self._add_logs([f"{BOOK} {book.to_bytes().decode("utf-8")}"])
+        self._add_logs([f"{BOOK} {book.to_bytes().decode('utf-8')}"])
