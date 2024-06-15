@@ -69,13 +69,12 @@ class BasicLogRecoverer:
         parts = line.split(SEP)
         if len(parts) < RESULT_PARTS:
             return False
-        # _, node, time, df_str = parts
         node = parts[1]
         time = parts[2]
         df_str = SEP.join(parts[3:])
         if node in self.sent_results:
             return True
-        df = DataFragment.from_str(df_str)
+        df = DataFragment.from_str(df_str.encode())
         time = float(time) if time != NONE else None
         self.results[node] = self.results.get(node, [])
         self.results[node].append((df, time) if time is not None else df)
