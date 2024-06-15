@@ -3,6 +3,7 @@ from utils.structs.book import Book
 from utils.structs.data_fragment import DataFragment
 
 SEP = " "
+END = "\n"
 NONE = "None"
 TITLE = "TITLE"
 BOOK_STR = "BOOK_STR"
@@ -36,8 +37,12 @@ class BasicLogRecoverer:
         }
     
     def _valid_line(self, line: str) -> bool:
-        pass # la linea debe estar completa, el ult arg debe estar completo y ser válido
-             # ver si las validaciones de largo son necesarias
+        if not line or line[-1] != END:
+            return False
+        parts = line.split(SEP)
+        if len(parts) == 0 or parts[0] not in self._recover_funcs:
+            return False
+        return True
     
     def _process_received_id(self, line: str) -> bool:
         parts = line.split(SEP)
