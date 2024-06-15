@@ -163,7 +163,7 @@ services:
       - LOG_PATH_BOOKS=/logs/joiner4_books.log
       - LOG_PATH_REVIEWS=/logs/joiner4_reviews.log
     depends_on:
-      - rabbitmq
+      - rabbitmq1
     networks:
       - network-bridge
     volumes:
