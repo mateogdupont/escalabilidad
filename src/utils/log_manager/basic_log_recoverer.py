@@ -76,8 +76,6 @@ class BasicLogRecoverer:
         df_str = line[start:]
         if node in self.sent_results:
             return True
-        logger.info(f"Processing line: {line}")
-        logger.info(f"Processing result: {df_str}")
         df = DataFragment.from_bytes(base64.b64decode(df_str))
         time = float(time) if time != NONE else None
         self.results[node] = self.results.get(node, [])
