@@ -71,9 +71,12 @@ class BasicLogRecoverer:
             return False
         node = parts[1]
         time = parts[2]
-        df_str = SEP.join(parts[3:])
+        start = line.find(parts[3])
+        df_str = line[start:]
         if node in self.sent_results:
             return True
+        logger.info(f"Processing line: {line}")
+        logger.info(f"Processing result: {df_str}")
         df = DataFragment.from_str(df_str.encode())
         time = float(time) if time != NONE else None
         self.results[node] = self.results.get(node, [])
@@ -101,7 +104,8 @@ class BasicLogRecoverer:
         parts = line.split(SEP)
         if len(parts) < BOOK_PARTS:
             return False
-        book_str = parts[1:]
+        start = line.find(parts[1])
+        book_str = line[start:]
         book = Book.from_str(book_str.encode())
         self.books[book.get_title()] = book
         return True
