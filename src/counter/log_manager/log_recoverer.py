@@ -11,11 +11,18 @@ VALUE = "VALUE"
 COUNTED_DATA_PARTS = 4
 COUNTED_DATA_SENT_PARTS = 3
 
+COUNTED_DATA = "COUNTED_DATA"
+COUNTED_DATA_SENT = "COUNTED_DATA_SENT"
+
 class LogRecoverer(BasicLogRecoverer):
     def __init__(self, file_path: str) -> None:
         super().__init__(file_path)
         self.counted_data = {}
         self.counted_data_sent = {}
+        self._recover_funcs.update({
+            COUNTED_DATA: self._process_counted_data,
+            COUNTED_DATA_SENT: self._process_counted_data_sent
+        })
     
     def _process_counted_data(self, line: str) -> bool:
         parts = line.split(SEP)

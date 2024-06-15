@@ -13,6 +13,12 @@ QUERY_ENDED_PARTS = 3
 RESULT_SENT_PARTS = 2
 BOOK_PARTS = 2
 
+BOOK = "BOOK" 
+RECEIVED_ID = "RECEIVED_ID"
+RESULT = "RESULT"
+QUERY_ENDED = "QUERY_ENDED"
+RESULT_SENT = "RESULT_SENT"
+
 class BasicLogRecoverer:
     def __init__(self, file_path: str) -> None:
         self.file_path = file_path
@@ -21,6 +27,13 @@ class BasicLogRecoverer:
         self.ended_queries = {}
         self.sent_results = set()
         self.books = {}
+        self._recover_funcs = {
+            RECEIVED_ID: self._process_received_id,
+            RESULT: self._process_result,
+            QUERY_ENDED: self._process_query_ended,
+            RESULT_SENT: self._process_result_sent,
+            BOOK: self._process_book
+        }
     
     def _valid_line(self, line: str) -> bool:
         pass # la linea debe estar completa, el ult arg debe estar completo y ser válido

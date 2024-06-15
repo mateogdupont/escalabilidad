@@ -5,12 +5,19 @@ from utils.structs.data_fragment import DataFragment
 SIDE_TABLE_UPDATE_PARTS = 4
 SIDE_TABLE_ENDED_PARTS = 3
 
+SIDE_TABLE_UPDATE = "SIDE_TABLE_UPDATE"
+SIDE_TABLE_ENDED = "SIDE_TABLE_ENDED"
+
 class LogRecoverer(BasicLogRecoverer):
     def __init__(self, file_path: str) -> None:
         super().__init__(file_path)
         self.books_side_tables = {}
         self.side_tables_ended = {}
-
+        self._recover_funcs.update({
+            SIDE_TABLE_UPDATE: self._process_side_table_update,
+            SIDE_TABLE_ENDED: self._process_side_table_ended
+        })
+        
     def _process_side_table_update(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) != SIDE_TABLE_UPDATE_PARTS:
