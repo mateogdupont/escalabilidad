@@ -12,6 +12,7 @@ import sys
 import os
 import time
 from textblob import TextBlob # type: ignore
+from log_manager.log_recoverer import *
 
 def get_sentiment_score(text: str) -> float:
     return round(TextBlob(text).sentiment.polarity, 5)
@@ -28,12 +29,14 @@ class Analyzer:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
+        log_recoverer = LogRecoverer(os.environ["LOG_PATH"])
+        log_recoverer.recover_data()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
-        self.results = {}
-        self.received_ids = {}
+        self.results = log_recoverer.get_results()
+        self.received_ids = log_recoverer.get_received_ids()
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
@@ -41,9 +44,10 @@ class Analyzer:
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
+        self.log_writer.close()
     
     def save_id(self, data_fragment: DataFragment) -> bool:
-        client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
+        client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
@@ -111,6 +115,7 @@ def main() -> None:
     analyzer.run()
     if not analyzer.exit:
         analyzer.mom.close()
+        analyzer.log_writer.close()
 
 if __name__ == "__main__":
     main()

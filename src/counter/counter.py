@@ -13,6 +13,7 @@ from dotenv import load_dotenv # type: ignore
 import time
 import numpy as np
 import logging as logger
+from log_manager.log_recoverer import LogRecoverer
 
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
@@ -26,6 +27,8 @@ class Counter:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
+        log_recoverer = LogRecoverer(os.environ["LOG_PATH"])
+        log_recoverer.recover_data()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = list(consumer_queues.keys())[0]
@@ -33,17 +36,18 @@ class Counter:
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.exit = False
-        self.counted_data = {}
-        self.books = {}
-        self.received_ids = {}
+        self.counted_data = log_recoverer.get_counted_data()
+        self.books = log_recoverer.get_books()
+        self.received_ids = log_recoverer.get_received_ids()
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
         self.mom.close()
+        self.log_writer.close()
     
     def save_id(self, data_fragment: DataFragment) -> bool:
-        client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
+        client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
@@ -283,6 +287,7 @@ def main():
     counter.run()
     if not counter.exit:
         counter.mom.close()
+        counter.log_writer.close()
    
 if __name__ == "__main__":
     main()

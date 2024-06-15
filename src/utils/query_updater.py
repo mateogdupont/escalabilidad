@@ -89,7 +89,6 @@ def _update_first_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]
     elif step == 2:
         query_info.set_filter_params("TITLE", "distributed", None, None, None)
     elif step == 3:
-        # TODO: delete unwanted columns
         #logger.info("Next step is to return the results")
         return {data_fragment: "results"}
     data_fragment.set_query_info(query_info)

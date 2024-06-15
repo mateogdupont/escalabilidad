@@ -12,6 +12,7 @@ import sys
 import time
 import logging as logger
 from joiner.log_manager.log_writer import *
+from log_manager.log_recoverer import *
 
 
 CATEGORY_FILTER = "CATEGORY"
@@ -24,6 +25,11 @@ class Joiner:
     def __init__(self):
         load_dotenv()
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
+        log_recoverer_reviews = LogRecoverer(os.environ["LOG_PATH_REVIEWS"])
+        log_recoverer_reviews.recover_data()
+        log_recoverer_books = LogRecoverer(os.environ["LOG_PATH_BOOKS"])
+        log_recoverer_books.set_ended_queries(log_recoverer_reviews.get_ended_queries())
+        log_recoverer_books.recover_data()
         self.id = os.environ["ID"]
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
@@ -32,11 +38,11 @@ class Joiner:
         consumer_queues[self.books_queue] = consumer_queues[os.environ["BOOKS_QUEUE"]]
         consumer_queues.pop(os.environ["BOOKS_QUEUE"])
         self.mom = MOM(consumer_queues)
-        self.books_side_tables = {}
-        self.books = {}
-        self.side_tables_ended = {}
-        self.received_ids = {}
-        self.results = {}
+        self.books_side_tables = log_recoverer_books.get_books_side_tables()
+        self.books = log_recoverer_books.get_books()
+        self.side_tables_ended = log_recoverer_books.get_side_tables_ended()
+        self.received_ids = log_recoverer_reviews.get_received_ids()
+        self.results = log_recoverer_reviews.get_results()
         self.exit = False
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
@@ -46,9 +52,11 @@ class Joiner:
     def sigterm_handler(self, signal,frame):
         self.exit = True
         self.mom.close()
+        self.log_writer_books.close()
+        self.log_writer_reviews.close()
 
     def save_id(self, data_fragment: DataFragment) -> bool:
-        client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
+        client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
@@ -193,6 +201,8 @@ def main():
     joiner.run()
     if not joiner.exit:
         joiner.mom.close()
+        joiner.log_writer_books.close()
+        joiner.log_writer_reviews.close()
    
 if __name__ == "__main__":
     main()

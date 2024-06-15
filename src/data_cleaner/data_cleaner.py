@@ -228,7 +228,7 @@ class DataCleaner:
         results_proccess.join()
 
 def save_id(received_ids: dict, data_fragment: DataFragment) -> bool:
-        client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
+        client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
         received_ids[client_id] = received_ids.get(client_id, {})

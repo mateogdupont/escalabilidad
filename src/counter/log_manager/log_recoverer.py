@@ -29,6 +29,8 @@ class LogRecoverer(BasicLogRecoverer):
         if len(parts) != COUNTED_DATA_PARTS:
             return False
         _, client_id, query_id, count_info = parts
+        if query_id in self.counted_data_sent.get(client_id, set()):
+            return True
         count_info = eval(count_info)
         
         self.counted_data[client_id] = self.counted_data.get(client_id, {})
@@ -94,8 +96,6 @@ class LogRecoverer(BasicLogRecoverer):
         self.counted_data_sent[client_id].add(query_id)
         return True
         
-    def recover_data(self) -> None:
-        # read the file line by line from the end to the beginning
-        # and process the lines with the corresponding methods
-        pass
+    def get_counted_data(self) -> dict:
+        return self.counted_data
     

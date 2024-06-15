@@ -13,19 +13,19 @@ RESULT_SENT = "RESULT_SENT" # <node>
 TITLE = "TITLE"
 BOOK_STR = "BOOK_STR"
 
+END_LOG = "END_LOG"
+
 class BasicLogWriter:
     def __init__(self, file_path: str) -> None:
-        if not os.path.exists(file_path):
-            open(file_path, "w").close() # TODO: change
-        self.file = open(file_path, "a")
+        self.file = open(file_path, "a+")
 
-    def _add_logs(self, logs: List[str]) -> None: # TODO: qué pasa si se cae a mitad de los logs
-        logs = "\n".join(logs) + "\n"
-        self.file.write(logs) # TODO: invert this, write as a stack
+    def _add_logs(self, logs: List[str]) -> None:
+        logs = f"{"\n".join(logs)}\n{END_LOG}\n"
+        self.file.write(logs)
         self.file.flush()
 
     def close(self) -> None:
-        pass
+        self.file.close()
 
     def log_result(self, next_steps: List[Tuple[DataFragment, str]], time: Optional[float] =None) -> None:
         if len(next_steps) == 0:
@@ -55,4 +55,3 @@ class BasicLogWriter:
     
     def log_book(self, book: Book) -> None:
         self._add_logs([f"{BOOK} {book.to_str()}"])
-

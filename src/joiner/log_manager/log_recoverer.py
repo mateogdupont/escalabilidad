@@ -37,8 +37,9 @@ class LogRecoverer(BasicLogRecoverer):
         self.side_tables_ended[client_id].add(query_id)
         return True
     
-    def recover_data(self) -> None:
-        # read the file line by line from the end to the beginning
-        # and process the lines with the corresponding methods
-        pass
+    def get_books_side_tables(self) -> dict:
+        return self.books_side_tables
+    
+    def get_side_tables_ended(self) -> dict:
+        return self.side_tables_ended
     
