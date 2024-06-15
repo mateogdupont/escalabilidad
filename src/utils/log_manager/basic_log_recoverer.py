@@ -102,7 +102,7 @@ class BasicLogRecoverer:
         if len(parts) < BOOK_PARTS:
             return False
         _, book_str = parts
-        book = Book.from_str(book_str)
+        book = Book.from_str(book_str.encode())
         self.books[book.get_title()] = book
         return True
 

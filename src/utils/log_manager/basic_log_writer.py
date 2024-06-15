@@ -38,7 +38,7 @@ class BasicLogWriter:
         logs.append(id_log)
         for df, node in next_steps:
             df_str = df.to_str()
-            result_log = f"{RESULT} {node} {time} {client_id} {query_id} {df_str}"
+            result_log = f"{RESULT} {node} {time} {df_str}"
             logs.append(result_log)
         self._add_logs(logs)
     
