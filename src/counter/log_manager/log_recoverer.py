@@ -26,7 +26,7 @@ class LogRecoverer(BasicLogRecoverer):
     
     def _process_counted_data(self, line: str) -> bool:
         parts = line.split(SEP)
-        if len(parts) != COUNTED_DATA_PARTS:
+        if len(parts) < COUNTED_DATA_PARTS:
             return False
         _, client_id, query_id, count_info = parts
         if query_id in self.counted_data_sent.get(client_id, set()):
@@ -89,7 +89,7 @@ class LogRecoverer(BasicLogRecoverer):
     
     def _process_counted_data_sent(self, line: str) -> bool:
         parts = line.split(SEP)
-        if len(parts) != COUNTED_DATA_SENT_PARTS:
+        if len(parts) < COUNTED_DATA_SENT_PARTS:
             return False
         _, client_id, query_id = parts
         self.counted_data_sent[client_id] = self.counted_data_sent.get(client_id, set())

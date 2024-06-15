@@ -55,7 +55,7 @@ class BasicLogRecoverer:
     
     def _process_received_id(self, line: str) -> bool:
         parts = line.split(SEP)
-        if len(parts) != RECEIVED_ID_PARTS:
+        if len(parts) < RECEIVED_ID_PARTS:
             return False
         _, client_id, query_id, df_id = parts
         if query_id in self.ended_queries.get(client_id, set()):
@@ -67,9 +67,12 @@ class BasicLogRecoverer:
     
     def _process_result(self, line: str) -> bool:
         parts = line.split(SEP)
-        if len(parts) != RESULT_PARTS:
+        if len(parts) < RESULT_PARTS:
             return False
-        _, node, time, df_str = parts
+        # _, node, time, df_str = parts
+        node = parts[1]
+        time = parts[2]
+        df_str = SEP.join(parts[3:])
         if node in self.sent_results:
             return True
         df = DataFragment.from_str(df_str)
@@ -80,7 +83,7 @@ class BasicLogRecoverer:
     
     def _process_query_ended(self, line: str) -> bool:
         parts = line.split(SEP)
-        if len(parts) != QUERY_ENDED_PARTS:
+        if len(parts) < QUERY_ENDED_PARTS:
             return False
         _, client_id, query_id = parts
         self.ended_queries[client_id] = self.ended_queries.get(client_id, set())
@@ -89,7 +92,7 @@ class BasicLogRecoverer:
     
     def _process_result_sent(self, line: str) -> bool:
         parts = line.split(SEP)
-        if len(parts) != RESULT_SENT_PARTS:
+        if len(parts) < RESULT_SENT_PARTS:
             return False
         _, node = parts
         self.sent_results.add(node)
@@ -97,7 +100,7 @@ class BasicLogRecoverer:
     
     def _process_book(self, line: str) -> bool:
         parts = line.split(SEP)
-        if len(parts) != BOOK_PARTS:
+        if len(parts) < BOOK_PARTS:
             return False
         _, book_str = parts
         book = Book.from_str(book_str)

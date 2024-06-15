@@ -20,7 +20,7 @@ class LogRecoverer(BasicLogRecoverer):
         
     def _process_side_table_update(self, line: str) -> bool:
         parts = line.split(SEP)
-        if len(parts) != SIDE_TABLE_UPDATE_PARTS:
+        if len(parts) < SIDE_TABLE_UPDATE_PARTS:
             return False
         _, client_id, query_id, book_title = parts
         self.books_side_tables[client_id] = self.books_side_tables.get(client_id, {})
@@ -30,7 +30,7 @@ class LogRecoverer(BasicLogRecoverer):
 
     def _process_side_table_ended(self, line: str) -> bool:
         parts = line.split(SEP)
-        if len(parts) != QUERY_ENDED_PARTS:
+        if len(parts) < QUERY_ENDED_PARTS:
             return False
         _, client_id, query_id = parts
         self.side_tables_ended[client_id] = self.side_tables_ended.get(client_id, set())
