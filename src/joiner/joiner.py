@@ -153,7 +153,7 @@ class Joiner:
                 fragment.set_book(book)
                 next_steps = update_data_fragment_step(fragment)
                 list_next_steps = [(fragment, key) for fragment, key in next_steps.items()]
-                self.log_writer_reviews.log_result(list_next_steps)
+                self.log_writer_reviews.log_result(list_next_steps, time=time.time())
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key)
         if (fragment.is_last()) and (not self.exit):

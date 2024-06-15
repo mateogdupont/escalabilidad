@@ -29,7 +29,11 @@ class LogRecoverer(BasicLogRecoverer):
         parts = line.split(SEP)
         if len(parts) < COUNTED_DATA_PARTS:
             return False
-        _, client_id, query_id, count_info = parts
+        # _, client_id, query_id, count_info = parts
+        client_id = parts[1]
+        query_id = parts[2]
+        start = line.find(parts[3])
+        count_info = line[start:]
         if query_id in self.counted_data_sent.get(client_id, set()):
             return True
         count_info = eval(count_info)
