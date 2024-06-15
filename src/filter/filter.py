@@ -89,7 +89,7 @@ class Filter:
                 self.log_writer.log_result_sent(node)
             except Exception as e:
                 logger.error(f"Error al enviar a {node}: {e}")
-                logger.error(f"Data: {data_chunk.to_str()}")
+                logger.error(f"Data: {data_chunk.to_bytes()}")
             self.results[node] = ([], time.time())
         
     def filter_data_chunk(self,chunk: DataChunk):
@@ -128,7 +128,7 @@ class Filter:
                     self.log_writer.log_result_sent(key)
                 except Exception as e:
                     logger.error(f"Error al enviar a {key}: {e}")
-                    logger.error(f"Data: {chunk.to_str()}")
+                    logger.error(f"Data: {chunk.to_bytes()}")
                 self.results[key] = ([], time.time())
 
     def run(self):

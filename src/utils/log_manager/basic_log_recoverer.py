@@ -77,7 +77,7 @@ class BasicLogRecoverer:
             return True
         logger.info(f"Processing line: {line}")
         logger.info(f"Processing result: {df_str}")
-        df = DataFragment.from_str(df_str.encode())
+        df = DataFragment.from_bytes(df_str.encode())
         time = float(time) if time != NONE else None
         self.results[node] = self.results.get(node, [])
         self.results[node].append((df, time) if time is not None else df)
@@ -106,7 +106,7 @@ class BasicLogRecoverer:
             return False
         start = line.find(parts[1])
         book_str = line[start:]
-        book = Book.from_str(book_str.encode())
+        book = Book.from_bytes(book_str.encode())
         self.books[book.get_title()] = book
         return True
 

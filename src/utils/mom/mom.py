@@ -59,7 +59,7 @@ class MOM:
         method, _, body = self.channel.basic_get(queue=queue, auto_ack=False)
         if not method:
             return None
-        data_chunk = DataChunk.from_str(body)
+        data_chunk = DataChunk.from_bytes(body)
         return data_chunk, method.delivery_tag
     
     def consume_with_callback(self, queue: str, callback: Any, *args) -> None:
@@ -86,14 +86,14 @@ class MOM:
         self.channel.basic_nack(delivery_tag=delivery_tag)
     
     def publish(self, data_chunk: DataChunk, key: str) -> None:
-        if data_chunk is None or data_chunk.get_fragments() is None or len(data_chunk.get_fragments()) == 0 or data_chunk.to_str() is None:
+        if data_chunk is None or data_chunk.get_fragments() is None or len(data_chunk.get_fragments()) == 0 or data_chunk.to_bytes() is None:
             logger.error(f"DataChunk is None")
         self._execute(self._publish, data_chunk, key)
             
     def _publish(self, data_chunk: DataChunk, key: str) -> None:
         self.channel.basic_publish(exchange=self.exchange,
                                     routing_key=key,
-                                    body=data_chunk.to_str(),
+                                    body=data_chunk.to_bytes(),
                                     properties=pika.BasicProperties(
                                         delivery_mode = 2, # make message persistent
                                     ))

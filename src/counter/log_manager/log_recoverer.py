@@ -73,7 +73,7 @@ class LogRecoverer(BasicLogRecoverer):
 
     def _process_top(self, client_id, query_id, count_info):
         self.counted_data[client_id][query_id][TOP] = self.counted_data[client_id][query_id].get(TOP, [])
-        df = DataFragment.from_str(count_info[TOP].encode())
+        df = DataFragment.from_bytes(count_info[TOP].encode())
         amount = count_info[AMOUNT]
         added = False
         if len(self.counted_data[client_id][query_id][TOP]) < amount:

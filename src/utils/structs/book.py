@@ -20,11 +20,11 @@ class Book:
         self.categories = categories
         self.ratings_count = ratings_count
 
-    def to_str(self) -> str:
+    def to_bytes(self) -> bytes:
         return pickle.dumps(self)
 
     @classmethod
-    def from_str(cls, json_str: str) -> 'Book':
+    def from_bytes(cls, json_str: bytes) -> 'Book':
         return pickle.loads(json_str)
     
     def has_minimun_data(self) -> bool:

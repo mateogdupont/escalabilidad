@@ -24,7 +24,7 @@ class QueryInfo:
         self.percentile_column = None
         self.top = None
 
-    def to_str(self) -> str:
+    def to_bytes(self) -> bytes:
         return pickle.dumps(self)
     
     def to_human_readable(self) -> str:
@@ -36,7 +36,7 @@ class QueryInfo:
         return info
     
     @classmethod
-    def from_str(cls, json_str: str) -> 'QueryInfo':
+    def from_bytes(cls, json_str: bytes) -> 'QueryInfo':
         return pickle.loads(json_str)
     
     def clone(self) -> 'QueryInfo':
