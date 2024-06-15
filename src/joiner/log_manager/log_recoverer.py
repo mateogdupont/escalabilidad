@@ -22,7 +22,11 @@ class LogRecoverer(BasicLogRecoverer):
         parts = line.split(SEP)
         if len(parts) < SIDE_TABLE_UPDATE_PARTS:
             return False
-        _, client_id, query_id, book_title = parts
+        # _, client_id, query_id, book_title = parts
+        client_id = parts[1]
+        query_id = parts[2]
+        start = line.find(parts[3])
+        book_title = line[start:]
         self.books_side_tables[client_id] = self.books_side_tables.get(client_id, {})
         self.books_side_tables[client_id][query_id] = self.books_side_tables[client_id].get(query_id, set())
         self.books_side_tables[client_id][query_id].add(book_title)
