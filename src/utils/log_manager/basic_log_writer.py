@@ -20,7 +20,7 @@ class BasicLogWriter:
         self.file = open(file_path, "a+")
 
     def _add_logs(self, logs: List[str]) -> None:
-        logs = f"{"\n".join(logs)}\n{END_LOG}\n"
+        logs = f"{'\n'.join(logs)}\n{END_LOG}\n"
         self.file.write(logs)
         self.file.flush()
 
