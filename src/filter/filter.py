@@ -140,7 +140,7 @@ class Filter:
 
     def callback(self, ch, method, properties, body,event):
         try:
-            data_chunk = DataChunk.from_str(body)
+            data_chunk = DataChunk.from_bytes(body)
             self.filter_data_chunk(data_chunk,event)
             self.mom.ack(delivery_tag=method.delivery_tag)
             self.send_with_timeout(event)

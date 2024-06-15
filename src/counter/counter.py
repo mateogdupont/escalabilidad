@@ -255,7 +255,7 @@ class Counter:
 
     def callback(self, ch, method, properties, body,event):
         try:
-            data_chunk = DataChunk.from_str(body)
+            data_chunk = DataChunk.from_bytes(body)
             for data_fragment in data_chunk.get_fragments():
                 if event.is_set():
                     return
