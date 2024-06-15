@@ -211,7 +211,7 @@ class Counter:
                     if data not in self.counted_data[client_id][query_id].keys():
                         self.counted_data[client_id][query_id][data] = set()
                     self.counted_data[client_id][query_id][data].add(value)
-                    count_info = {"1": 1, "NEW_VALUE": value, "GROUP_DATA": data}
+                    count_info = {"1": 1, "VALUE": value, "GROUP_DATA": data}
                     self.log_writer.log_counted_data(data_fragment, repr(count_info))
             else:
                 logger.warning(f"Group data is not a list, it is a {type(group_data)}")

@@ -8,7 +8,6 @@ AMOUNT = "AMOUNT"
 PERCENTILE = "PERCENTILE"
 GROUP_DATA = "GROUP_DATA"
 VALUE = "VALUE"
-NEW_VALUE = "NEW_VALUE"
 
 COUNTED_DATA_PARTS = 4
 COUNTED_DATA_SENT_PARTS = 3
@@ -56,7 +55,7 @@ class LogRecoverer(BasicLogRecoverer):
 
     def _process1(self, client_id, query_id, count_info):
         group_data = count_info[GROUP_DATA]
-        value = count_info[NEW_VALUE]
+        value = count_info[VALUE]
         if group_data not in self.counted_data[client_id][query_id].keys():
             self.counted_data[client_id][query_id][group_data] = set()
         self.counted_data[client_id][query_id][group_data].add(value)
