@@ -174,7 +174,8 @@ class Joiner:
                 self.results[key] = ([], time.time())
 
     def run(self):
-        self.receive_all_books()
+        if len(self.books_side_tables) == 0:
+            self.receive_all_books()
         while not self.exit:
             msg = self.mom.consume(self.reviews_queue)
             if not msg:
