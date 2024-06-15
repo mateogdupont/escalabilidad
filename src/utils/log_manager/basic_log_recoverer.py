@@ -79,9 +79,8 @@ class BasicLogRecoverer:
         df = DataFragment.from_bytes(base64.b64decode(df_str))
         time = float(time) if time != NONE else None
         if time is not None:
-            self.results[node] = self.results.get(node, ([], time.time()))
+            self.results[node] = self.results.get(node, ([], time))
             self.results[node][0].append(df)
-            self.results[node] = (self.results[node][0], time)
         else:
             self.results[node] = self.results.get(node, [])
             self.results[node].append((df, time) if time is not None else df)
