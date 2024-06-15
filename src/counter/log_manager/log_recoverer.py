@@ -1,3 +1,4 @@
+import base64
 from typing import Tuple
 from utils.log_manager.basic_log_recoverer import *
 from utils.structs.data_fragment import DataFragment
@@ -73,7 +74,7 @@ class LogRecoverer(BasicLogRecoverer):
 
     def _process_top(self, client_id, query_id, count_info):
         self.counted_data[client_id][query_id][TOP] = self.counted_data[client_id][query_id].get(TOP, [])
-        df = DataFragment.from_bytes(count_info[TOP].encode())
+        df = DataFragment.from_bytes(base64.b64decode(count_info[TOP]))
         amount = count_info[AMOUNT]
         added = False
         if len(self.counted_data[client_id][query_id][TOP]) < amount:
