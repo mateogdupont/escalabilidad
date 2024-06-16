@@ -120,6 +120,7 @@ class Filter:
                     self.log_writer.log_received_id(fragment)
             if fragment.is_last():
                 self.log_writer.log_query_ended(fragment)
+                self.rewrite_logs() # TODO: check if this is the correct place to call this
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key, event)
@@ -161,6 +162,14 @@ class Filter:
             sock.sendto(msg.encode(), self.medic_addres)
             time.sleep(HARTBEAT_INTERVAL)
         filter_proccess.join()
+    
+    def rewrite_logs(self):
+        self.log_writer.close()
+        log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
+        log_rewriter.rewrite_logs()
+        #         swap(self.file_path, temp_path)
+        # os.remove(temp_path)
+        self.log_writer.open()
         
 
 def main():

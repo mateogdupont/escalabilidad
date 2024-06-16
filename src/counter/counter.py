@@ -265,6 +265,7 @@ class Counter:
 
                 if data_fragment.is_last():
                     self.log_writer.log_query_ended(data_fragment)
+                    self.rewrite_logs() # TODO: check if this is the correct place to call this
                     results.append(data_fragment)
                     key = None
                     fragments = []
@@ -302,6 +303,13 @@ class Counter:
             time.sleep(HARTBEAT_INTERVAL)
         counter_proccess.join()
 
+    def rewrite_logs(self):
+        self.log_writer.close()
+        log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
+        log_rewriter.rewrite_logs()
+        #         swap(self.file_path, temp_path)
+        # os.remove(temp_path)
+        self.log_writer.open()
 
 def main():
     counter = Counter()

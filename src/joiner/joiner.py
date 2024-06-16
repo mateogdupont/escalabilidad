@@ -168,6 +168,7 @@ class Joiner:
                     self.add_and_try_to_send_chunk(data, key, event)
         if (fragment.is_last()) and (not event.is_set()):
             self.log_writer_reviews.log_query_ended(fragment)
+            self.rewrite_logs() # TODO: check if this is the correct place to call this
             for data, key in update_data_fragment_step(fragment).items():
                 self.add_and_try_to_send_chunk(data, key, event)
             self.clean_data(query_id, client_id)
@@ -208,6 +209,21 @@ class Joiner:
             self.receive_all_books(event)
         while not event.is_set():
             self.mom.consume_with_callback(self.reviews_queue, self.callback, event)
+    
+    def rewrite_logs(self):
+        self.log_writer_reviews.close()
+        self.log_writer_books.close()
+        log_recoverer_reviews = LogRecoverer(os.environ["LOG_PATH_REVIEWS"])
+        log_recoverer_reviews.rewrite_logs()
+        log_recoverer_books = LogRecoverer(os.environ["LOG_PATH_BOOKS"])
+        log_recoverer_books.set_ended_queries(log_recoverer_reviews.get_ended_queries())
+        log_recoverer_books.rewrite_logs()
+        #         swap(self.file_path, temp_path)
+        #         swap(self.file_path, temp_path)
+        # os.remove(temp_path)
+        # os.remove(temp_path)
+        self.log_writer_reviews.open()
+        self.log_writer_books.open()
 
     def run(self):
         self.event = Event()

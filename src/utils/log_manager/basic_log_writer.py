@@ -18,6 +18,7 @@ END_LOG = "END_LOG"
 
 class BasicLogWriter:
     def __init__(self, file_path: str) -> None:
+        self.file_path = file_path
         self.file = open(file_path, "a+")
 
     def _add_logs(self, logs: List[str]) -> None:
@@ -27,6 +28,9 @@ class BasicLogWriter:
 
     def close(self) -> None:
         self.file.close()
+    
+    def open(self) -> None:
+        self.file = open(self.file_path, "a+")
 
     def log_result(self, next_steps: List[Tuple[DataFragment, str]], time: Optional[float] =None) -> None:
         if len(next_steps) == 0:

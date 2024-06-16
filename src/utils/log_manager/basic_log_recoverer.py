@@ -171,7 +171,5 @@ class BasicLogRecoverer:
                         to_write.append(line)
                 to_write.reverse()
                 temp.write(''.join(to_write))
-        #         swap(self.file_path, temp_path) -> do this in the main
-        # os.remove(temp_path)
                         
     

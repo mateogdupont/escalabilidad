@@ -93,6 +93,7 @@ class Analyzer:
                     data_fragment.set_query_info(query_info)
                 elif not event.is_set():
                     self.log_writer.log_query_ended(data_fragment)
+                    self.rewrite_logs() # TODO: check if this is the correct place to call this
 
                 # the text is no longer needed
                 review = data_fragment.get_review()
@@ -125,6 +126,14 @@ class Analyzer:
             sock.sendto(msg.encode(), self.medic_addres)
             time.sleep(HARTBEAT_INTERVAL)
         analyzer_proccess.join()
+    
+    def rewrite_logs(self):
+        self.log_writer.close()
+        log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
+        log_rewriter.rewrite_logs()
+        #         swap(self.file_path, temp_path)
+        # os.remove(temp_path)
+        self.log_writer.open()
 
 def main() -> None:
     analyzer = Analyzer()
