@@ -56,3 +56,4 @@ class BasicLogWriter:
     
     def log_book(self, book: Book) -> None:
         self._add_logs([f"{BOOK} {base64.b64encode(book.to_bytes()).decode()}"])
+    

@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple
 from utils.structs.book import Book
 from utils.structs.data_fragment import DataFragment
 import logging as logger
+from atomicswap import swap
 
 SEP = " "
 END = "\n"
@@ -57,10 +58,10 @@ class BasicLogRecoverer:
     def _process_received_id(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) < RECEIVED_ID_PARTS:
-            return False
+            raise ErrorProcessingLog(f"Error processing log: {line}")
         _, client_id, query_id, df_id = parts
         if query_id in self.ended_queries.get(client_id, set()):
-            return True
+            return False
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
         self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
         self.received_ids[client_id][query_id].add(df_id)
@@ -69,13 +70,13 @@ class BasicLogRecoverer:
     def _process_result(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) < RESULT_PARTS:
-            return False
+            raise ErrorProcessingLog(f"Error processing log: {line}")
         node = parts[1]
         time = parts[2]
         start = line.find(parts[3])
         df_str = line[start:]
         if node in self.sent_results:
-            return True
+            return False
         df = DataFragment.from_bytes(base64.b64decode(df_str))
         time = float(time) if time != NONE else None
         if time is not None:
@@ -89,24 +90,24 @@ class BasicLogRecoverer:
     def _process_query_ended(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) < QUERY_ENDED_PARTS:
-            return False
+            raise ErrorProcessingLog(f"Error processing log: {line}")
         _, client_id, query_id = parts
         self.ended_queries[client_id] = self.ended_queries.get(client_id, set())
         self.ended_queries[client_id].add(query_id)
-        return True
+        return True #TODO: check if needed
     
     def _process_result_sent(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) < RESULT_SENT_PARTS:
-            return False
+            raise ErrorProcessingLog(f"Error processing log: {line}")
         _, node = parts
         self.sent_results.add(node)
-        return True
+        return True #TODO: check if needed
     
     def _process_book(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) < BOOK_PARTS:
-            return False
+            raise ErrorProcessingLog(f"Error processing log: {line}")
         start = line.find(parts[1])
         book_str = line[start:]
         book = Book.from_bytes(base64.b64decode(book_str))
@@ -131,8 +132,7 @@ class BasicLogRecoverer:
                 log_type = line.split(SEP)[0]
                 if not log_type in self._recover_funcs:
                     raise UnknownLogType(f"Unknown log type: {log_type}")
-                if not self._recover_funcs[log_type](line):
-                    raise ErrorProcessingLog(f"Error processing log: {line}")
+                self._recover_funcs[log_type](line)
 
     def get_received_ids(self) -> dict:
         return self.received_ids
@@ -148,4 +148,30 @@ class BasicLogRecoverer:
     
     def set_ended_queries(self, ended_queries: dict) -> None:
         self.ended_queries = ended_queries
+
+    def rewrite_logs(self) -> None:
+        temp_path = self.file_path.replace(".log", ".temp")
+        to_write = []
+        with open(self.file.name, "r") as log:
+            with open(temp_path, "w") as temp:
+                lines = log.readlines()
+                if not lines:
+                    return
+                start = False
+                for line in lines[::-1]:
+                    if not start and not line.startswith(END_LOG):
+                        continue
+                    if line.startswith(END_LOG):
+                        start = True
+                        continue
+                    log_type = line.split(SEP)[0]
+                    if not log_type in self._recover_funcs:
+                        raise UnknownLogType(f"Unknown log type: {log_type}")
+                    if self._recover_funcs[log_type](line):
+                        to_write.append(line)
+                to_write.reverse()
+                temp.write(''.join(to_write))
+                swap(self.file_path, temp_path)
+        os.remove(temp_path)
+                        
     

@@ -28,14 +28,14 @@ class LogRecoverer(BasicLogRecoverer):
     def _process_counted_data(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) < COUNTED_DATA_PARTS:
-            return False
+            raise ErrorProcessingLog(f"Error processing log: {line}")
         # _, client_id, query_id, count_info = parts
         client_id = parts[1]
         query_id = parts[2]
         start = line.find(parts[3])
         count_info = line[start:]
         if query_id in self.counted_data_sent.get(client_id, set()):
-            return True
+            return False
         count_info = eval(count_info)
         
         self.counted_data[client_id] = self.counted_data.get(client_id, {})
@@ -50,7 +50,7 @@ class LogRecoverer(BasicLogRecoverer):
         elif "1" in count_info.keys():
             self._process1(client_id, query_id, count_info)
         else:
-            return False
+            raise ErrorProcessingLog(f"Error processing log: {line}")
         return True
 
     def _process1(self, client_id, query_id, count_info):
@@ -95,11 +95,11 @@ class LogRecoverer(BasicLogRecoverer):
     def _process_counted_data_sent(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) < COUNTED_DATA_SENT_PARTS:
-            return False
+            raise ErrorProcessingLog(f"Error processing log: {line}")
         _, client_id, query_id = parts
         self.counted_data_sent[client_id] = self.counted_data_sent.get(client_id, set())
         self.counted_data_sent[client_id].add(query_id)
-        return True
+        return True #TODO: check if needed
         
     def get_counted_data(self) -> dict:
         return self.counted_data
