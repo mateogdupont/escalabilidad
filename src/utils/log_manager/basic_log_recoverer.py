@@ -151,6 +151,7 @@ class BasicLogRecoverer:
         self.ended_queries = ended_queries
 
     def rewrite_logs(self) -> None:
+        return
         logger.info("Rewriting logs")
         to_write = []
         with open(self.file.name, "r") as log:
@@ -175,6 +176,7 @@ class BasicLogRecoverer:
         logger.info("Logs rewritten")
     
     def swap_files(self) -> None:
+        return
         swap(self.file_path, self.tmp_file_path)
         os.remove(self.tmp_file_path)
     

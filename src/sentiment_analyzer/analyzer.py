@@ -30,6 +30,8 @@ SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 
+MAX_QUERIES = 5
+
 class Analyzer:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -48,6 +50,7 @@ class Analyzer:
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
+        self.ended_queries = 0
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -93,7 +96,9 @@ class Analyzer:
                     data_fragment.set_query_info(query_info)
                 elif not event.is_set():
                     self.log_writer.log_query_ended(data_fragment)
-                    self.rewrite_logs() # TODO: check if this is the correct place to call this
+                    self.ended_queries += 1
+                    if self.ended_queries == MAX_QUERIES:
+                        self.rewrite_logs() # TODO: check if this is the correct place to call this
 
                 # the text is no longer needed
                 review = data_fragment.get_review()
