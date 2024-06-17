@@ -35,7 +35,7 @@ class Medic:
 
     def update_timeouts(self, node_id):
         self.nodes[node_id] = time.time()
-        logger.info(f"Actulice el timeout para {node_id}")
+        # logger.info(f"Actulice el timeout para {node_id}")
 
     def create_container_name(self,node_type, node_id):
         resultado = CONTAINERS[node_type]+str(node_id)
