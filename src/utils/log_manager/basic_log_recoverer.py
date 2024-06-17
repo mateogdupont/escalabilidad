@@ -42,6 +42,7 @@ class ErrorProcessingLog(LogRecovererError):
 class BasicLogRecoverer:
     def __init__(self, file_path: str) -> None:
         self.file_path = file_path
+        self.tmp_file_path = self.file_path.replace(".log", ".temp")
         self.received_ids = {}
         self.results = {}
         self.ended_queries = {}
@@ -150,10 +151,9 @@ class BasicLogRecoverer:
         self.ended_queries = ended_queries
 
     def rewrite_logs(self) -> None:
-        temp_path = self.file_path.replace(".log", ".temp")
         to_write = []
         with open(self.file.name, "r") as log:
-            with open(temp_path, "w") as temp:
+            with open(self.tmp_file_path, "w") as temp:
                 lines = log.readlines()
                 if not lines:
                     return
@@ -171,5 +171,8 @@ class BasicLogRecoverer:
                         to_write.append(line)
                 to_write.reverse()
                 temp.write(''.join(to_write))
-                        
+    
+    def swap_files(self) -> None:
+        swap(self.file_path, self.tmp_file_path)
+        os.remove(self.tmp_file_path)
     

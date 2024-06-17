@@ -307,8 +307,7 @@ class Counter:
         self.log_writer.close()
         log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
         log_rewriter.rewrite_logs()
-        #         swap(self.file_path, temp_path)
-        # os.remove(temp_path)
+        log_rewriter.swap_files()
         self.log_writer.open()
 
 def main():
