@@ -45,7 +45,6 @@ class Filter:
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.exit = False
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
-        self.ended_queries = 0
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -98,6 +97,7 @@ class Filter:
             try:
                 self.mom.publish(data_chunk, node)
                 self.log_writer.log_result_sent(node)
+                self.rewrite_logs() # TODO: check if this is the correct place to call this
             except Exception as e:
                 logger.error(f"Error al enviar a {node}: {e}")
                 logger.error(f"Data: {data_chunk.to_bytes()}")
@@ -122,10 +122,6 @@ class Filter:
                     self.log_writer.log_received_id(fragment)
             if fragment.is_last():
                 self.log_writer.log_query_ended(fragment)
-                self.ended_queries += 1
-                if self.ended_queries >= MAX_QUERIES:
-                    self.rewrite_logs() # TODO: check if this is the correct place to call this
-                    self.ended_queries = 0
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key, event)

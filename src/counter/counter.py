@@ -47,7 +47,6 @@ class Counter:
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
-        self.ended_queries = 0
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
@@ -267,10 +266,6 @@ class Counter:
 
                 if data_fragment.is_last():
                     self.log_writer.log_query_ended(data_fragment)
-                    self.ended_queries += 1
-                    if self.ended_queries >= MAX_QUERIES:
-                        self.rewrite_logs() # TODO: check if this is the correct place to call this
-                        self.ended_queries = 0 
                     results.append(data_fragment)
                     key = None
                     fragments = []
@@ -287,6 +282,7 @@ class Counter:
                     if len(fragments) > 0:
                         self.mom.publish(DataChunk(fragments), key)
                     self.log_writer.log_counted_data_sent(data_fragment)
+                    self.rewrite_logs() # TODO: check if this is the correct place to call this
 
                     self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
             self.mom.ack(delivery_tag=method.delivery_tag)

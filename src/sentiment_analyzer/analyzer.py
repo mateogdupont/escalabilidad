@@ -50,7 +50,6 @@ class Analyzer:
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
-        self.ended_queries = 0
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -80,6 +79,7 @@ class Analyzer:
             data_chunk = DataChunk(self.results[node])
             self.mom.publish(data_chunk, node)
             self.log_writer.log_result_sent(node)
+            self.rewrite_logs() # TODO: check if this is the correct place to call this
             self.results[node] = []
 
     def callback(self, ch, method, properties, body,event):
@@ -96,10 +96,6 @@ class Analyzer:
                     data_fragment.set_query_info(query_info)
                 elif not event.is_set():
                     self.log_writer.log_query_ended(data_fragment)
-                    self.ended_queries += 1
-                    if self.ended_queries >= MAX_QUERIES:
-                        self.rewrite_logs() # TODO: check if this is the correct place to call this
-                        self.ended_queries = 0
 
                 # the text is no longer needed
                 review = data_fragment.get_review()
