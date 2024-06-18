@@ -25,7 +25,7 @@ NODE_TYPE=os.environ["NODE_TYPE"]
 HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
-MAX_QUERIES = 5
+MAX_QUERIES = 2
 
 class Filter:
     def __init__(self):

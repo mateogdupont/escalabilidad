@@ -154,7 +154,7 @@ class BasicLogRecoverer:
         # return
         logger.info("Rewriting logs")
         to_write = []
-        with open(self.file.name, "r") as log:
+        with open(self.file_path, "r") as log:
             with open(self.tmp_file_path, "w") as temp:
                 lines = log.readlines()
                 if not lines:
@@ -176,7 +176,11 @@ class BasicLogRecoverer:
         logger.info("Logs rewritten")
     
     def swap_files(self) -> None:
-        return
+        # return
+        logger.info("Swapping files")
         swap(self.file_path, self.tmp_file_path)
+        logger.info("Files swapped")
+        logger.info("Removing temp file")
         os.remove(self.tmp_file_path)
+        logger.info("Temp file removed")
     
