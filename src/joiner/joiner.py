@@ -207,7 +207,7 @@ class Joiner:
                 self.mom.ack(delivery_tag=method.delivery_tag)
             self.send_with_timeout(event)
         except Exception as e:
-            logger.error(f"Error en callback: {e}")
+            logger.error(f"Error en callback: {e.with_traceback()}")
 
     def run_joiner(self, event):
         if len(self.books_side_tables) == 0:

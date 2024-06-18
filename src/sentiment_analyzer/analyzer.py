@@ -116,7 +116,7 @@ class Analyzer:
                     self.add_and_try_to_send_chunk(fragment, key, event)
             self.mom.ack(delivery_tag=method.delivery_tag)
         except Exception as e:
-            logger.error(f"Error en callback: {e}")
+            logger.error(f"Error en callback: {e.with_traceback()}")
 
     def run_analizer(self, event):
         while not event.is_set():

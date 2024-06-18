@@ -291,7 +291,7 @@ class Counter:
                     self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
             self.mom.ack(delivery_tag=method.delivery_tag)
         except Exception as e:
-            logger.error(f"Error en callback: {e}")
+            logger.error(f"Error en callback\n Traceback: {e.with_traceback()}")
 
     def run_counter(self, event):
         while not event.is_set():

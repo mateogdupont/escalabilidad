@@ -62,7 +62,7 @@ class Medic:
                 if not data:
                     continue
                 msg = data.decode("utf-8")
-                logger.info(f"Received: {msg}")
+                # logger.info(f"Received: {msg}")
                 if not '$'in msg or not '.'in msg:
                     logger.error(f"The msg does not respect the format: {msg}")
                 self.verify_timeouts()
