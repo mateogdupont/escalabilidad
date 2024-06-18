@@ -30,7 +30,7 @@ SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 
-MAX_QUERIES = 2
+MAX_QUERIES = 1
 
 class Analyzer:
     def __init__(self):

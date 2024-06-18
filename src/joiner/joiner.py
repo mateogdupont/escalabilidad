@@ -24,7 +24,7 @@ HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 MAX_WAIT_TIME = 60 * 15
-MAX_QUERIES = 2
+MAX_QUERIES = 1
 
 class Joiner:
     def __init__(self):
