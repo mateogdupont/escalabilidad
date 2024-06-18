@@ -24,6 +24,7 @@ HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 MAX_WAIT_TIME = 60 * 15
+MAX_QUERIES = 5
 
 class Joiner:
     def __init__(self):
@@ -53,6 +54,7 @@ class Joiner:
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.log_writer_books = LogWriter(os.environ["LOG_PATH_BOOKS"])
         self.log_writer_reviews = LogWriter(os.environ["LOG_PATH_REVIEWS"])
+        self.ended_queries = 0
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -168,7 +170,10 @@ class Joiner:
                     self.add_and_try_to_send_chunk(data, key, event)
         if (fragment.is_last()) and (not event.is_set()):
             self.log_writer_reviews.log_query_ended(fragment)
-            self.rewrite_logs() # TODO: check if this is the correct place to call this
+            self.ended_queries += 1
+            if self.ended_queries >= MAX_QUERIES:
+                self.rewrite_logs() # TODO: check if this is the correct place to call this
+                self.ended_queries = 0
             for data, key in update_data_fragment_step(fragment).items():
                 self.add_and_try_to_send_chunk(data, key, event)
             self.clean_data(query_id, client_id)

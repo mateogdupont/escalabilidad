@@ -26,6 +26,7 @@ DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TOP = "TOP"
+MAX_QUERIES = 5
 
 class Counter:
     def __init__(self):
@@ -46,6 +47,7 @@ class Counter:
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
+        self.ended_queries = 0
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
@@ -265,7 +267,10 @@ class Counter:
 
                 if data_fragment.is_last():
                     self.log_writer.log_query_ended(data_fragment)
-                    self.rewrite_logs() # TODO: check if this is the correct place to call this
+                    self.ended_queries += 1
+                    if self.ended_queries >= MAX_QUERIES:
+                        self.rewrite_logs() # TODO: check if this is the correct place to call this
+                        self.ended_queries = 0
                     results.append(data_fragment)
                     key = None
                     fragments = []

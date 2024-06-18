@@ -97,8 +97,9 @@ class Analyzer:
                 elif not event.is_set():
                     self.log_writer.log_query_ended(data_fragment)
                     self.ended_queries += 1
-                    if self.ended_queries == MAX_QUERIES:
+                    if self.ended_queries >= MAX_QUERIES:
                         self.rewrite_logs() # TODO: check if this is the correct place to call this
+                        self.ended_queries = 0
 
                 # the text is no longer needed
                 review = data_fragment.get_review()
