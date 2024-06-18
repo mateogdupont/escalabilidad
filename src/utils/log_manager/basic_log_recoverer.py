@@ -1,5 +1,6 @@
 import base64
 import os
+import time
 from typing import List, Optional, Tuple
 from utils.structs.book import Book
 from utils.structs.data_fragment import DataFragment
@@ -153,6 +154,7 @@ class BasicLogRecoverer:
     def rewrite_logs(self) -> None:
         # return
         logger.info("Rewriting logs")
+        time1 = time.time()
         to_write = []
         with open(self.file_path, "r") as log:
             with open(self.tmp_file_path, "w") as temp:
@@ -173,7 +175,7 @@ class BasicLogRecoverer:
                         to_write.append(line)
                 to_write.reverse()
                 temp.write(''.join(to_write))
-        logger.info("Logs rewritten")
+        logger.info("Logs rewritten, it took %s seconds", round(time.time()-time1))
     
     def swap_files(self) -> None:
         # return
