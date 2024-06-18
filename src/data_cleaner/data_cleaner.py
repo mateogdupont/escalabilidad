@@ -233,19 +233,14 @@ class DataCleaner:
         results_proccess.join()
 
 def save_id(received_ids: dict, data_fragment: DataFragment) -> bool:
-        client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
+        client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
         received_ids[client_id] = received_ids.get(client_id, {})
-        received_ids[client_id][query_id] = received_ids[client_id].get(query_id, {})
+        received_ids[client_id][query_id] = received_ids[client_id].get(query_id, set())
         if id in received_ids[client_id][query_id]:
-            logger.warning("-----------------------------------------------")
-            logger.warning(f"Repeated id: {id} from client: {client_id} query: {query_id}")
-            logger.warning(f"Data saved: {received_ids[client_id][query_id][id]}")
-            logger.warning(f"Data received: {data_fragment.to_human_readable()}")
-            logger.warning("-----------------------------------------------")
             return False
-        received_ids[client_id][query_id][id] = data_fragment.to_human_readable()
+        received_ids[client_id][query_id].add(id)
         return True
 
 def main():

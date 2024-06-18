@@ -17,14 +17,14 @@ class QueryInfo:
         self.contains = None
         self.min = None
         self.max = None
-        self.top = None
         # counter params
         self.group_by = None
         self.count_distinct = None
         self.average_column = None
         self.percentile_column = None
+        self.top = None
 
-    def to_str(self) -> str:
+    def to_bytes(self) -> bytes:
         return pickle.dumps(self)
     
     def to_human_readable(self) -> str:
@@ -36,7 +36,7 @@ class QueryInfo:
         return info
     
     @classmethod
-    def from_str(cls, json_str: str) -> 'QueryInfo':
+    def from_bytes(cls, json_str: bytes) -> 'QueryInfo':
         return pickle.loads(json_str)
     
     def clone(self) -> 'QueryInfo':
@@ -105,6 +105,15 @@ class QueryInfo:
     
     def filter_by_top(self) -> bool:
         return self.top is not None
+    
+    def get_top(self) -> Tuple[int, str]:
+        if not self.top:
+            return None
+        if type(self.top) == str:
+            self.top = eval(self.top)
+        if type(self.top[0]) == str:
+            self.top = (int(self.top[0]), self.top[1])
+        return self.top
     
     def set_counter_params(self, group_by: str, count_distinct: int, average_column: str, percentile: Tuple[int, str]) -> None:
         self.group_by = group_by

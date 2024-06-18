@@ -111,13 +111,14 @@ class Client:
                 return None
             
     def _initialize_result_files_and_writers(self):
-        result_files = []
-        result_writers = []
+        result_files = {}
+        result_writers = {}
         for i in self._queries.keys():
             result_file = open(self._data_path + "/data/" + RESULTS_FILE_NAME + "_" + str(i) + "_id_" + self.id + ".csv", 'w', newline='')
-            result_writers.append(csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL))
-            result_writers[-1].writerow(RESULTS_COLUMNS[i-1])
-            result_files.append(result_file)
+            # result_writers.append(csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL))
+            result_writers[i] = csv.writer(result_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+            result_writers[i].writerow(RESULTS_COLUMNS[i-1])
+            result_files[i] = result_file
         return (result_files,result_writers)
 
     def write_result_in_file(self, result_writers, result):
@@ -131,7 +132,12 @@ class Client:
         else:
             result_index = [2,3,4,5,6,9,10]
         rows = [result[i] for i in result_index]
-        result_writers[query-1].writerow(rows)
+        try:
+            result_writers[query].writerow(rows)
+        except Exception as e:
+            logger.info(f"Error writing in file: {e}")
+            logger.info(f"Query: {query}")
+            logger.info(f"rows: {rows}")
 
 # ['last','Query','Title','Author','Publisher','Publised Year','Categories','Distinc Amount', 'Average', 'Sentiment', 'Percentile']
     def _handle_results(self, event):
@@ -145,7 +151,7 @@ class Client:
             for result in results:
                 if result[0] == '1':
                     amount_of_queries_left -= 1
-                    result_files[int(result[1]) - 1].close()
+                    result_files[int(result[1])].close()
                     logger.info(f"The query {result[1]} has been processed")
                     continue
                 self.write_result_in_file(result_writers, result)
@@ -154,7 +160,7 @@ class Client:
             if amount_of_queries_left <= 0:
                 break
         if not event.is_set():
-            for file in result_files:
+            for file in result_files.values():
                 file.close()
             logger.info(f"All queries have been processed")
         self.socket.close()

@@ -3,6 +3,7 @@ import os
 import signal
 import socket
 from multiprocessing import Process, Event
+from log_manager.log_writer import LogWriter
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
@@ -13,6 +14,7 @@ from dotenv import load_dotenv # type: ignore
 import time
 import numpy as np
 import logging as logger
+from log_manager.log_recoverer import LogRecoverer
 
 load_dotenv()
 NODE_TYPE=os.environ["NODE_TYPE"]
@@ -23,10 +25,13 @@ TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
+TOP = "TOP"
 
 class Counter:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
+        log_recoverer = LogRecoverer(os.environ["LOG_PATH"])
+        log_recoverer.recover_data()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = list(consumer_queues.keys())[0]
@@ -35,32 +40,29 @@ class Counter:
         self.id= os.environ["ID"]
         self.event = None
         self.exit = False
-        self.counted_data = {}
-        self.books = {}
-        self.received_ids = {}
+        self.counted_data = log_recoverer.get_counted_data()
+        self.books = log_recoverer.get_books()
+        self.received_ids = log_recoverer.get_received_ids()
+        self.log_writer = LogWriter(os.environ["LOG_PATH"])
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
         self.mom.close()
+        self.log_writer.close()
         if self.event:
             self.event.set()
     
     def save_id(self, data_fragment: DataFragment) -> bool:
-        client_id = data_fragment.get_client_id() # TODO: review with feat-multiclient branch
+        client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
-        self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, {})
+        self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
         if id in self.received_ids[client_id][query_id]:
-            logger.warning("-----------------------------------------------")
-            logger.warning(f"Repeated id: {id} from client: {client_id} query: {query_id}")
-            logger.warning(f"Data saved: {self.received_ids[client_id][query_id][id]}")
-            logger.warning(f"Data received: {data_fragment.to_human_readable()}")
-            logger.warning("-----------------------------------------------")
             return False
-        self.received_ids[client_id][query_id][id] = data_fragment.to_human_readable()
+        self.received_ids[client_id][query_id].add(id)
         return True
     
     def clean_data(self, query_id: str, client_id: str):
@@ -84,6 +86,10 @@ class Counter:
             self.counted_data[client_id] = {}
         if query_id not in self.counted_data[client_id].keys():
             self.counted_data[client_id][query_id] = {}
+
+        if query_info.filter_by_top():
+            return self.count_top(data_fragment, query_id)
+
         bool_set = []
         for v in [group_by, count_distinct, average_column, percentile_data]:
             bool_set.append(v is not None)
@@ -94,6 +100,36 @@ class Counter:
         if [True, False, False, True] == bool_set: # for query 5
             return self.count_type_3(data_fragment, query_id, queries, group_data, value, percentile_data[0],event)
         return []
+    
+    def count_top(self, data_fragment, query_id):
+        results = []
+        client_id = data_fragment.get_client_id()
+        query_info = data_fragment.get_query_info()
+        top_amount = query_info.get_top()[0]
+        if not data_fragment.is_last(): 
+            self.counted_data[client_id][query_id][TOP] = self.counted_data[client_id][query_id].get(TOP, [])
+            added = False
+            if len(self.counted_data[client_id][query_id][TOP]) < top_amount:
+                self.counted_data[client_id][query_id][TOP].append(data_fragment)
+                added = True
+            else:
+                lowest = self.counted_data[client_id][query_id][TOP][0]
+                if data_fragment.get_query_info().get_average() > lowest.get_query_info().get_average():
+                    self.counted_data[client_id][query_id][TOP][0] = data_fragment
+                    added = True
+            if added:
+                self.counted_data[client_id][query_id][TOP] = sorted(self.counted_data[client_id][query_id][TOP], key=lambda fragment: fragment.get_query_info().get_average())
+                count_info = {"TOP": data_fragment.to_bytes(), "AMOUNT": top_amount}
+                self.log_writer.log_counted_data(data_fragment, repr(count_info))
+        else:
+            top = self.counted_data[client_id][query_id][TOP]
+            for fragment in top:
+                if self.exit:
+                    return results
+                results.append(fragment)
+            self.counted_data[client_id][query_id].pop(TOP)
+            self.clean_data(query_id, client_id)
+        return results
 
     def count_type_3(self, data_fragment, query_id, queries, group_data, value, percentile, event):
         results = []
@@ -108,7 +144,10 @@ class Counter:
             if group_data not in self.counted_data[client_id][query_id].keys():
                 self.counted_data[client_id][query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
             self.counted_data[client_id][query_id][group_data]["VALUES"].append(value)
-            self.books[group_data] = data_fragment.get_book()
+            self.books[group_data] = data_fragment.get_book() #TODO: redo this log if needed
+            self.log_writer.log_book(data_fragment.get_book())
+            count_info = {"PERCENTILE": percentile, "VALUE": value, "GROUP_DATA": group_data}
+            self.log_writer.log_counted_data(data_fragment, repr(count_info))
         else:
             sentiment_scores = {}
             percentile_number = None
@@ -147,7 +186,10 @@ class Counter:
                 self.counted_data[client_id][query_id][group_data] = {"TOTAL": 0, "COUNT": 0}
             self.counted_data[client_id][query_id][group_data]["TOTAL"] += value
             self.counted_data[client_id][query_id][group_data]["COUNT"] += 1
-            self.books[group_data] = data_fragment.get_book()
+            self.books[group_data] = data_fragment.get_book() #TODO: redo this log if needed
+            self.log_writer.log_book(data_fragment.get_book())
+            count_info = {"2": 2, "VALUE": value, "GROUP_DATA": group_data}
+            self.log_writer.log_counted_data(data_fragment, repr(count_info))
         else:
             next_id = data_fragment.get_id() + 1
             for group_data in self.counted_data[client_id][query_id].keys():
@@ -177,6 +219,8 @@ class Counter:
                     if data not in self.counted_data[client_id][query_id].keys():
                         self.counted_data[client_id][query_id][data] = set()
                     self.counted_data[client_id][query_id][data].add(value)
+                    count_info = {"1": 1, "VALUE": value, "GROUP_DATA": data}
+                    self.log_writer.log_counted_data(data_fragment, repr(count_info))
             else:
                 logger.warning(f"Group data is not a list, it is a {type(group_data)}")
         else:
@@ -211,7 +255,7 @@ class Counter:
 
     def callback(self, ch, method, properties, body,event):
         try:
-            data_chunk = DataChunk.from_str(body)
+            data_chunk = DataChunk.from_bytes(body)
             for data_fragment in data_chunk.get_fragments():
                 if event.is_set():
                     return
@@ -220,6 +264,7 @@ class Counter:
                 results = self.count_data_fragment(data_fragment, event)
 
                 if data_fragment.is_last():
+                    self.log_writer.log_query_ended(data_fragment)
                     results.append(data_fragment)
                     key = None
                     fragments = []
@@ -235,6 +280,7 @@ class Counter:
                             fragments = []
                     if len(fragments) > 0:
                         self.mom.publish(DataChunk(fragments), key)
+                    self.log_writer.log_counted_data_sent(data_fragment)
 
                     self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
             self.mom.ack(delivery_tag=method.delivery_tag)
@@ -262,6 +308,7 @@ def main():
     counter.run()
     if not counter.exit:
         counter.mom.close()
+        counter.log_writer.close()
    
 if __name__ == "__main__":
     main()

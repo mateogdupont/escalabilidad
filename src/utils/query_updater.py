@@ -89,7 +89,6 @@ def _update_first_query(data_fragment: DataFragment) -> 'dict[DataFragment, str]
     elif step == 2:
         query_info.set_filter_params("TITLE", "distributed", None, None, None)
     elif step == 3:
-        # TODO: delete unwanted columns
         #logger.info("Next step is to return the results")
         return {data_fragment: "results"}
     data_fragment.set_query_info(query_info)
@@ -180,7 +179,7 @@ def _update_third_and_fourth_query(data_fragment: DataFragment) -> 'dict[DataFra
             new_query_info = new_data_fragment.get_query_info()
             new_query_info.set_filter_params(None, None, None, None, (10, "AVERAGE"))
             new_data_fragment.set_query_info(new_query_info)
-            next_steps[new_data_fragment] = "filter"
+            next_steps[new_data_fragment] = "counter"
         if 3 in queries.keys():
             new_queries = {}
             new_queries[3] = queries[3]

@@ -21,7 +21,7 @@ class Review:
     def with_minimum_data(cls, title: str, score: float) -> 'Review':
         return cls(-1, title, None, None, None, score, None, None, None)
     
-    def to_str(self) -> str:
+    def to_bytes(self) -> bytes:
         return pickle.dumps(self)
 
     def to_human_readable(self) -> str:
@@ -34,7 +34,7 @@ class Review:
     
     
     @classmethod
-    def from_str(cls, json_str: str) -> 'Review':
+    def from_bytes(cls, json_str: bytes) -> 'Review':
         return pickle.loads(json_str)
     
     def has_minimun_data(self) -> bool:

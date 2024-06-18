@@ -19,7 +19,7 @@ class DataFragment:
         self.queries = None
         self.set_queries(queries)
     
-    def to_str(self) -> str:
+    def to_bytes(self) -> bytes:
         return pickle.dumps(self)
     
     def to_human_readable(self) -> str:
@@ -53,7 +53,7 @@ class DataFragment:
         return [str(int(self.is_last()))] + [query] + book_result + query_info_results
     
     @classmethod
-    def from_str(cls, json_str: str) -> 'DataFragment':
+    def from_bytes(cls, json_str: bytes) -> 'DataFragment':
         datafragment = pickle.loads(json_str)
         datafragment.set_queries(datafragment.queries)
         return datafragment

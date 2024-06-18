@@ -14,11 +14,11 @@ class DataChunk:
             if fragment.is_last():
                 self.contains_last = True
     
-    def to_str(self) -> str:
+    def to_bytes(self) -> bytes:
         return pickle.dumps(self)
     
     @classmethod
-    def from_str(cls, json_str: str) -> 'DataChunk':
+    def from_bytes(cls, json_str: bytes) -> 'DataChunk':
         return pickle.loads(json_str)
         
     def contains_last_fragment(self) -> bool:
