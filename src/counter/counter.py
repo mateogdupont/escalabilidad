@@ -270,7 +270,7 @@ class Counter:
                     self.ended_queries += 1
                     if self.ended_queries >= MAX_QUERIES:
                         self.rewrite_logs() # TODO: check if this is the correct place to call this
-                        self.ended_queries = 0
+                        self.ended_queries = 0 
                     results.append(data_fragment)
                     key = None
                     fragments = []

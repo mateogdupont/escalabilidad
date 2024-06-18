@@ -151,7 +151,7 @@ class BasicLogRecoverer:
         self.ended_queries = ended_queries
 
     def rewrite_logs(self) -> None:
-        return
+        # return
         logger.info("Rewriting logs")
         to_write = []
         with open(self.file.name, "r") as log:
