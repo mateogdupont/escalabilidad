@@ -298,8 +298,12 @@ class Counter:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.exit and counter_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
-            sock.sendto(msg.encode(), self.medic_addres)
-            time.sleep(HARTBEAT_INTERVAL)
+            try:
+                sock.sendto(msg.encode(), self.medic_addres)
+            except Exception as e:
+                logger.error(f"Error sending hartbeat: {e}")
+            finally:
+                time.sleep(HARTBEAT_INTERVAL)
         counter_proccess.join()
 
 
