@@ -139,17 +139,17 @@ class Filter:
                 self.results[key] = ([], time.time())
 
     def callback(self, ch, method, properties, body,event):
-        try:
-            data_chunk = DataChunk.from_bytes(body)
-            self.filter_data_chunk(data_chunk,event)
-            self.mom.ack(delivery_tag=method.delivery_tag)
-            self.send_with_timeout(event)
-        except Exception as e:
-            logger.error(f"Error en callback: {e}")
+        data_chunk = DataChunk.from_bytes(body)
+        self.filter_data_chunk(data_chunk,event)
+        self.mom.ack(delivery_tag=method.delivery_tag)
+        self.send_with_timeout(event)
 
     def run_filter(self, event):
         while not event.is_set():
-            self.mom.consume_with_callback(self.work_queue, self.callback, event)
+            try:
+                self.mom.consume_with_callback(self.work_queue, self.callback, event)
+            except Exception as e:
+                event.set()
 
     def run(self):
         self.event = Event()
