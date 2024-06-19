@@ -62,6 +62,10 @@ services:
     depends_on:
       - rabbitmq1
       - medic
+    volumes:
+      - ../logs:/logs
+    environment:
+      - LOG_PATH=/logs/cleaner1.log
 
   filter1:
     build:

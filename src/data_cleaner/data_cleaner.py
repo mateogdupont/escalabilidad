@@ -5,6 +5,8 @@ from typing import List, Tuple
 from multiprocessing import Process, Event, Queue
 from queue import Empty
 import uuid
+from log_manager.log_recoverer import LogRecoverer
+from log_manager.log_writer import LogWriter
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
@@ -21,6 +23,8 @@ MAX_AMOUNT_OF_FRAGMENTS = 500
 MAX_AMOUNT_OF_CLIENTS = 10
 LISTEN_BACKLOG = 5
 PORT = 1250
+
+# TODO: clean log data somewhere
 
 class DataCleaner:
     def __init__(self):
@@ -40,6 +44,8 @@ class DataCleaner:
         self.clients_processes = {}
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
+        self.manage_clients()
+        self.log_writer = LogWriter(os.environ["LOG_PATH"])
     
     def _initialice_mom(self):
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
@@ -47,6 +53,12 @@ class DataCleaner:
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
 
+    def manage_clients(self):
+        log_recoverer = LogRecoverer(os.environ["LOG_PATH"])
+        log_recoverer.recover_data()
+        previous_clients = log_recoverer.get_clients()
+        for client in previous_clients:
+            self.send_clean_flag(client)
     
     def sigterm_handler(self, signal,frame):
         self._socket.close()
@@ -62,6 +74,13 @@ class DataCleaner:
             data_chunk = DataChunk(self.clean_data[node])
             self.mom.publish(data_chunk, node)
             self.clean_data[node].clear()
+    
+    def send_clean_flag(self, client_id): # TODO: use this
+        datafragment = DataFragment(0, {}, None, None, client_id)
+        datafragment.set_as_clean_flag()
+        for value, key in update_data_fragment_step(datafragment).items():
+            self.add_and_try_to_send(value, key)
+        self.log_writer.log_ended_client(client_id)
     
     def parse_and_filter_data(self, unparsed_data, client_id, next_id):
         if unparsed_data[1] == 1:
@@ -142,11 +161,13 @@ class DataCleaner:
         self.clients_to_results_queue.put(msg_to_result_thread)
         self._initialice_mom()
         expected_amount_of_files =  2 if any(query in self.queries for query in [3, 4, 5]) else 1
+        self.log_writer.log_new_client(client_uuid)
         remainding_amount = self.receive_files(client_socket, expected_amount_of_files, client_uuid)
         if remainding_amount == 0:
             logger.info(f"All data was received")
         client_socket.close()
         self.data_in_processes_queue.put(client_uuid)
+        self.log_writer.log_ended_client(client_uuid)
 
 
     def try_clean_processes(self):
