@@ -255,43 +255,43 @@ class Counter:
     
 
     def callback(self, ch, method, properties, body,event):
-        try:
-            data_chunk = DataChunk.from_bytes(body)
-            for data_fragment in data_chunk.get_fragments():
-                if event.is_set():
-                    return
-                if not self.save_id(data_fragment):
-                    continue
-                results = self.count_data_fragment(data_fragment, event)
+        data_chunk = DataChunk.from_bytes(body)
+        for data_fragment in data_chunk.get_fragments():
+            if event.is_set():
+                return
+            if not self.save_id(data_fragment):
+                continue
+            results = self.count_data_fragment(data_fragment, event)
 
-                if data_fragment.is_last():
-                    self.log_writer.log_query_ended(data_fragment)
-                    results.append(data_fragment)
-                    key = None
-                    fragments = []
-                    for results_data_fragment in results:
-                        if event.is_set():
-                            return
-                        steps = update_data_fragment_step(results_data_fragment)
-                        fragments.extend(steps.keys())
-                        key = list(steps.values())[0]
-                        chunk = DataChunk(fragments)
-                        if len(fragments) >= MAX_AMOUNT_OF_FRAGMENTS or chunk.contains_last_fragment():
-                            self.mom.publish(chunk, key)
-                            fragments = []
-                    if len(fragments) > 0:
-                        self.mom.publish(DataChunk(fragments), key)
-                    self.log_writer.log_counted_data_sent(data_fragment)
-                    self.rewrite_logs() # TODO: check if this is the correct place to call this
+            if data_fragment.is_last():
+                self.log_writer.log_query_ended(data_fragment)
+                results.append(data_fragment)
+                key = None
+                fragments = []
+                for results_data_fragment in results:
+                    if event.is_set():
+                        return
+                    steps = update_data_fragment_step(results_data_fragment)
+                    fragments.extend(steps.keys())
+                    key = list(steps.values())[0]
+                    chunk = DataChunk(fragments)
+                    if len(fragments) >= MAX_AMOUNT_OF_FRAGMENTS or chunk.contains_last_fragment():
+                        self.mom.publish(chunk, key)
+                        fragments = []
+                if len(fragments) > 0:
+                    self.mom.publish(DataChunk(fragments), key)
+                self.log_writer.log_counted_data_sent(data_fragment)
 
-                    self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
-            self.mom.ack(delivery_tag=method.delivery_tag)
-        except Exception as e:
-            logger.error(f"Error en callback\n Traceback: {e.with_traceback()}")
+                self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
+        self.mom.ack(delivery_tag=method.delivery_tag)
 
     def run_counter(self, event):
         while not event.is_set():
-            self.mom.consume_with_callback(self.work_queue, self.callback, event)
+            try:
+                self.mom.consume_with_callback(self.work_queue, self.callback, event)
+            except Exception as e:
+                logger.error(f"Error in callback: {e}")
+                event.set()
 
     def run(self):
         self.event = Event()
@@ -300,8 +300,12 @@ class Counter:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.exit and counter_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
-            sock.sendto(msg.encode(), self.medic_addres)
-            time.sleep(HARTBEAT_INTERVAL)
+            try:
+                sock.sendto(msg.encode(), self.medic_addres)
+            except Exception as e:
+                logger.error(f"Error sending hartbeat: {e}")
+            finally:
+                time.sleep(HARTBEAT_INTERVAL)
         counter_proccess.join()
 
     def rewrite_logs(self):
