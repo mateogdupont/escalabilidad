@@ -80,40 +80,41 @@ class Analyzer:
             self.results[node] = []
 
     def callback(self, ch, method, properties, body,event):
-        try:
-            data_chunk = DataChunk.from_bytes(body)
-            for data_fragment in data_chunk.get_fragments():
-                if not self.save_id(data_fragment):
-                    continue
-                if (not data_fragment.is_last()) and (not event.is_set()):
-                    review_text = data_fragment.get_review().get_text()
-                    sentiment_score = get_sentiment_score(review_text)
-                    query_info = data_fragment.get_query_info()
-                    query_info.set_sentiment(sentiment_score)
-                    data_fragment.set_query_info(query_info)
-                elif not event.is_set():
-                    self.log_writer.log_query_ended(data_fragment)
+        data_chunk = DataChunk.from_bytes(body)
+        for data_fragment in data_chunk.get_fragments():
+            if not self.save_id(data_fragment):
+                continue
+            if (not data_fragment.is_last()) and (not event.is_set()):
+                review_text = data_fragment.get_review().get_text()
+                sentiment_score = get_sentiment_score(review_text)
+                query_info = data_fragment.get_query_info()
+                query_info.set_sentiment(sentiment_score)
+                data_fragment.set_query_info(query_info)
+            elif not event.is_set():
+                self.log_writer.log_query_ended(data_fragment)
 
-                # the text is no longer needed
-                review = data_fragment.get_review()
-                review.set_text("")
-                data_fragment.set_review(review)
+            # the text is no longer needed
+            review = data_fragment.get_review()
+            review.set_text("")
+            data_fragment.set_review(review)
 
-                next_steps = update_data_fragment_step(data_fragment)
+            next_steps = update_data_fragment_step(data_fragment)
 
-                if not data_fragment.is_last():
-                    list_next_steps = [(fragment, key) for fragment, key in next_steps.items()]
-                    self.log_writer.log_result(list_next_steps)
+            if not data_fragment.is_last():
+                list_next_steps = [(fragment, key) for fragment, key in next_steps.items()]
+                self.log_writer.log_result(list_next_steps)
 
-                for fragment, key in next_steps.items():
-                    self.add_and_try_to_send_chunk(fragment, key, event)
-            self.mom.ack(delivery_tag=method.delivery_tag)
-        except Exception as e:
-            logger.error(f"Error en callback: {e}")
+            for fragment, key in next_steps.items():
+                self.add_and_try_to_send_chunk(fragment, key, event)
+        self.mom.ack(delivery_tag=method.delivery_tag)
 
     def run_analizer(self, event):
         while not event.is_set():
-            self.mom.consume_with_callback(self.work_queue, self.callback, event)
+            try:
+                self.mom.consume_with_callback(self.work_queue, self.callback, event)
+            except Exception as e:
+                logger.error(f"Error in callback: {e}")
+                event.set()
 
     def run(self):
         self.event = Event()
@@ -122,8 +123,12 @@ class Analyzer:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.exit and analyzer_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
-            sock.sendto(msg.encode(), self.medic_addres)
-            time.sleep(HARTBEAT_INTERVAL)
+            try:
+                sock.sendto(msg.encode(), self.medic_addres)
+            except Exception as e:
+                logger.error(f"Error sending hartbeat: {e}")
+            finally:
+                time.sleep(HARTBEAT_INTERVAL)
         analyzer_proccess.join()
 
 def main() -> None:

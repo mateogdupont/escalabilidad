@@ -183,31 +183,32 @@ class Joiner:
                 self.results[key] = ([], time.time())
 
     def callback(self, ch, method, properties, body,event):
-        try:
-            data_chunk = DataChunk.from_bytes(body)
-            ack = True
+        data_chunk = DataChunk.from_bytes(body)
+        ack = True
+        for fragment in data_chunk.get_fragments():
+            if event.is_set():
+                return
+            if not self.is_side_table_ended(fragment.get_query_id(), fragment.get_client_id()):
+                ack = False
+                self.mom.nack(delivery_tag=method.delivery_tag)
+                self.receive_all_books(event, fragment.get_query_id(), fragment.get_client_id())
+        if ack:
             for fragment in data_chunk.get_fragments():
-                if event.is_set():
-                    return
-                if not self.is_side_table_ended(fragment.get_query_id(), fragment.get_client_id()):
-                    ack = False
-                    self.mom.nack(delivery_tag=method.delivery_tag)
-                    self.receive_all_books(event, fragment.get_query_id(), fragment.get_client_id())
-            if ack:
-                for fragment in data_chunk.get_fragments():
-                    if not self.save_id(fragment):
-                        continue
-                    self.process_review_fragment(fragment, event)
-                self.mom.ack(delivery_tag=method.delivery_tag)
-            self.send_with_timeout(event)
-        except Exception as e:
-            logger.error(f"Error en callback: {e}")
+                if not self.save_id(fragment):
+                    continue
+                self.process_review_fragment(fragment, event)
+            self.mom.ack(delivery_tag=method.delivery_tag)
+        self.send_with_timeout(event)
 
     def run_joiner(self, event):
         if len(self.books_side_tables) == 0:
             self.receive_all_books(event)
         while not event.is_set():
-            self.mom.consume_with_callback(self.reviews_queue, self.callback, event)
+            try:
+                self.mom.consume_with_callback(self.reviews_queue, self.callback, event)
+            except Exception as e:
+                logger.error(f"Error in callback: {e}")
+                event.set()
 
     def run(self):
         self.event = Event()
@@ -215,9 +216,13 @@ class Joiner:
         joiner_proccess.start()
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.exit and joiner_proccess.is_alive():
-            msg = NODE_TYPE+ "." + self.id + "$"
-            sock.sendto(msg.encode(), self.medic_addres)
-            time.sleep(HARTBEAT_INTERVAL)
+            msg = NODE_TYPE + "." + self.id + "$"
+            try:
+                sock.sendto(msg.encode(), self.medic_addres)
+            except Exception as e:
+                logger.error(f"Error sending hartbeat: {e}")
+            finally:
+                time.sleep(HARTBEAT_INTERVAL)
         joiner_proccess.join()
         
 def main():
