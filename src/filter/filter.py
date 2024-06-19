@@ -149,6 +149,7 @@ class Filter:
             try:
                 self.mom.consume_with_callback(self.work_queue, self.callback, event)
             except Exception as e:
+                logger.error(f"Error in callback: {e}")
                 event.set()
 
     def run(self):
