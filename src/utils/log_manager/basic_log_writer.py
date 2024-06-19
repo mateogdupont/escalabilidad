@@ -51,6 +51,10 @@ class BasicLogWriter:
         ended_log = f"{QUERY_ENDED} {client_id} {query_id}"
         self._add_logs([id_log, ended_log])
     
+    def log_query_ended_only(self, client_id: str, query_id: str) -> None:
+        ended_log = f"{QUERY_ENDED} {client_id} {query_id}"
+        self._add_logs([ended_log])
+    
     def log_result_sent(self, node: str) -> None:
         self._add_logs([f"{RESULT_SENT} {node}"])
     

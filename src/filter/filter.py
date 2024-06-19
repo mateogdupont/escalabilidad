@@ -44,6 +44,17 @@ class Filter:
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.exit = False
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
+        self.ignore_ids = set()
+
+    def clean_data_client(self, client_id):
+        for query_id in self.received_ids.get(client_id, {}).keys():
+            self.log_writer.log_query_ended_only(client_id, query_id)
+        if client_id in self.received_ids.keys():
+            self.received_ids.pop(client_id)
+        for node, batch in self.results.items():
+            batch = ([fragment for fragment in batch[0] if fragment.get_client_id() != client_id], batch[1])
+            self.results[node] = batch
+        self.ignore_ids.add(client_id)
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -54,6 +65,8 @@ class Filter:
 
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
+        if client_id in self.ignore_ids:
+            return False
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
@@ -106,6 +119,9 @@ class Filter:
             if event.is_set():
                 return
             if not self.save_id(fragment):
+                continue
+            if fragment.get_query_info().is_clean_flag():
+                self.clean_data_client(fragment.get_client_id())
                 continue
             if (not fragment.is_last()):
                 if self.filter_data_fragment(fragment,event):

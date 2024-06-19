@@ -46,6 +46,7 @@ class Counter:
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
+        self.ignore_ids = set()
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
@@ -54,10 +55,21 @@ class Counter:
         if self.event:
             self.event.set()
     
+    def clean_data_client(self, client_id):
+        for query_id in self.received_ids.get(client_id, {}).keys():
+            self.log_writer.log_query_ended_only(client_id, query_id)
+        if client_id in self.received_ids.keys():
+            self.received_ids.pop(client_id)
+        if client_id in self.counted_data.keys():
+            self.counted_data.pop(client_id)
+        self.ignore_ids.add(client_id)
+    
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
+        if client_id in self.ignore_ids:
+            return False
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
         self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
         if id in self.received_ids[client_id][query_id]:
@@ -259,6 +271,9 @@ class Counter:
             if event.is_set():
                 return
             if not self.save_id(data_fragment):
+                continue
+            if data_fragment.get_query_info().is_clean_flag():
+                self.clean_data_client(data_fragment.get_client_id())
                 continue
             results = self.count_data_fragment(data_fragment, event)
 

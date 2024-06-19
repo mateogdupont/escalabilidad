@@ -47,6 +47,7 @@ class Joiner:
         self.side_tables_ended = log_recoverer_books.get_side_tables_ended()
         self.received_ids = log_recoverer_reviews.get_received_ids()
         self.results = log_recoverer_reviews.get_results()
+        self.ignore_ids = set()
         self.exit = False
         self.event = None
         signal.signal(signal.SIGTERM, self.sigterm_handler)
@@ -62,11 +63,26 @@ class Joiner:
         if self.event:
             self.event.set()
 
+    def clean_data_client(self, client_id):
+        for query_id in self.received_ids.get(client_id, {}).keys():
+            self.log_writer_reviews.log_query_ended_only(client_id, query_id)
+        if client_id in self.received_ids.keys():
+            self.received_ids.pop(client_id)
+        if client_id in self.books_side_tables.keys():
+            self.books_side_tables.pop(client_id)
+        if client_id in self.side_tables_ended.keys():
+            self.side_tables_ended.pop(client_id)
+        for node, batch in self.results.items():
+            batch = ([fragment for fragment in batch[0] if fragment.get_client_id() != client_id], batch[1])
+            self.results[node] = batch
+        self.ignore_ids.add(client_id)
 
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
+        if client_id in self.ignore_ids:
+            return False
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
         self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
         if id in self.received_ids[client_id][query_id]:
@@ -120,6 +136,9 @@ class Joiner:
                 if event.is_set():
                     return
                 if not self.save_id(fragment):
+                    continue
+                if fragment.get_query_info().is_clean_flag():
+                    self.clean_data_client(fragment.get_client_id())
                     continue
                 f_query_id = fragment.get_query_id()
                 f_client_id = fragment.get_client_id()
@@ -195,6 +214,9 @@ class Joiner:
         if ack:
             for fragment in data_chunk.get_fragments():
                 if not self.save_id(fragment):
+                    continue
+                if fragment.get_query_info().is_clean_flag():
+                    self.clean_data_client(fragment.get_client_id())
                     continue
                 self.process_review_fragment(fragment, event)
             self.mom.ack(delivery_tag=method.delivery_tag)

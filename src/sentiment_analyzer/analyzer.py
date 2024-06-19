@@ -48,6 +48,7 @@ class Analyzer:
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
+        self.ignore_ids = set()
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -55,11 +56,23 @@ class Analyzer:
         self.mom.close()
         if self.event:
             self.event.set()
+
+    def clean_data_client(self, client_id):
+        for query_id in self.received_ids.get(client_id, {}).keys():
+            self.log_writer.log_query_ended_only(client_id, query_id)
+        if client_id in self.received_ids.keys():
+            self.received_ids.pop(client_id)
+        for node, batch in self.results.items():
+            batch = ([fragment for fragment in batch[0] if fragment.get_client_id() != client_id], batch[1])
+            self.results[node] = batch
+        self.ignore_ids.add(client_id)
     
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
+        if client_id in self.ignore_ids:
+            return False
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
         self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
         if id in self.received_ids[client_id][query_id]:
@@ -83,6 +96,9 @@ class Analyzer:
         data_chunk = DataChunk.from_bytes(body)
         for data_fragment in data_chunk.get_fragments():
             if not self.save_id(data_fragment):
+                continue
+            if data_fragment.get_query_info().is_clean_flag():
+                self.clean_data_client(data_fragment.get_client_id())
                 continue
             if (not data_fragment.is_last()) and (not event.is_set()):
                 review_text = data_fragment.get_review().get_text()
