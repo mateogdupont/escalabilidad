@@ -1,10 +1,12 @@
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 import pika
 import os
 from dotenv import load_dotenv
 from utils.structs.data_chunk import DataChunk
 import logging as logger
 from time import sleep
+
+from utils.structs.data_fragment import DataFragment
 
 MAX_TRIES = 5
 
@@ -82,15 +84,16 @@ class MOM:
     def _nack(self, delivery_tag: int) -> None:
         self.channel.basic_nack(delivery_tag=delivery_tag)
     
-    def publish(self, data_chunk: DataChunk, key: str) -> None:
-        if data_chunk is None or data_chunk.get_fragments() is None or len(data_chunk.get_fragments()) == 0 or data_chunk.to_bytes() is None:
-            logger.error(f"DataChunk is None")
-        self._execute(self._publish, data_chunk, key)
+    def publish(self, data: Union[DataChunk, DataFragment], key: str) -> None:
+        if isinstance(data, DataChunk) or isinstance(data, DataFragment):
+            self._execute(self._publish, data, key)
+        else:
+            raise TypeError("Invalid data type. Expected DataChunk or DataFragment.")
             
-    def _publish(self, data_chunk: DataChunk, key: str) -> None:
+    def _publish(self, data: Union[DataChunk, DataFragment], key: str) -> None:
         self.channel.basic_publish(exchange=self.exchange,
                                     routing_key=key,
-                                    body=data_chunk.to_bytes(),
+                                    body=data.to_bytes(),
                                     properties=pika.BasicProperties(
                                         delivery_mode = 2, # make message persistent
                                     ))
