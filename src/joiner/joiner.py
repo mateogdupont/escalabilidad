@@ -34,14 +34,11 @@ class Joiner:
         log_recoverer_books.set_ended_queries(log_recoverer_reviews.get_ended_queries())
         log_recoverer_books.recover_data()
         self.id = os.environ["ID"]
-        repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
-        consumer_queues = eval(repr_consumer_queues)
         self.books_queue = os.environ["BOOKS_QUEUE"] + '.' + self.id
         self.reviews_queue = os.environ["REVIEWS_QUEUE"]
         self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
         self.info_queue = os.environ["INFO_QUEUE"]
-        consumer_queues.append(self.info_queue)
-        self.mom = MOM(consumer_queues)
+        self.mom = MOM([self.books_queue, self.reviews_queue, self.info_queue])
         self.books_side_tables = log_recoverer_books.get_books_side_tables()
         self.books = log_recoverer_books.get_books()
         self.side_tables_ended = log_recoverer_books.get_side_tables_ended()
