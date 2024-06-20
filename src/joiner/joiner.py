@@ -55,9 +55,12 @@ class Joiner:
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
-        self.mom.close()
-        self.log_writer_books.close()
-        self.log_writer_reviews.close()
+        if self.mom:
+            self.mom.close()
+        if self.log_writer_books:
+            self.log_writer_books.close()
+        if self.log_writer_reviews:
+            self.log_writer_reviews.close()
         if self.event:
             self.event.set()
 
@@ -255,9 +258,12 @@ def main():
     joiner = Joiner()
     joiner.run()
     if not joiner.exit:
-        joiner.mom.close()
-        joiner.log_writer_books.close()
-        joiner.log_writer_reviews.close()
+        if joiner.mom:
+            joiner.mom.close()
+        if joiner.log_writer_books:
+            joiner.log_writer_books.close()
+        if joiner.log_writer_reviews:
+            joiner.log_writer_reviews.close()
    
 if __name__ == "__main__":
     main()

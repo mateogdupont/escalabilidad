@@ -52,8 +52,10 @@ class Counter:
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
-        self.mom.close()
-        self.log_writer.close()
+        if self.mom:
+            self.mom.close()
+        if self.log_writer:
+            self.log_writer.close()
         if self.event:
             self.event.set()
     
@@ -338,8 +340,10 @@ def main():
     counter = Counter()
     counter.run()
     if not counter.exit:
-        counter.mom.close()
-        counter.log_writer.close()
+        if counter.mom:
+            counter.mom.close()
+        if counter.log_writer:
+            counter.log_writer.close()
    
 if __name__ == "__main__":
     main()

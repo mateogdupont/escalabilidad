@@ -59,8 +59,10 @@ class Filter:
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
-        self.mom.close()
-        self.log_writer.close()
+        if self.mom:
+            self.mom.close()
+        if self.log_writer:
+            self.log_writer.close()
         if self.event:
             self.event.set()
 
@@ -199,8 +201,10 @@ def main():
     filter = Filter()
     filter.run()
     if not filter.exit:
-        filter.mom.close()
-        filter.log_writer.close()
+        if filter.mom:
+            filter.mom.close()
+        if filter.log_writer:
+            filter.log_writer.close()
         
 if __name__ == "__main__":
     main()

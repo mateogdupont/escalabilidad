@@ -64,7 +64,8 @@ class DataCleaner:
     
     def sigterm_handler(self, signal,frame):
         self._socket.close()
-        self.mom.close()
+        if self.mom:
+            self.mom.close()
         self.exit = True
         if self._event:
             self._event.set()
@@ -269,7 +270,10 @@ def main():
     cleaner = DataCleaner()
     cleaner.run()
     if not cleaner.exit:
-        cleaner.mom.close()
+        if cleaner.mom:
+            cleaner.mom.close()
+        if cleaner.log_writer:
+            cleaner.log_writer.close()
    
 if __name__ == "__main__":
     main()

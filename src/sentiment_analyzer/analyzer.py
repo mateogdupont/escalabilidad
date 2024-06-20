@@ -54,8 +54,10 @@ class Analyzer:
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
-        self.log_writer.close()
-        self.mom.close()
+        if self.mom:
+            self.mom.close()
+        if self.log_writer:
+            self.log_writer.close()
         if self.event:
             self.event.set()
 
@@ -165,8 +167,10 @@ def main() -> None:
     analyzer = Analyzer()
     analyzer.run()
     if not analyzer.exit:
-        analyzer.mom.close()
-        analyzer.log_writer.close()
+        if analyzer.mom:
+            analyzer.mom.close()
+        if analyzer.log_writer:
+            analyzer.log_writer.close()
 
 if __name__ == "__main__":
     main()
