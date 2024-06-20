@@ -38,8 +38,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -48,8 +47,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -58,8 +56,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -68,8 +65,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -78,8 +74,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -88,8 +83,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -98,8 +92,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -108,8 +101,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -127,8 +119,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -137,18 +128,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
-            }
-        },
-        {
-            "name": "info.filter3",
-            "vhost": "/",
-            "durable": true,
-            "auto_delete": false,
-            "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -157,8 +137,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -167,8 +146,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -177,8 +155,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -187,8 +164,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -197,8 +173,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -207,8 +182,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -217,8 +191,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -227,8 +200,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -237,8 +209,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -247,8 +218,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         }
     ],
@@ -364,22 +334,6 @@
             "source": "books-analyzer_exchange",
             "vhost": "/",
             "destination": "info.filter2",
-            "destination_type": "queue",
-            "routing_key": "info_all",
-            "arguments": {}
-        },
-        {
-            "source": "books-analyzer_exchange",
-            "vhost": "/",
-            "destination": "info.filter3",
-            "destination_type": "queue",
-            "routing_key": "info_filter",
-            "arguments": {}
-        },
-        {
-            "source": "books-analyzer_exchange",
-            "vhost": "/",
-            "destination": "info.filter3",
             "destination_type": "queue",
             "routing_key": "info_all",
             "arguments": {}

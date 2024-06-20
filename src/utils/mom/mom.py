@@ -9,13 +9,12 @@ from time import sleep
 MAX_TRIES = 5
 
 class MOM:
-    def __init__(self, consumer_queues: 'dict[str, bool]') -> None:
+    def __init__(self, consumer_queues: list) -> None:
         load_dotenv()
         self._connect()
         self.channel.basic_qos(prefetch_count=1)
-        for queue, arguments in consumer_queues.items():
-            arguments = {'x-max-priority': 5} if arguments else {}
-            self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
+        for queue in consumer_queues:
+            self.channel.queue_declare(queue=queue, durable=True)
         self.consumer_queues = consumer_queues.keys()
         self.exchange = os.environ["RABBITMQ_EXCHANGE"]
         self.consumer_queues = consumer_queues

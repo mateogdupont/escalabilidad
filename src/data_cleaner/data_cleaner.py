@@ -30,6 +30,7 @@ class DataCleaner:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         load_dotenv()
+        self.info_all_key = os.environ["INFO_KEY_ALL"]
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.bind(('', 1250))
         self._socket.listen(LISTEN_BACKLOG)
@@ -78,8 +79,7 @@ class DataCleaner:
     def send_clean_flag(self, client_id): # TODO: use this
         datafragment = DataFragment(0, {}, None, None, client_id)
         datafragment.set_as_clean_flag()
-        for value, key in update_data_fragment_step(datafragment).items():
-            self.add_and_try_to_send(value, key)
+        self.mom.publish(datafragment, self.info_all_key)
         self.log_writer.log_ended_client(client_id)
     
     def parse_and_filter_data(self, unparsed_data, client_id, next_id):

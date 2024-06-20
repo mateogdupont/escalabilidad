@@ -38,6 +38,8 @@ class Analyzer:
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = list(consumer_queues.keys())[0]
+        self.info_queue = os.environ["INFO_QUEUE"]
+        consumer_queues.append(self.info_queue)
         self.mom = MOM(consumer_queues)
         self.results = log_recoverer.get_results()
         self.received_ids = log_recoverer.get_received_ids()
@@ -123,6 +125,18 @@ class Analyzer:
             for fragment, key in next_steps.items():
                 self.add_and_try_to_send_chunk(fragment, key, event)
         self.mom.ack(delivery_tag=method.delivery_tag)
+        self.inspect_info_queue()
+
+    def inspect_info_queue(self) -> None:
+        msg = self.mom.consume(self.info_queue)
+        if not msg:
+            return
+        datafragment, tag = msg
+        if datafragment.get_query_info().is_clean_flag():
+            self.clean_data_client(datafragment.get_client_id())
+        else:
+            logger.error(f"Unexpected message in info queue: {datafragment}")
+        self.mom.ack(tag)
 
     def run_analizer(self, event):
         while not event.is_set():

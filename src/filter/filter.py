@@ -34,6 +34,8 @@ class Filter:
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = list(consumer_queues.keys())[0]
+        self.info_queue = os.environ["INFO_QUEUE"]
+        consumer_queues.append(self.info_queue)
         self.mom = MOM(consumer_queues)
         self.results = log_recoverer.get_results()
         self.received_ids = log_recoverer.get_received_ids()
@@ -120,9 +122,6 @@ class Filter:
                 return
             if not self.save_id(fragment):
                 continue
-            if fragment.get_query_info().is_clean_flag():
-                self.clean_data_client(fragment.get_client_id())
-                continue
             if (not fragment.is_last()):
                 if self.filter_data_fragment(fragment,event):
                     next_steps = update_data_fragment_step(fragment)
@@ -159,6 +158,18 @@ class Filter:
         self.filter_data_chunk(data_chunk,event)
         self.mom.ack(delivery_tag=method.delivery_tag)
         self.send_with_timeout(event)
+        self.inspect_info_queue()
+
+    def inspect_info_queue(self) -> None:
+        msg = self.mom.consume(self.info_queue)
+        if not msg:
+            return
+        datafragment, tag = msg
+        if datafragment.get_query_info().is_clean_flag():
+            self.clean_data_client(datafragment.get_client_id())
+        else:
+            logger.error(f"Unexpected message in info queue: {datafragment}")
+        self.mom.ack(tag)
 
     def run_filter(self, event):
         while not event.is_set():

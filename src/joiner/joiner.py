@@ -41,6 +41,8 @@ class Joiner:
         consumer_queues[self.books_queue] = consumer_queues[os.environ["BOOKS_QUEUE"]]
         consumer_queues.pop(os.environ["BOOKS_QUEUE"])
         self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
+        self.info_queue = os.environ["INFO_QUEUE"]
+        consumer_queues.append(self.info_queue)
         self.mom = MOM(consumer_queues)
         self.books_side_tables = log_recoverer_books.get_books_side_tables()
         self.books = log_recoverer_books.get_books()
@@ -137,9 +139,6 @@ class Joiner:
                     return
                 if not self.save_id(fragment):
                     continue
-                if fragment.get_query_info().is_clean_flag():
-                    self.clean_data_client(fragment.get_client_id())
-                    continue
                 f_query_id = fragment.get_query_id()
                 f_client_id = fragment.get_client_id()
                 if fragment.is_last():
@@ -215,12 +214,21 @@ class Joiner:
             for fragment in data_chunk.get_fragments():
                 if not self.save_id(fragment):
                     continue
-                if fragment.get_query_info().is_clean_flag():
-                    self.clean_data_client(fragment.get_client_id())
-                    continue
                 self.process_review_fragment(fragment, event)
             self.mom.ack(delivery_tag=method.delivery_tag)
         self.send_with_timeout(event)
+        self.inspect_info_queue()
+    
+    def inspect_info_queue(self) -> None:
+        msg = self.mom.consume(self.info_queue)
+        if not msg:
+            return
+        datafragment, tag = msg
+        if datafragment.get_query_info().is_clean_flag():
+            self.clean_data_client(datafragment.get_client_id())
+        else:
+            logger.error(f"Unexpected message in info queue: {datafragment}")
+        self.mom.ack(tag)
 
     def run_joiner(self, event):
         if len(self.books_side_tables) == 0:

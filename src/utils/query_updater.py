@@ -274,17 +274,10 @@ def _paths(data_fragment: DataFragment, queries: dict) -> dict:
     
     return paths
 
-def all_paths(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
-    paths = {}
-    paths[data_fragment] = "counter"
-    for node in ["filter", "joiner_books", "joiner_reviews", "sentiment_analysis"]: # TODO: ver si agregar "results"
-        paths[data_fragment.clone()] = node
-    return paths
-
 def update_data_fragment_step(data_fragment: DataFragment) -> 'dict[DataFragment, str]':
     # logger.info(f"Updating DataFragment\n{data_fragment.to_json()}")
-    if data_fragment.get_query_info().is_clean_flag():
-        return all_paths(data_fragment)
+    # if data_fragment.get_query_info().is_clean_flag():
+    #     return {data_fragment: "info_all"}
     
     queries = data_fragment.get_queries()
     next_steps = {}

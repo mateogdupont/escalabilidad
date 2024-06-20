@@ -34,6 +34,8 @@ class Counter:
         log_recoverer.recover_data()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
+        self.info_queue = os.environ["INFO_QUEUE"]
+        consumer_queues.append(self.info_queue)
         self.work_queue = list(consumer_queues.keys())[0]
         self.mom = MOM(consumer_queues)
         self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
@@ -272,9 +274,6 @@ class Counter:
                 return
             if not self.save_id(data_fragment):
                 continue
-            if data_fragment.get_query_info().is_clean_flag():
-                self.clean_data_client(data_fragment.get_client_id())
-                continue
             results = self.count_data_fragment(data_fragment, event)
 
             if data_fragment.is_last():
@@ -298,6 +297,18 @@ class Counter:
 
                 self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
         self.mom.ack(delivery_tag=method.delivery_tag)
+        self.inspect_info_queue()
+
+    def inspect_info_queue(self) -> None:
+        msg = self.mom.consume(self.info_queue)
+        if not msg:
+            return
+        datafragment, tag = msg
+        if datafragment.get_query_info().is_clean_flag():
+            self.clean_data_client(datafragment.get_client_id())
+        else:
+            logger.error(f"Unexpected message in info queue: {datafragment}")
+        self.mom.ack(tag)
 
     def run_counter(self, event):
         while not event.is_set():
