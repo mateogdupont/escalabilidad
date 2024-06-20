@@ -56,6 +56,7 @@ class DataCleaner:
         self.mom = MOM(consumer_queues)
 
     def manage_clients(self):
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         log_recoverer = LogRecoverer(os.environ["LOG_PATH"])
         log_recoverer.recover_data()
         previous_clients = log_recoverer.get_clients()
