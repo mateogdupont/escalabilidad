@@ -297,18 +297,19 @@ class Counter:
 
                 self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
         self.mom.ack(delivery_tag=method.delivery_tag)
-        self.inspect_info_queue()
+        self.inspect_info_queue(event)
 
-    def inspect_info_queue(self) -> None:
-        msg = self.mom.consume(self.info_queue)
-        if not msg:
-            return
-        datafragment, tag = msg
-        if datafragment.get_query_info().is_clean_flag():
-            self.clean_data_client(datafragment.get_client_id())
-        else:
-            logger.error(f"Unexpected message in info queue: {datafragment}")
-        self.mom.ack(tag)
+    def inspect_info_queue(self, event) -> None:
+        while not event.is_set():
+            msg = self.mom.consume(self.info_queue)
+            if not msg:
+                return
+            datafragment, tag = msg
+            if datafragment.get_query_info().is_clean_flag():
+                self.clean_data_client(datafragment.get_client_id())
+            else:
+                logger.error(f"Unexpected message in info queue: {datafragment}")
+            self.mom.ack(tag)
 
     def run_counter(self, event):
         while not event.is_set():
