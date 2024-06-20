@@ -113,7 +113,7 @@ class Analyzer:
                 query_info.set_sentiment(sentiment_score)
                 data_fragment.set_query_info(query_info)
             elif not event.is_set():
-                self.send_last(fragment)
+                self.sync_last(fragment)
                 self.log_writer.log_query_ended(data_fragment)
 
             # the text is no longer needed
@@ -131,7 +131,7 @@ class Analyzer:
                 self.add_and_try_to_send_chunk(fragment, key, event)
         self.mom.ack(delivery_tag=method.delivery_tag)
 
-    def send_last(self, last_data_fragment: DataFragment) -> None:
+    def sync_last(self, last_data_fragment: DataFragment) -> None:
         logger.info("I have the last, before send it I will sync")
         sync_fragment = last_data_fragment.clone()
         sync_fragment.set_sync((True, False))

@@ -135,13 +135,13 @@ class Filter:
                 else:
                     self.log_writer.log_received_id(fragment)
             if fragment.is_last():
-                self.send_last(fragment)
+                self.sync_last(fragment)
                 self.log_writer.log_query_ended(fragment)
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key, event)
     
-    def send_last(self, last_data_fragment: DataFragment) -> None:
+    def sync_last(self, last_data_fragment: DataFragment) -> None:
         logger.info("I have the last, before send it I will sync")
         sync_fragment = last_data_fragment.clone()
         sync_fragment.set_sync((True, False))

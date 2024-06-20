@@ -185,13 +185,13 @@ class Joiner:
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key, event)
         if (fragment.is_last()) and (not event.is_set()):
-            self.send_last(fragment)
+            self.sync_last(fragment)
             self.log_writer_reviews.log_query_ended(fragment)
             for data, key in update_data_fragment_step(fragment).items():
                 self.add_and_try_to_send_chunk(data, key, event)
             self.clean_data(query_id, client_id)
 
-    def send_last(self, last_data_fragment: DataFragment) -> None:
+    def sync_last(self, last_data_fragment: DataFragment) -> None:
         logger.info("I have the last, before send it I will sync")
         sync_fragment = last_data_fragment.clone()
         sync_fragment.set_sync((True, False))
