@@ -15,9 +15,8 @@ class MOM:
         self.channel.basic_qos(prefetch_count=1)
         for queue in consumer_queues:
             self.channel.queue_declare(queue=queue, durable=True)
-        self.consumer_queues = consumer_queues.keys()
-        self.exchange = os.environ["RABBITMQ_EXCHANGE"]
         self.consumer_queues = consumer_queues
+        self.exchange = os.environ["RABBITMQ_EXCHANGE"]
     
     def _connect(self) -> None:
         last_exception = None
@@ -38,9 +37,8 @@ class MOM:
         self.close()
         self._connect()
         self.channel.basic_qos(prefetch_count=1)
-        for queue, arguments in self.consumer_queues.items():
-            arguments = {'x-max-priority': 5} if arguments else {}
-            self.channel.queue_declare(queue=queue, durable=True, arguments=arguments)
+        for queue in self.consumer_queues:
+            self.channel.queue_declare(queue=queue, durable=True)
     
     def _execute(self, method: Any, *args: Any, **kwargs: Any) -> Any:
         try:
