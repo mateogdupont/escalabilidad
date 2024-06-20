@@ -14,9 +14,13 @@ def main():
         print("Error: Arguments error")
         return
     queries = [int(num) for num in sys.argv[2].split(",")]
-    data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    cleaner_address = (CLEANER_IP, PORT)
-    data_socket.connect(cleaner_address)
+    try:
+        data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        cleaner_address = (CLEANER_IP, PORT)
+        data_socket.connect(cleaner_address)
+    except socket.error as e:
+        print("Error 521: Network connect timeout error, try again later please") # https://http.cat/status/521
+        return
     client = Client(sys.argv[1], dict.fromkeys(queries, 0), data_socket)
     client.run()
    

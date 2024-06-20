@@ -172,7 +172,7 @@ services:
     environment:
       - ID=1
       - LOG_PATH=/logs/counter.log
-      - INFO_QUEUE=info.counter1
+      - INFO_QUEUE=info.counter
     networks:
       - network-bridge
     volumes:

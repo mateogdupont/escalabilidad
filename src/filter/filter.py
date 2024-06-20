@@ -155,11 +155,11 @@ class Filter:
                 self.results[key] = ([], time.time())
 
     def callback(self, ch, method, properties, body,event):
+        self.inspect_info_queue(event)
         data_chunk = DataChunk.from_bytes(body)
         self.filter_data_chunk(data_chunk,event)
         self.mom.ack(delivery_tag=method.delivery_tag)
         self.send_with_timeout(event)
-        self.inspect_info_queue(event)
 
     def inspect_info_queue(self, event) -> None:
         while not event.is_set():

@@ -199,6 +199,7 @@ class Joiner:
                 self.results[key] = ([], time.time())
 
     def callback(self, ch, method, properties, body,event):
+        self.inspect_info_queue(event)
         data_chunk = DataChunk.from_bytes(body)
         ack = True
         for fragment in data_chunk.get_fragments():
@@ -215,7 +216,6 @@ class Joiner:
                 self.process_review_fragment(fragment, event)
             self.mom.ack(delivery_tag=method.delivery_tag)
         self.send_with_timeout(event)
-        self.inspect_info_queue(event)
     
     def inspect_info_queue(self, event) -> None:
         while not event.is_set():

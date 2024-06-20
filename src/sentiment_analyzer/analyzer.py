@@ -96,6 +96,7 @@ class Analyzer:
             self.results[node] = []
 
     def callback(self, ch, method, properties, body,event):
+        self.inspect_info_queue(event)
         data_chunk = DataChunk.from_bytes(body)
         for data_fragment in data_chunk.get_fragments():
             if not self.save_id(data_fragment):
@@ -126,7 +127,6 @@ class Analyzer:
             for fragment, key in next_steps.items():
                 self.add_and_try_to_send_chunk(fragment, key, event)
         self.mom.ack(delivery_tag=method.delivery_tag)
-        self.inspect_info_queue(event)
 
     def inspect_info_queue(self, event) -> None:
         while not event.is_set():
