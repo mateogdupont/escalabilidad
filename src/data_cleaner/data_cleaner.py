@@ -59,6 +59,7 @@ class DataCleaner:
         log_recoverer = LogRecoverer(os.environ["LOG_PATH"])
         log_recoverer.recover_data()
         previous_clients = log_recoverer.get_clients()
+        logger.info(f"Previous clients: {previous_clients}")
         for client in previous_clients:
             self.ignore_ids.add(client)
             self.send_clean_flag(client)
