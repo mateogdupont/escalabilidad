@@ -10,6 +10,7 @@ RECEIVED_ID = "RECEIVED_ID" # <client_id> <query_id> <df_id>
 RESULT = "RESULT"           # <node> [<time>] <datafragment como str>
 QUERY_ENDED = "QUERY_ENDED" # <client_id> <query_id>
 RESULT_SENT = "RESULT_SENT" # <node>
+IGNORE = "IGNORE"           # <client_id>
 
 TITLE = "TITLE"
 BOOK_STR = "BOOK_STR"
@@ -27,6 +28,9 @@ class BasicLogWriter:
 
     def close(self) -> None:
         self.file.close()
+    
+    def log_ignore(self, client_id: str) -> None:
+        self._add_logs([f"{IGNORE} {client_id}"])
 
     def log_result(self, next_steps: List[Tuple[DataFragment, str]], time: Optional[float] =None) -> None:
         if len(next_steps) == 0:
@@ -50,10 +54,6 @@ class BasicLogWriter:
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
         ended_log = f"{QUERY_ENDED} {client_id} {query_id}"
         self._add_logs([id_log, ended_log])
-    
-    def log_query_ended_only(self, client_id: str, query_id: str) -> None:
-        ended_log = f"{QUERY_ENDED} {client_id} {query_id}"
-        self._add_logs([ended_log])
     
     def log_result_sent(self, node: str) -> None:
         self._add_logs([f"{RESULT_SENT} {node}"])

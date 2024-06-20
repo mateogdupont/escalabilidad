@@ -32,6 +32,7 @@ class Joiner:
         log_recoverer_reviews.recover_data()
         log_recoverer_books = LogRecoverer(os.environ["LOG_PATH_BOOKS"])
         log_recoverer_books.set_ended_queries(log_recoverer_reviews.get_ended_queries())
+        log_recoverer_books.set_ignore_ids(log_recoverer_reviews.get_ignore_ids())
         log_recoverer_books.recover_data()
         self.id = os.environ["ID"]
         self.books_queue = os.environ["BOOKS_QUEUE"] + '.' + self.id
@@ -44,7 +45,7 @@ class Joiner:
         self.side_tables_ended = log_recoverer_books.get_side_tables_ended()
         self.received_ids = log_recoverer_reviews.get_received_ids()
         self.results = log_recoverer_reviews.get_results()
-        self.ignore_ids = set()
+        self.ignore_ids = log_recoverer_reviews.get_ignore_ids()
         self.exit = False
         self.event = None
         signal.signal(signal.SIGTERM, self.sigterm_handler)
@@ -61,8 +62,6 @@ class Joiner:
             self.event.set()
 
     def clean_data_client(self, client_id):
-        for query_id in self.received_ids.get(client_id, {}).keys():
-            self.log_writer_reviews.log_query_ended_only(client_id, query_id)
         if client_id in self.received_ids.keys():
             self.received_ids.pop(client_id)
         if client_id in self.books_side_tables.keys():
@@ -73,6 +72,7 @@ class Joiner:
             batch = ([fragment for fragment in batch[0] if fragment.get_client_id() != client_id], batch[1])
             self.results[node] = batch
         self.ignore_ids.add(client_id)
+        self.log_writer_books.log_ignore(client_id)
 
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()

@@ -45,10 +45,10 @@ class Counter:
         self.counted_data = log_recoverer.get_counted_data()
         self.books = log_recoverer.get_books()
         self.received_ids = log_recoverer.get_received_ids()
+        self.ignore_ids = log_recoverer.get_ignore_ids()
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
-        self.ignore_ids = set()
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
@@ -58,13 +58,12 @@ class Counter:
             self.event.set()
     
     def clean_data_client(self, client_id):
-        for query_id in self.received_ids.get(client_id, {}).keys():
-            self.log_writer.log_query_ended_only(client_id, query_id)
         if client_id in self.received_ids.keys():
             self.received_ids.pop(client_id)
         if client_id in self.counted_data.keys():
             self.counted_data.pop(client_id)
         self.ignore_ids.add(client_id)
+        self.log_writer.log_ignore(client_id)
     
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()

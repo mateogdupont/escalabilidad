@@ -43,6 +43,7 @@ class Analyzer:
         self.mom = MOM(consumer_queues)
         self.results = log_recoverer.get_results()
         self.received_ids = log_recoverer.get_received_ids()
+        self.ignore_ids = log_recoverer.get_ignore_ids()
         self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
         self.id= os.environ["ID"]
         self.event = None
@@ -50,7 +51,6 @@ class Analyzer:
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
-        self.ignore_ids = set()
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
@@ -60,14 +60,13 @@ class Analyzer:
             self.event.set()
 
     def clean_data_client(self, client_id):
-        for query_id in self.received_ids.get(client_id, {}).keys():
-            self.log_writer.log_query_ended_only(client_id, query_id)
         if client_id in self.received_ids.keys():
             self.received_ids.pop(client_id)
         for node, batch in self.results.items():
             batch = ([fragment for fragment in batch[0] if fragment.get_client_id() != client_id], batch[1])
             self.results[node] = batch
         self.ignore_ids.add(client_id)
+        self.log_writer.log_ignore(client_id)
     
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
