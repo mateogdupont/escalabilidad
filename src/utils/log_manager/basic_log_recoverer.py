@@ -149,6 +149,7 @@ class BasicLogRecoverer:
                 log_type = line.split(SEP)[0]
                 if not log_type in self._recover_funcs:
                     raise UnknownLogType(f"Unknown log type: {log_type}")
+                self._recover_funcs[log_type](line)
 
     def get_received_ids(self) -> dict:
         return self.received_ids
