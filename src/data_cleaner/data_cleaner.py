@@ -51,7 +51,7 @@ class DataCleaner:
     def _initialice_mom(self):
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
-        self.work_queue = list(consumer_queues.keys())[0]
+        self.work_queue = consumer_queues[0]
         self.mom = MOM(consumer_queues)
 
     def manage_clients(self):

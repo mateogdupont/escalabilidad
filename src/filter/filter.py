@@ -33,7 +33,7 @@ class Filter:
         log_recoverer.recover_data()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
-        self.work_queue = list(consumer_queues.keys())[0]
+        self.work_queue = consumer_queues[0]
         self.info_queue = os.environ["INFO_QUEUE"]
         consumer_queues.append(self.info_queue)
         self.mom = MOM(consumer_queues)

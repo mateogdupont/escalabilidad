@@ -36,7 +36,7 @@ class Counter:
         consumer_queues = eval(repr_consumer_queues)
         self.info_queue = os.environ["INFO_QUEUE"]
         consumer_queues.append(self.info_queue)
-        self.work_queue = list(consumer_queues.keys())[0]
+        self.work_queue = consumer_queues[0]
         self.mom = MOM(consumer_queues)
         self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
         self.id= os.environ["ID"]
