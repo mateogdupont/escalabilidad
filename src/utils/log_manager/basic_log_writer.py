@@ -4,6 +4,7 @@ from utils.mom.mom import MOM
 from utils.structs.book import Book
 from utils.structs.data_fragment import DataFragment
 import base64
+import logging as logger
 
 BOOK = "BOOK"               # <datafragment como str>
 RECEIVED_ID = "RECEIVED_ID" # <client_id> <query_id> <df_id>
@@ -31,6 +32,7 @@ class BasicLogWriter:
     
     def log_ignore(self, client_id: str) -> None:
         self._add_logs([f"{IGNORE} {client_id}"])
+        logger.info(f"Ignoring client {client_id}")
 
     def log_result(self, next_steps: List[Tuple[DataFragment, str]], time: Optional[float] =None) -> None:
         if len(next_steps) == 0:

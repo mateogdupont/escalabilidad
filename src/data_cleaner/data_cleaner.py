@@ -60,6 +60,7 @@ class DataCleaner:
         previous_clients = log_recoverer.get_clients()
         for client in previous_clients:
             self.send_clean_flag(client)
+            logger.info(f"Sent clean flag about {client}")
     
     def sigterm_handler(self, signal,frame):
         self._socket.close()
