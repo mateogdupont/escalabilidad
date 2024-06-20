@@ -35,6 +35,8 @@ class Filter:
         consumer_queues = eval(repr_consumer_queues)
         self.work_queue = consumer_queues[0]
         self.info_queue = os.environ["INFO_QUEUE"]
+        self.info_key = os.environ["INFO_KEY"]
+        self.nodes = int(os.environ["FILTER_NODES"])
         consumer_queues.append(self.info_queue)
         self.mom = MOM(consumer_queues)
         self.results = log_recoverer.get_results()
@@ -83,8 +85,6 @@ class Filter:
         query_info = data_fragment.get_query_info()
         filter_on, word, min_value, max_value = query_info.get_filter_params()
         book = data_fragment.get_book()
-        client_id = data_fragment.get_client_id()
-        query_id = data_fragment.get_query_id()
 
         if (filter_on == CATEGORY_FILTER) and (book is not None):
             return word.lower() in [c.lower() for c in book.get_categories()]
@@ -135,10 +135,59 @@ class Filter:
                 else:
                     self.log_writer.log_received_id(fragment)
             if fragment.is_last():
+                self.send_last(fragment)
                 self.log_writer.log_query_ended(fragment)
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key, event)
+    
+    def send_last(self, last_data_fragment: DataFragment) -> None:
+        logger.info("I have the last, before send it I will sync")
+        sync_fragment = last_data_fragment.clone()
+        sync_fragment.set_sync((True, False))
+        self.mom.publish(sync_fragment, self.info_key)
+        logger.info("Sync sent")
+        client_id = last_data_fragment.get_client_id()
+        query_id = last_data_fragment.get_query_id()
+        nodes_left = self.nodes
+        while nodes_left > 0:
+            msg = self.mom.consume(self.info_queue)
+            if not msg:
+                time.sleep(0.5)
+                continue
+            datafragment, tag = msg
+            if datafragment.get_query_info().is_clean_flag():
+                self.mom.nack(tag)
+                logger.info("Received a clean flag, postponing (nack sent)")
+                time.sleep(0.5)
+                continue
+            start_sync, end_sync = datafragment.get_query_info().get_sync()
+            if end_sync and datafragment.get_client_id() == client_id and datafragment.get_query_id() == query_id:
+                nodes_left -= 1
+                logger.info(f"Sync response received, {nodes_left} nodes left")
+            elif start_sync:
+                logger.info("Received a sync request, sending data fragments")
+                keys = update_data_fragment_step(datafragment).keys()
+                for key in keys:
+                    self.force_send(key)
+                datafragment.set_sync((False, True))
+                self.mom.publish(datafragment, self.info_key)
+                logger.info("Data fragments sent, sync response sent")
+            self.mom.ack(tag)
+        logger.info("All nodes synced, ready to send last fragment")
+
+    def force_send(self, node: str) -> None:
+        if not node in self.results.keys():
+            return
+        if len(self.results[node][0]) > 0:
+            data_chunk = DataChunk(self.results[node][0])
+            try:
+                self.mom.publish(data_chunk, node)
+                self.log_writer.log_result_sent(node)
+            except Exception as e:
+                logger.error(f"Error al enviar a {node}: {e}")
+                logger.error(f"Data: {data_chunk.to_bytes()}")
+            self.results[node] = ([], time.time())
 
     def send_with_timeout(self,event):
         for key, (data, last_sent) in self.results.items():
@@ -167,8 +216,19 @@ class Filter:
             if not msg:
                 return
             datafragment, tag = msg
+            start_sync, _ = datafragment.get_query_info().get_sync()
             if datafragment.get_query_info().is_clean_flag():
-                self.clean_data_client(datafragment.get_client_id())
+                client_id = datafragment.get_client_id()
+                logger.info(f"Received a clean flag for client {client_id}, cleaning data")
+                self.clean_data_client(client_id)
+            elif start_sync:
+                logger.info("Received a sync request, sending data fragments")
+                keys = update_data_fragment_step(datafragment).keys()
+                for key in keys:
+                    self.force_send(key)
+                datafragment.set_sync((False, True))
+                self.mom.publish(datafragment, self.info_key)
+                logger.info("Data fragments sent, sync response sent")
             else:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
             self.mom.ack(tag)
