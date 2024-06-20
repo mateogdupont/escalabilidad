@@ -38,6 +38,7 @@ class DataCleaner:
         self._event = None
         self.queries = {}
         self.clean_data = {}
+        self.ignore_ids = set()
         self.work_queue = None
         self.mom = None
         self.data_in_processes_queue = Queue()
@@ -59,6 +60,7 @@ class DataCleaner:
         log_recoverer.recover_data()
         previous_clients = log_recoverer.get_clients()
         for client in previous_clients:
+            self.ignore_ids.add(client)
             self.send_clean_flag(client)
             logger.info(f"Sent clean flag about {client}")
     
@@ -201,10 +203,13 @@ class DataCleaner:
                 # logger.info(f"3: No save id {received_ids}")
                 continue
             client_id = fragment.get_client_id()
-            socket = clients.get(client_id)[0]
-            if not socket:
+            if client_id not in clients:
                 logger.info(f"Read result for unregistered client")
                 continue
+            socket = clients.get(client_id)[0]
+            # if not socket:
+            #     logger.info(f"Read result for unregistered client")
+            #     continue
             send_msg(socket,[fragment.to_result()])
 
             if fragment.is_last():
