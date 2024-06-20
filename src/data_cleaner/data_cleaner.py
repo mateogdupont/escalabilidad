@@ -46,7 +46,6 @@ class DataCleaner:
         self.clients_processes = {}
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
-        self.manage_clients()
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
     
     def _initialice_mom(self):
@@ -56,7 +55,6 @@ class DataCleaner:
         self.mom = MOM(consumer_queues)
 
     def manage_clients(self):
-        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         log_recoverer = LogRecoverer(os.environ["LOG_PATH"])
         log_recoverer.recover_data()
         previous_clients = log_recoverer.get_clients()
@@ -226,6 +224,7 @@ class DataCleaner:
 
     def results_handler(self,event):
         self._initialice_mom()
+        self.manage_clients()
         clients = {}
         received_ids = {}
         while not event.is_set():
