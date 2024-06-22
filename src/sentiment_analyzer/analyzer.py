@@ -157,7 +157,7 @@ class Analyzer:
                 logger.info(f"Sync response received, {nodes_left} nodes left")
             elif start_sync:
                 logger.info("Received a sync request, sending data fragments")
-                keys = update_data_fragment_step(datafragment).keys()
+                keys = update_data_fragment_step(datafragment.clone()).keys()
                 for key in keys:
                     self.force_send(key)
                 datafragment.set_sync(False, True)
@@ -191,7 +191,7 @@ class Analyzer:
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
             elif start_sync:
-                keys = update_data_fragment_step(datafragment).keys()
+                keys = update_data_fragment_step(datafragment.clone()).keys()
                 for key in keys:
                     self.force_send(key)
                 datafragment.set_sync(False, True)

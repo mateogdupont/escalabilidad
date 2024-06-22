@@ -174,7 +174,7 @@ class Filter:
                 logger.info(f"Sync response received, {nodes_left} nodes left (sync_id = {self.get_sync_id(sync_fragment)})")
             elif start_sync:
                 logger.info(f"Received a sync request, sending data fragments (sync_id = {self.get_sync_id(sync_fragment)})")
-                keys = update_data_fragment_step(datafragment).keys()
+                keys = update_data_fragment_step(datafragment.clone()).keys()
                 for key in keys:
                     self.force_send(key)
                 datafragment.set_sync(False, True)
@@ -230,7 +230,7 @@ class Filter:
                 self.clean_data_client(client_id)
             elif start_sync:
                 logger.info(f"Received a sync request, sending data fragments (sync_id = {self.get_sync_id(datafragment)})")
-                keys = update_data_fragment_step(datafragment).keys()
+                keys = update_data_fragment_step(datafragment.clone()).keys()
                 for key in keys:
                     self.force_send(key)
                 datafragment.set_sync(False, True)
