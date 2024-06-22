@@ -92,6 +92,7 @@ services:
     volumes:
       - ../logs:/logs
     environment:
+      - ID=2
       - LOG_PATH=/logs/filter2.log
       - INFO_QUEUE=info.filter2
     depends_on:

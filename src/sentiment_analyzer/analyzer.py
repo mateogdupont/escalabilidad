@@ -134,7 +134,7 @@ class Analyzer:
     def sync_last(self, last_data_fragment: DataFragment) -> None:
         logger.info("I have the last, before send it I will sync")
         sync_fragment = last_data_fragment.clone()
-        sync_fragment.set_sync((True, False))
+        sync_fragment.set_sync(True, False)
         self.mom.publish(sync_fragment, self.info_key)
         logger.info("Sync sent")
         client_id = last_data_fragment.get_client_id()
@@ -160,7 +160,7 @@ class Analyzer:
                 keys = update_data_fragment_step(datafragment).keys()
                 for key in keys:
                     self.force_send(key)
-                datafragment.set_sync((False, True))
+                datafragment.set_sync(False, True)
                 self.mom.publish(datafragment, self.info_key)
                 logger.info("Data fragments sent, sync response sent")
             self.mom.ack(tag)
@@ -194,7 +194,7 @@ class Analyzer:
                 keys = update_data_fragment_step(datafragment).keys()
                 for key in keys:
                     self.force_send(key)
-                datafragment.set_sync((False, True))
+                datafragment.set_sync(False, True)
                 self.mom.publish(datafragment, self.info_key)
             elif not end_sync:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
