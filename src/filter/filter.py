@@ -216,7 +216,7 @@ class Filter:
             if not msg:
                 return
             datafragment, tag = msg
-            start_sync, _ = datafragment.get_query_info().get_sync()
+            start_sync, end_sync = datafragment.get_query_info().get_sync()
             if datafragment.get_query_info().is_clean_flag():
                 client_id = datafragment.get_client_id()
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
@@ -229,7 +229,7 @@ class Filter:
                 datafragment.set_sync((False, True))
                 self.mom.publish(datafragment, self.info_key)
                 logger.info("Data fragments sent, sync response sent")
-            else:
+            elif not end_sync:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
             self.mom.ack(tag)
 
