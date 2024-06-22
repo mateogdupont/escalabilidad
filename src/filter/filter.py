@@ -141,12 +141,19 @@ class Filter:
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key, event)
     
+    def get_sync_id(self, data_fragment: DataFragment) -> int:
+        client_id = data_fragment.get_client_id()
+        query_id = data_fragment.get_query_id()
+        all_id = client_id + query_id
+        encoded_id = all_id.encode()
+        return int.from_bytes(encoded_id, byteorder='big')
+    
     def sync_last(self, last_data_fragment: DataFragment) -> None:
         logger.info("I have the last, before send it I will sync")
         sync_fragment = last_data_fragment.clone()
         sync_fragment.set_sync(True, False)
         self.mom.publish(sync_fragment, self.info_key)
-        logger.info("Sync sent")
+        logger.info(f"Sync sent (sync_id = {self.get_sync_id(sync_fragment)})")
         client_id = last_data_fragment.get_client_id()
         query_id = last_data_fragment.get_query_id()
         nodes_left = self.nodes
@@ -164,9 +171,9 @@ class Filter:
             start_sync, end_sync = datafragment.get_sync()
             if end_sync and datafragment.get_client_id() == client_id and datafragment.get_query_id() == query_id:
                 nodes_left -= 1
-                logger.info(f"Sync response received, {nodes_left} nodes left")
+                logger.info(f"Sync response received, {nodes_left} nodes left (sync_id = {self.get_sync_id(sync_fragment)})")
             elif start_sync:
-                logger.info("Received a sync request, sending data fragments")
+                logger.info(f"Received a sync request, sending data fragments (sync_id = {self.get_sync_id(sync_fragment)})")
                 keys = update_data_fragment_step(datafragment).keys()
                 for key in keys:
                     self.force_send(key)
@@ -222,7 +229,7 @@ class Filter:
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
             elif start_sync:
-                logger.info("Received a sync request, sending data fragments")
+                logger.info(f"Received a sync request, sending data fragments (sync_id = {self.get_sync_id(datafragment)})")
                 keys = update_data_fragment_step(datafragment).keys()
                 for key in keys:
                     self.force_send(key)
