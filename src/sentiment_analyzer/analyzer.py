@@ -151,7 +151,7 @@ class Analyzer:
                 logger.info("Received a clean flag, postponing (nack sent)")
                 time.sleep(0.5)
                 continue
-            start_sync, end_sync = datafragment.get_query_info().get_sync()
+            start_sync, end_sync = datafragment.get_sync()
             if end_sync and datafragment.get_client_id() == client_id and datafragment.get_query_id() == query_id:
                 nodes_left -= 1
                 logger.info(f"Sync response received, {nodes_left} nodes left")
@@ -185,7 +185,7 @@ class Analyzer:
             if not msg:
                 return
             datafragment, tag = msg
-            start_sync, end_sync = datafragment.get_query_info().get_sync()
+            start_sync, end_sync = datafragment.get_sync()
             if datafragment.get_query_info().is_clean_flag():
                 client_id = datafragment.get_client_id()
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
