@@ -9,6 +9,7 @@ from utils.query_updater import *
 from log_manager.log_writer import *
 from multiprocessing import Process, Event
 from dotenv import load_dotenv # type: ignore
+from threading import Thread
 import logging as logger
 import sys
 import os
@@ -140,11 +141,15 @@ class Analyzer:
         client_id = last_data_fragment.get_client_id()
         query_id = last_data_fragment.get_query_id()
         nodes_left = self.nodes
+        last_ack = time.time()
         while nodes_left > 0:
             msg = self.mom.consume(self.info_queue)
-            if not msg:
+            if not msg and time.time() - last_ack < TIMEOUT:
                 time.sleep(0.5)
                 continue
+            elif not msg:
+                logger.warning("Timeout waiting for sync response, sending last fragment")
+                break
             datafragment, tag = msg
             if datafragment.get_query_info().is_clean_flag():
                 self.mom.nack(tag)
@@ -201,12 +206,32 @@ class Analyzer:
             self.mom.ack(tag)
 
     def run_analizer(self, event):
+        send_thread = Thread(target=self.run_send_with_timeout, args=(event,))
+        send_thread.start()
         while not event.is_set():
             try:
                 self.mom.consume_with_callback(self.work_queue, self.callback, event)
             except Exception as e:
                 logger.error(f"Error in callback: {e}")
                 event.set()
+        send_thread.join()
+    
+    def run_send_with_timeout(self,event):
+        while not event.is_set():
+            self.send_with_timeout(event)
+            time.sleep(TIMEOUT*0.75)
+    
+    def send_with_timeout(self, event):
+        for node, batch in self.results.items():
+            if len(batch) > 0:
+                data_chunk = DataChunk(batch)
+                try:
+                    self.mom.publish(data_chunk, node)
+                    self.log_writer.log_result_sent(node)
+                except Exception as e:
+                    logger.error(f"Error al enviar a {node}: {e}")
+                    logger.error(f"Data: {data_chunk.to_bytes()}")
+                self.results[node] = []
 
     def run(self):
         self.event = Event()

@@ -9,6 +9,7 @@ from utils.structs.data_chunk import *
 from utils.mom.mom import MOM
 from utils.query_updater import update_data_fragment_step
 from multiprocessing import Process, Event
+from threading import Thread
 from dotenv import load_dotenv # type: ignore
 import logging as logger
 import sys
@@ -157,11 +158,15 @@ class Filter:
         client_id = last_data_fragment.get_client_id()
         query_id = last_data_fragment.get_query_id()
         nodes_left = self.nodes
+        last_ack = time.time()
         while nodes_left > 0:
             msg = self.mom.consume(self.info_queue)
-            if not msg:
+            if not msg and time.time() - last_ack < TIMEOUT:
                 time.sleep(0.5)
                 continue
+            elif not msg:
+                logger.warning("Timeout waiting for sync response, sending last fragment")
+                break
             datafragment, tag = msg
             if datafragment.get_query_info().is_clean_flag():
                 self.mom.nack(tag)
@@ -241,12 +246,20 @@ class Filter:
             self.mom.ack(tag)
 
     def run_filter(self, event):
+        send_thread = Thread(target=self.run_send_with_timeout, args=(event,))
+        send_thread.start()
         while not event.is_set():
             try:
                 self.mom.consume_with_callback(self.work_queue, self.callback, event)
             except Exception as e:
                 logger.error(f"Error in callback: {e}")
                 event.set()
+        send_thread.join()
+    
+    def run_send_with_timeout(self,event):
+        while not event.is_set():
+            self.send_with_timeout(event)
+            time.sleep(TIMEOUT/2)
 
     def run(self):
         self.event = Event()
