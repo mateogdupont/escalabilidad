@@ -83,20 +83,20 @@ services:
       - rabbitmq1
       - medic
   
-  # filter2:
-  #   build:
-  #     context: .
-  #     dockerfile: ./filter/Dockerfile
-  #   networks:
-  #     - network-bridge
-  #   volumes:
-  #     - ../logs:/logs
-  #   environment:
-  #     - LOG_PATH=/logs/filter2.log
-  #     - INFO_QUEUE=info.filter2
-  #   depends_on:
-  #     - rabbitmq1
-  #     - medic
+  filter2:
+    build:
+      context: .
+      dockerfile: ./filter/Dockerfile
+    networks:
+      - network-bridge
+    volumes:
+      - ../logs:/logs
+    environment:
+      - LOG_PATH=/logs/filter2.log
+      - INFO_QUEUE=info.filter2
+    depends_on:
+      - rabbitmq1
+      - medic
 
   joiner1:
     build:
