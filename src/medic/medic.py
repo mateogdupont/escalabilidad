@@ -17,6 +17,7 @@ MEDIC_IPS=eval(os.environ.get("MEDIC_IPS"))
 SOCKET_TIMEOUT=int(os.environ.get("SOCKET_TIMEOUT"))
 COORDINATOR_TIMEOUT=int(os.environ.get("COORDINATOR_TIMEOUT"))
 SEND_ALIVE_TIMEOUT=int(os.environ.get("SEND_ALIVE_TIMEOUT"))
+ELECTION_TIMEOUT=int(os.environ.get("ELECTION_TIMEOUT"))
 MAX_MEDIC_ID=int(os.environ.get("MAX_MEDIC_ID"))
 LISTEN_BACKLOG = 4
 TIMEOUT_LISTENER_SOCKET=0.4
@@ -27,6 +28,7 @@ COORDINATOR_TYPE=os.environ.get("COORDINATOR_TYPE")
 ANSWER_TYPE=os.environ.get("ANSWER_TYPE")
 ACK_TYPE=os.environ.get("ACK_TYPE")
 ALIVE_TYPE=os.environ.get("ALIVE_TYPE")
+DEAD_TYPE=os.environ.get("DEAD_TYPE")
 
 
 class Medic:
@@ -119,27 +121,86 @@ class Medic:
         return peer_sockets
     
     def send_coordinated(self,peer_sockets,socket_queue_from_bully):
+        logger.info(f"Voy a ver si hay algo en el sockets para enviar coordinated{peer_sockets}")
         msg = f"{self.id},{COORDINATOR_TYPE}"
         peer_socket = None
         amount_of_coordinated_send = 0
+        new_sockets = {}
         for id in range(1, self.id):
-            try:
-                logger.info(f"Voy a ver si hay algo en el sockets {peer_sockets}")
-                peer_socket = peer_sockets[id]
-            except Exception as e:
-                logger.info(f"Error sending COORDINATOR_TYPE: {e}")
+            if not id in peer_sockets.keys():
+                logger.info(f"Sending COORDINATOR_TYPE and no socket for: {id}")
                 medic_address = (MEDIC_IPS[id], self._port)
                 peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                peer_socket.settimeout(TIMEOUT_LISTENER_SOCKET)
                 logger.info(f"Me quiero conectar a: {MEDIC_IPS[id]} con puerto {self._port} e id {id}")
-                peer_socket.connect(medic_address)
-                socket_queue_from_bully.put([id,peer_socket])
-                logger.info(f"Me conecte a: {MEDIC_IPS[id]} con puerto {self._port} e id {id}")
-            finally:
-                if peer_socket:
-                    amount_of_coordinated_send += 1
-                    send_msg(peer_socket,msg)
+                try:
+                    peer_socket.connect(medic_address)
+                    peer_socket.settimeout(None)
+                    socket_queue_from_bully.put([id,peer_socket])
+                    new_sockets[id] = peer_socket
+                    logger.info(f"Me conecte a: {MEDIC_IPS[id]} con puerto {self._port} e id {id}")
+                except Exception as e:
+                    logger.info(f"Error in reconection: {e}")
+                    continue
+            else:
+                peer_socket = peer_sockets[id]
+            if peer_socket:
+                amount_sent = send_msg(peer_socket,msg)
+                if amount_sent == 0:
+                    logger.info(f"Error al intentar enviar a {peer_socket}")
+                    continue
+                amount_of_coordinated_send += 1
+        for new_id, new_socket in new_sockets.items():
+            peer_sockets[new_id] = new_socket
         return amount_of_coordinated_send
     
+    def send_election(self, peer_sockets, socket_queue_from_bully):
+        msg = f"{self.id},{ELECTION_TYPE}"
+        new_sockets = {}
+        for id in range(self.id + 1, MAX_MEDIC_ID + 1):
+            if not id in peer_sockets.keys():
+                logger.info(f"Sending ELECTION_TYPE and no socket for: {id}")
+                medic_address = (MEDIC_IPS[id], self._port)
+                peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                peer_socket.settimeout(TIMEOUT_LISTENER_SOCKET)
+                logger.info(f"Me quiero conectar a: {MEDIC_IPS[id]} con puerto {self._port} e id {id}")
+                try:
+                    peer_socket.connect(medic_address)
+                    peer_socket.settimeout(None)
+                    sent_amount = send_msg(peer_socket,msg)
+                    if sent_amount == 0:
+                        logger.info(f"Error al intentar enviar a {peer_socket}")
+                    else:
+                        new_sockets[id] = peer_socket
+                        socket_queue_from_bully.put([id,peer_socket])
+                        logger.info(f"Me conecte a: {MEDIC_IPS[id]} con puerto {self._port} e id {id}")
+                except Exception as e:
+                    logger.info(f"Error in reconection: {e}")
+                    continue
+            else:
+                sent_amount = send_msg(peer_sockets[id],msg)
+                if sent_amount == 0:
+                    logger.info(f"Error al intentar enviar a {peer_sockets[id]}")
+        for new_id, new_socket in new_sockets.items():
+            peer_sockets[new_id] = new_socket
+
+    
+    def delete_peer_socket(self, peer_sockets, msg):
+        logger.info(f"Voy a eliminar del dic y hay {peer_sockets}")
+        ip_to_delete = msg.split(',')[2]
+        id_to_delete = None
+        for id,peer_socket in peer_sockets.items():
+            try:
+                peer_ip, peer_port = peer_socket.getpeername()
+                if peer_ip == ip_to_delete:
+                    id_to_delete = id
+                    peer_socket.close()
+            except:
+                id_to_delete = id
+                peer_socket.close()
+        del peer_sockets[id_to_delete]
+        logger.info(f"Elimine a la ip de {id_to_delete} y los sockets quedan {peer_sockets}")
+
     def start_bully_administrator(self, socket_queue,socket_queue_from_bully, incoming_messages_queue):
         start_election_time = None
         start_coordination_time = None
@@ -158,7 +219,7 @@ class Medic:
                 try:
                     msg = incoming_messages_queue.get(timeout=TIMEOUT_INCOMING_MSG)
                 except Empty:
-                    logger.info("Timeout in incoming messages")
+                    logger.info(f"Timeout in incoming messages y el timeout del election es: {start_election_time}")
                     peer_sockets = self.try_update_sockets(peer_sockets, socket_queue)
 
                     if time_sinse_last_alive and (time.time() - time_sinse_last_alive > SEND_ALIVE_TIMEOUT):
@@ -172,8 +233,10 @@ class Medic:
                         except Exception as e:  
                             logger.info(f"Fallo de comunicacion con el lider por: {e}")
                             time_sinse_last_alive = None
-                            # self.send_election()
-                            # start_election_time = time.time()
+                            self.send_election(peer_sockets,socket_queue_from_bully)
+                            start_election_time = time.time()
+                            #TODO:
+                            # Revivir a los nodos caidos!
 
                     if start_coordination_time and (time.time() - start_coordination_time > COORDINATOR_TIMEOUT):
                         logger.info(f"Me setee como lider por timeout")
@@ -181,10 +244,11 @@ class Medic:
                         start_coordination_time = None
                         self.selected_as_lider_event.set()
 
-                    # if start_election_time and (time.time() - start_election_time > INCOMING_TIMEOUT):
-                    #     self.send_coordinated(peer_sockets,socket_queue_from_bully)
-                    #     lider_id = self.id
-                    #     self.selected_as_lider_event.set()
+                    if start_election_time and (time.time() - start_election_time > ELECTION_TIMEOUT):
+                        self.send_coordinated(peer_sockets,socket_queue_from_bully)
+                        start_election_time = None
+                        lider_id = self.id
+                        self.selected_as_lider_event.set()
                     
                 finally:
                     if not msg:
@@ -195,10 +259,9 @@ class Medic:
 
                     logger.info(f"Me llego un mensaje por la queue: {msg}")
                     if msg_type == ELECTION_TYPE:
-                        pass
-                        # peer_sockets[msg_id].send_msg(self.id + ANSWER_TYPE)
-                        # self.send_election()
-                        # start_election_time = time.time()
+                        self.send_election(peer_sockets,socket_queue_from_bully)
+                        peer_sockets[msg_id].send_msg(self.id + ANSWER_TYPE)
+                        start_election_time = time.time()
                     elif msg_type == COORDINATOR_TYPE:
                         logger.info(f"Reconoci el coordinator")
                         lider_id = msg_id
@@ -211,9 +274,9 @@ class Medic:
                         if peer_sockets[msg_id]:
                             send_msg(peer_sockets[msg_id],ack_msg)
                             logger.info(f"Mande un ack del coordinator {msg}")
-                    # elif msg_type == ANSWER_TYPE:
-                    #     start_election_time = None
-                    #     self.selected_as_lider_event.clear()
+                    elif msg_type == ANSWER_TYPE:
+                        start_election_time = None
+                        self.selected_as_lider_event.clear()
                     elif msg_type == ALIVE_TYPE:
                         logger.info(f"El proceso {msg_id} me envio un alive")
                     elif msg_type == ACK_TYPE:
@@ -223,6 +286,8 @@ class Medic:
                             start_coordination_time = None
                             lider_id = self.id
                             self.selected_as_lider_event.set()
+                    elif msg_type == DEAD_TYPE:
+                        self.delete_peer_socket(peer_sockets, msg)
                     msg = None
             except Exception as e:
                 #TODO
@@ -230,20 +295,24 @@ class Medic:
 
             
     def start_msg_process(self, peer_socket, incoming_messages_queue: Queue):
+        peer_ip, peer_port = peer_socket.getpeername()
         while not self._finish_event.is_set():
             try:
                 msg = receive_msg(peer_socket)
                 if not msg:
-                    #TODO: DEAD_MESSAGE
                     logger.error(f"MSG PROCESS:Fail to read msg, connection lost")
-                    break
+                    msg = f"{self.id},{DEAD_TYPE},{peer_ip}"
+                    peer_socket.close()
+                    incoming_messages_queue.put(msg)
+                    return
                 logger.info(f"MSG PROCESS: Me llego el mensaje: {msg}")
                 incoming_messages_queue.put(msg)
             except Exception as e:
-                # msg = DEAD_MESSAGE + peer_socket.addr().to_string()
-                # incoming_messages_queue.put(DEAD_MESSAGE)
-                logger.error(f"Fail to read msg with error: {e}")
-                break
+                peer_socket.close()
+                msg = f"{self.id},{DEAD_TYPE},{peer_ip}"
+                incoming_messages_queue.put(msg)
+                logger.error(f"MSG PROCESS: Fail to read msg with error: {e}")
+                return
 
     def get_id_from_address(self, peer_socket):
         peer_ip, peer_port = peer_socket.getpeername()
