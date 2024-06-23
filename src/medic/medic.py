@@ -63,6 +63,10 @@ class Medic:
     def parse_id(self, complete_id):
         parts = complete_id.split(".")
         return tuple(map(int, parts))
+    
+    def revive_nodes(self, node_type, node_id):
+            container = self.create_container_name(node_type,node_id)
+            subprocess.run(["./medic/lunch_node.sh", container])
 
     def update_timeouts(self, node_id):
         self.nodes[node_id] = time.time()
@@ -79,8 +83,7 @@ class Medic:
                 (node_type, node_id) = self.parse_id(key)
                 if self.selected_as_lider_event.is_set():
                     logger.info(f"A node has died, reviving type: {node_type}, with id  : {node_id}")
-                    container = self.create_container_name(node_type,node_id)
-                    subprocess.run(["./medic/lunch_node.sh", container])
+                    self.revive_nodes(node_type,node_id)
                 else:
                     logger.info(f"should revive: {node_type}, with id  : {node_id} but im not the lider") #TODO: delete this
                 keys_to_delete.append(key)
@@ -175,8 +178,7 @@ class Medic:
 
     def revive_bigger_medics(self):
         for node_id in range(self.id + 1, MAX_MEDIC_ID + 1):
-            container = self.create_container_name(NODE_TYPE,node_id)
-            subprocess.run(["./medic/lunch_node.sh", container])
+            self.revive_nodes(NODE_TYPE,node_id)
 
     def start_bully_administrator(self, socket_queue,socket_queue_from_bully, incoming_messages_queue):
         start_election_time = None
@@ -221,8 +223,7 @@ class Medic:
                     if time_verify_non_lider_medics and (time.time() - time_verify_non_lider_medics > 2*SEND_ALIVE_TIMEOUT):
                         for node_id in range(1, MAX_MEDIC_ID):
                             if not node_id in alive_timeouts:
-                                container = self.create_container_name(NODE_TYPE,node_id)
-                                subprocess.run(["./medic/lunch_node.sh", container])
+                                self.revive_nodes(NODE_TYPE,node_id)
                         alive_timeouts = set()
                         time_verify_non_lider_medics = time.time()
 
