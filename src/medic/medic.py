@@ -181,15 +181,34 @@ class Medic:
     def start_bully_administrator(self, socket_queue,socket_queue_from_bully, incoming_messages_queue):
         start_election_time = None
         start_coordination_time = None
+        time_last_alive_sent = None
+        time_verify_non_lider_medics=None
+        alive_timeouts = set()
         amount_of_coordinated_send = 0
-        time_sinse_last_alive = None
-        lider_id = None
+        lider_id = MAX_MEDIC_ID
         msg = None
         peer_sockets = {}
         logger.error(f"Inicio de bully")
         if self.id == MAX_MEDIC_ID:
             amount_of_coordinated_send = self.send_bully_msg(peer_sockets,socket_queue_from_bully,COORDINATOR_TYPE,range(1, self.id))
             start_coordination_time = time.time()
+        else:
+            logger.error(f"Entre al else")
+            alive_msg = f"{self.id},{ALIVE_TYPE}"
+            try:
+                logger.error(f"Antes de mandar")
+                sent_amount = send_msg(peer_sockets[lider_id],alive_msg)
+                logger.error(f"Desp de mandar")
+                if sent_amount == 0:
+                    raise ConnectionError
+                time_last_alive_sent = time.time()
+                logger.info(f"El lider sigue vivo :)")
+            except Exception as e:
+                logger.info(f"Fallo de comunicacion con el lider por: {e}")
+                time_last_alive_sent = None
+                self.send_bully_msg(peer_sockets,socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
+                start_election_time = time.time()
+
         logger.error(f"Entrando al super while del bully")
         while not self._finish_event.is_set():
             try:
@@ -199,17 +218,25 @@ class Medic:
                     logger.info(f"Timeout in incoming messages y el timeout del election es: {start_election_time}")
                     peer_sockets = self.try_update_sockets(peer_sockets, socket_queue)
 
-                    if time_sinse_last_alive and (time.time() - time_sinse_last_alive > SEND_ALIVE_TIMEOUT):
+                    if time_verify_non_lider_medics and (time.time() - time_verify_non_lider_medics > 2*SEND_ALIVE_TIMEOUT):
+                        for node_id in range(1, MAX_MEDIC_ID):
+                            if not node_id in alive_timeouts:
+                                container = self.create_container_name(NODE_TYPE,node_id)
+                                subprocess.run(["./medic/lunch_node.sh", container])
+                        alive_timeouts = set()
+                        time_verify_non_lider_medics = time.time()
+
+                    if time_last_alive_sent and (time.time() - time_last_alive_sent > SEND_ALIVE_TIMEOUT):
                         alive_msg = f"{self.id},{ALIVE_TYPE}"
                         try:
                             sent_amount = send_msg(peer_sockets[lider_id],alive_msg)
                             if sent_amount == 0:
                                 raise ConnectionError
-                            time_sinse_last_alive = time.time()
+                            time_last_alive_sent = time.time()
                             logger.info(f"El lider sigue vivo :)")
                         except Exception as e:
                             logger.info(f"Fallo de comunicacion con el lider por: {e}")
-                            time_sinse_last_alive = None
+                            time_last_alive_sent = None
                             self.send_bully_msg(peer_sockets,socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
                             start_election_time = time.time()
 
@@ -217,6 +244,8 @@ class Medic:
                         logger.info(f"Me setee como lider por timeout")
                         lider_id = self.id
                         start_coordination_time = None
+                        if self.id == MAX_MEDIC_ID:
+                            time_verify_non_lider_medics = time.time()
                         self.selected_as_lider_event.set()
                         self.revive_bigger_medics()
 
@@ -241,7 +270,7 @@ class Medic:
                     elif msg_type == COORDINATOR_TYPE:
                         logger.info(f"Reconoci el coordinator")
                         lider_id = msg_id
-                        time_sinse_last_alive = time.time()
+                        time_last_alive_sent = time.time()
                         start_election_time = None
                         ack_msg= f"{self.id},{ACK_TYPE}"
                         logger.info(f"El mensaje que voy a mandar es {ack_msg}")
@@ -254,11 +283,14 @@ class Medic:
                         start_election_time = None
                         self.selected_as_lider_event.clear()
                     elif msg_type == ALIVE_TYPE:
+                        alive_timeouts.add(msg_id)
                         logger.info(f"El proceso {msg_id} me envio un alive")
                     elif msg_type == ACK_TYPE:
                         amount_of_coordinated_send -= 1
                         if amount_of_coordinated_send == 0:
                             logger.info(f"Me setee como lider por cantidad de ack")
+                            if self.id == MAX_MEDIC_ID:
+                                time_verify_non_lider_medics = time.time()
                             start_coordination_time = None
                             lider_id = self.id
                             self.selected_as_lider_event.set()
