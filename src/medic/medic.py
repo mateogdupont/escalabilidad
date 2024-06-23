@@ -120,46 +120,14 @@ class Medic:
                 break
         return peer_sockets
     
-    def send_coordinated(self,peer_sockets,socket_queue_from_bully):
+    def send_bully_msg(self,peer_sockets,socket_queue_from_bully,msg_type, peers_to_send):
         logger.info(f"Voy a ver si hay algo en el sockets para enviar coordinated{peer_sockets}")
-        msg = f"{self.id},{COORDINATOR_TYPE}"
-        peer_socket = None
-        amount_of_coordinated_send = 0
+        msg = f"{self.id},{msg_type}"
+        amount_of_msgs_send = 0
         new_sockets = {}
-        for id in range(1, self.id):
+        for id in peers_to_send:
             if not id in peer_sockets.keys():
-                logger.info(f"Sending COORDINATOR_TYPE and no socket for: {id}")
-                medic_address = (MEDIC_IPS[id], self._port)
-                peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                peer_socket.settimeout(TIMEOUT_LISTENER_SOCKET)
-                logger.info(f"Me quiero conectar a: {MEDIC_IPS[id]} con puerto {self._port} e id {id}")
-                try:
-                    peer_socket.connect(medic_address)
-                    peer_socket.settimeout(None)
-                    socket_queue_from_bully.put([id,peer_socket])
-                    new_sockets[id] = peer_socket
-                    logger.info(f"Me conecte a: {MEDIC_IPS[id]} con puerto {self._port} e id {id}")
-                except Exception as e:
-                    logger.info(f"Error in reconection: {e}")
-                    continue
-            else:
-                peer_socket = peer_sockets[id]
-            if peer_socket:
-                amount_sent = send_msg(peer_socket,msg)
-                if amount_sent == 0:
-                    logger.info(f"Error al intentar enviar a {peer_socket}")
-                    continue
-                amount_of_coordinated_send += 1
-        for new_id, new_socket in new_sockets.items():
-            peer_sockets[new_id] = new_socket
-        return amount_of_coordinated_send
-    
-    def send_election(self, peer_sockets, socket_queue_from_bully):
-        msg = f"{self.id},{ELECTION_TYPE}"
-        new_sockets = {}
-        for id in range(self.id + 1, MAX_MEDIC_ID + 1):
-            if not id in peer_sockets.keys():
-                logger.info(f"Sending ELECTION_TYPE and no socket for: {id}")
+                logger.info(f"Sending {msg_type} and no socket for: {id}")
                 medic_address = (MEDIC_IPS[id], self._port)
                 peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 peer_socket.settimeout(TIMEOUT_LISTENER_SOCKET)
@@ -171,6 +139,7 @@ class Medic:
                     if sent_amount == 0:
                         logger.info(f"Error al intentar enviar a {peer_socket}")
                     else:
+                        amount_of_msgs_send += 1
                         new_sockets[id] = peer_socket
                         socket_queue_from_bully.put([id,peer_socket])
                         logger.info(f"Me conecte a: {MEDIC_IPS[id]} con puerto {self._port} e id {id}")
@@ -181,9 +150,11 @@ class Medic:
                 sent_amount = send_msg(peer_sockets[id],msg)
                 if sent_amount == 0:
                     logger.info(f"Error al intentar enviar a {peer_sockets[id]}")
+                else:
+                    amount_of_msgs_send += 1
         for new_id, new_socket in new_sockets.items():
             peer_sockets[new_id] = new_socket
-
+        return amount_of_msgs_send
     
     def delete_peer_socket(self, peer_sockets, msg):
         logger.info(f"Voy a eliminar del dic y hay {peer_sockets}")
@@ -211,7 +182,7 @@ class Medic:
         peer_sockets = {}
         logger.error(f"Inicio de bully")
         if self.id == MAX_MEDIC_ID:
-            amount_of_coordinated_send = self.send_coordinated(peer_sockets,socket_queue_from_bully)
+            amount_of_coordinated_send = self.send_bully_msg(peer_sockets,socket_queue_from_bully,COORDINATOR_TYPE,range(1, self.id))
             start_coordination_time = time.time()
         logger.error(f"Entrando al super while del bully")
         while not self._finish_event.is_set():
@@ -233,7 +204,7 @@ class Medic:
                         except Exception as e:  
                             logger.info(f"Fallo de comunicacion con el lider por: {e}")
                             time_sinse_last_alive = None
-                            self.send_election(peer_sockets,socket_queue_from_bully)
+                            self.send_bully_msg(peer_sockets,socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
                             start_election_time = time.time()
                             #TODO:
                             # Revivir a los nodos caidos!
@@ -245,7 +216,7 @@ class Medic:
                         self.selected_as_lider_event.set()
 
                     if start_election_time and (time.time() - start_election_time > ELECTION_TIMEOUT):
-                        self.send_coordinated(peer_sockets,socket_queue_from_bully)
+                        self.send_bully_msg(peer_sockets,socket_queue_from_bully,COORDINATOR_TYPE,range(1, self.id))
                         start_election_time = None
                         lider_id = self.id
                         self.selected_as_lider_event.set()
@@ -259,7 +230,8 @@ class Medic:
 
                     logger.info(f"Me llego un mensaje por la queue: {msg}")
                     if msg_type == ELECTION_TYPE:
-                        self.send_election(peer_sockets,socket_queue_from_bully)
+                        #self.send_election(peer_sockets,socket_queue_from_bully)
+                        self.send_bully_msg(peer_sockets,socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
                         peer_sockets[msg_id].send_msg(self.id + ANSWER_TYPE)
                         start_election_time = time.time()
                     elif msg_type == COORDINATOR_TYPE:
