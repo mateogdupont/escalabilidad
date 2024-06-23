@@ -234,9 +234,9 @@ class Medic:
 
                     logger.info(f"Me llego un mensaje por la queue: {msg}")
                     if msg_type == ELECTION_TYPE:
-                        #self.send_election(peer_sockets,socket_queue_from_bully)
+                        answer_msg= f"{self.id},{ANSWER_TYPE}"
                         self.send_bully_msg(peer_sockets,socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
-                        peer_sockets[msg_id].send_msg(self.id + ANSWER_TYPE)
+                        send_msg(peer_sockets[msg_id], answer_msg)
                         start_election_time = time.time()
                     elif msg_type == COORDINATOR_TYPE:
                         logger.info(f"Reconoci el coordinator")
