@@ -13,6 +13,7 @@ import time
 load_dotenv()
 TIMEOUT=float(os.environ.get("TIMEOUT"))
 CONTAINERS=eval(os.environ.get("CONTAINERS"))
+NODE_TYPE=int(os.environ.get("NODE_TYPE"))
 MEDIC_IPS=eval(os.environ.get("MEDIC_IPS"))
 SOCKET_TIMEOUT=int(os.environ.get("SOCKET_TIMEOUT"))
 COORDINATOR_TIMEOUT=int(os.environ.get("COORDINATOR_TIMEOUT"))
@@ -172,6 +173,11 @@ class Medic:
         del peer_sockets[id_to_delete]
         logger.info(f"Elimine a la ip de {id_to_delete} y los sockets quedan {peer_sockets}")
 
+    def revive_bigger_medics(self):
+        for node_id in range(self.id + 1, MAX_MEDIC_ID + 1):
+            container = self.create_container_name(NODE_TYPE,node_id)
+            subprocess.run(["./medic/lunch_node.sh", container])
+
     def start_bully_administrator(self, socket_queue,socket_queue_from_bully, incoming_messages_queue):
         start_election_time = None
         start_coordination_time = None
@@ -201,25 +207,23 @@ class Medic:
                                 raise ConnectionError
                             time_sinse_last_alive = time.time()
                             logger.info(f"El lider sigue vivo :)")
-                        except Exception as e:  
+                        except Exception as e:
                             logger.info(f"Fallo de comunicacion con el lider por: {e}")
                             time_sinse_last_alive = None
                             self.send_bully_msg(peer_sockets,socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
                             start_election_time = time.time()
-                            #TODO:
-                            # Revivir a los nodos caidos!
 
                     if start_coordination_time and (time.time() - start_coordination_time > COORDINATOR_TIMEOUT):
                         logger.info(f"Me setee como lider por timeout")
                         lider_id = self.id
                         start_coordination_time = None
                         self.selected_as_lider_event.set()
+                        self.revive_bigger_medics()
 
                     if start_election_time and (time.time() - start_election_time > ELECTION_TIMEOUT):
-                        self.send_bully_msg(peer_sockets,socket_queue_from_bully,COORDINATOR_TYPE,range(1, self.id))
+                        amount_of_coordinated_send = self.send_bully_msg(peer_sockets,socket_queue_from_bully,COORDINATOR_TYPE,range(1, self.id))
                         start_election_time = None
-                        lider_id = self.id
-                        self.selected_as_lider_event.set()
+                        start_coordination_time = time.time()
                     
                 finally:
                     if not msg:
@@ -258,6 +262,7 @@ class Medic:
                             start_coordination_time = None
                             lider_id = self.id
                             self.selected_as_lider_event.set()
+                            self.revive_bigger_medics()
                     elif msg_type == DEAD_TYPE:
                         self.delete_peer_socket(peer_sockets, msg)
                     msg = None
