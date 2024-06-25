@@ -36,19 +36,20 @@ DEAD_TYPE=os.environ.get("DEAD_TYPE")
 class Medic:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.settimeout(TIMEOUT_LISTENER_SOCKET)
+        self._tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._tcp_socket.settimeout(TIMEOUT_LISTENER_SOCKET)
         self.id = int(os.environ.get("ID"))
         self.selected_as_lider_event = False
         self._ip = MEDIC_IPS[self.id]
         self._port = int(os.environ["PORT"])
+        self._udp_port = int(os.environ["UDP_PORT"])
         logger.info(f"Datos: {self._ip}")
         logger.info(f"Datos: {self._port}")
-        self._socket.bind((self._ip, self._port))
-        self._socket.listen(LISTEN_BACKLOG)
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind((self._ip, self._port)) 
-        self.sock.settimeout(SOCKET_TIMEOUT)
+        self._tcp_socket.bind((self._ip, self._port))
+        self._tcp_socket.listen(LISTEN_BACKLOG)
+        self._udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._udp_socket.bind((self._ip, self._udp_port))
+        self._udp_socket.settimeout(SOCKET_TIMEOUT)
         self._stop = False
         self._finish_event = None
         self.nodes = {}
@@ -92,11 +93,11 @@ class Medic:
             del self.nodes[key]
 
     def start_watchdog(self):
-        address, port = self.sock.getsockname()
+        address, port = self._udp_socket.getsockname()
         while not self._finish_event.is_set():
             try:
-                logger.error(f"Me voy a quedar colgado esperando el hatbeat")
-                data, addr = self.sock.recvfrom(1024)
+                logger.info(f"Me voy a quedar colgado esperando el hatbeat")
+                data, addr = self._udp_socket.recvfrom(1024)
                 # 1024 deberia ser suficiente para el hartbeat
                 if not data:
                     continue
@@ -168,7 +169,7 @@ class Medic:
         while not self._stop:
             peer_sockets = {}
             try:
-                peer_socket = self._socket.accept()[0]
+                peer_socket = self._tcp_socket.accept()[0]
                 peer_id= self.get_id_from_address(peer_socket)
                 socket_queue_from_listener.put([peer_id,peer_socket])
                 logger.info(f"RECEIVER: lo mande por la queue")

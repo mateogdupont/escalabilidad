@@ -76,7 +76,7 @@ services:
       - ../logs:/logs
     depends_on:
       - rabbitmq1
-      - medic2
+      - medic4
   
   # filter2:
   #   build:
