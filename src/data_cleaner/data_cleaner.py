@@ -160,6 +160,7 @@ class DataCleaner:
         return expected_amount_of_files
     
     def handle_client(self, client_socket,client_uuid):
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         self.log_writer.log_new_client(client_uuid)
         try:
             queries = receive_msg(client_socket)
@@ -208,6 +209,7 @@ class DataCleaner:
                 return
    
     def proccess_result_chunk(self,event,clients, data_chunk, received_ids):
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         # logger.info(f"Entre a process")
         for fragment in data_chunk.get_fragments():
             # logger.info(f"Entre a process con fragment")
@@ -228,6 +230,7 @@ class DataCleaner:
                 except socket.error as e:
                     pass # Se asume que el cliente ya se desconectó y se cerró el socket
                 del clients[client_id]
+                logger.info(f"Cleaning data from client {client_id}")
                 continue
             # if not socket:
             #     logger.info(f"Read result for unregistered client")

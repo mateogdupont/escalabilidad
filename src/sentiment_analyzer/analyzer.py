@@ -62,6 +62,7 @@ class Analyzer:
             self.event.set()
 
     def clean_data_client(self, client_id):
+        logger.info(f"Cleaning data from client {client_id}")
         if client_id in self.received_ids.keys():
             self.received_ids.pop(client_id)
         for node, batch in self.results.items():
@@ -100,9 +101,6 @@ class Analyzer:
         data_chunk = DataChunk.from_bytes(body)
         for data_fragment in data_chunk.get_fragments():
             if not self.save_id(data_fragment):
-                continue
-            if data_fragment.get_query_info().is_clean_flag():
-                self.clean_data_client(data_fragment.get_client_id())
                 continue
             if (not data_fragment.is_last()) and (not event.is_set()):
                 review_text = data_fragment.get_review().get_text()
