@@ -139,6 +139,20 @@ class Bully:
         self.start_election_time = time.time()
         self.time_verify_non_lider_medics = None
         logger.info(f"Seteo time en {self.start_election_time}")
+    
+    def handle_election_msg(self, msg_id):
+            logger.info(f"Reconoci el coordinator")
+            self.lider_id = msg_id
+            self.time_last_alive_sent = time.time()
+            self.start_election_time = None
+            ack_msg= f"{self.id},{ACK_TYPE}"
+            logger.info(f"El mensaje que voy a mandar es {ack_msg}")
+            self.selected_as_lider_event.clear()
+            logger.info(f"Limpio el lider event y tengo los peers: {self.peer_sockets} y msg_id {msg_id}")
+            if self.peer_sockets[msg_id]:
+                send_msg(self.peer_sockets[msg_id],ack_msg)
+                logger.info(f"Mande un ack del coordinator")
+
 
     def process_bully_msg(self,socket_queue_from_bully, socket_queue, msg):
         logger.info(f"Me llego un mensaje por la queue: {msg}")
@@ -150,17 +164,7 @@ class Bully:
         if msg_type == ELECTION_TYPE:
             self.handle_election_msg(socket_queue_from_bully, msg_id)
         elif msg_type == COORDINATOR_TYPE:
-            logger.info(f"Reconoci el coordinator")
-            self.lider_id = msg_id
-            self.time_last_alive_sent = time.time()
-            self.start_election_time = None
-            ack_msg= f"{self.id},{ACK_TYPE}"
-            logger.info(f"El mensaje que voy a mandar es {ack_msg}")
-            self.selected_as_lider_event.clear()
-            logger.info(f"Limpio el lider event y tengo los peers: {self.peer_sockets} y msg_id {msg_id}")
-            if self.peer_sockets[msg_id]:
-                send_msg(self.peer_sockets[msg_id],ack_msg)
-                logger.info(f"Mande un ack del coordinator {msg}")
+            self.handle_election_msg(msg_id)
         elif msg_type == ANSWER_TYPE:
             self.start_election_time = None
             self.selected_as_lider_event.clear()
