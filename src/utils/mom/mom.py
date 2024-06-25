@@ -73,7 +73,7 @@ class MOM:
         def on_timeout():
             logger.info("Timeout reached, stopping the consumer.")
             self.channel.stop_consuming()
-        self.channel.add_timeout(TIMEOUT, on_timeout)
+        self.connection.add_timeout(TIMEOUT, on_timeout)
         self.channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=False)
         logger.info(f"Starting to consume from queue '{queue}'.")
         self.channel.start_consuming()
