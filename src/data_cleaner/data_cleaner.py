@@ -165,7 +165,7 @@ class DataCleaner:
         try:
             queries = receive_msg(client_socket)
             self.queries = {int(key): 0 for key in queries}
-        except socket.timeout:
+        except Exception:
             logger.info(f"Client didn't answer in time")
             try:
                 client_socket.close()
@@ -237,7 +237,7 @@ class DataCleaner:
             #     continue
             try:
                 send_msg(socket,[fragment.to_result()])
-            except socket.error as e:
+            except Exception:
                 logger.info(f"Error en el socket: Se asume que el cliente se desconectó")
                 self.send_clean_flag(client_id)
                 try:
