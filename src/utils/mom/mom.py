@@ -26,7 +26,10 @@ class MOM:
         for _ in range(MAX_TRIES):
             try:
                 credentials = pika.PlainCredentials(os.environ["RABBITMQ_DEFAULT_USER"], os.environ["RABBITMQ_DEFAULT_PASS"])
-                self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', credentials=credentials, heartbeat=60*60))
+                self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', 
+                                                                                    credentials=credentials, 
+                                                                                    heartbeat=60*60,
+                                                                                    blocked_connection_timeout=TIMEOUT))
                 self.channel = self.connection.channel()
                 return
             except Exception as e:
@@ -73,7 +76,6 @@ class MOM:
         def on_timeout():
             logger.info("Timeout reached, stopping the consumer.")
             self.channel.stop_consuming()
-        self.connection.add_timeout(TIMEOUT, on_timeout)
         self.channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=False)
         logger.info(f"Starting to consume from queue '{queue}'.")
         self.channel.start_consuming()
