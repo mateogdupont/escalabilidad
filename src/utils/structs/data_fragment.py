@@ -97,6 +97,9 @@ class DataFragment:
     
     def set_as_last(self) -> None:
         self.query_info.set_as_last()
+
+    def set_as_clean_flag(self) -> None:
+        self.query_info.set_as_clean_flag()
     
     def is_last(self) -> bool:
         return self.query_info.is_last()

@@ -37,10 +37,13 @@ class Analyzer:
         log_recoverer.recover_data()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
-        self.work_queue = list(consumer_queues.keys())[0]
+        self.work_queue = consumer_queues[0]
+        self.info_queue = os.environ["INFO_QUEUE"]
+        consumer_queues.append(self.info_queue)
         self.mom = MOM(consumer_queues)
         self.results = log_recoverer.get_results()
         self.received_ids = log_recoverer.get_received_ids()
+        self.ignore_ids = log_recoverer.get_ignore_ids()
         self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
         self.id= os.environ["ID"]
         self.event = None
@@ -51,15 +54,29 @@ class Analyzer:
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
-        self.log_writer.close()
-        self.mom.close()
+        if self.mom:
+            self.mom.close()
+        if self.log_writer:
+            self.log_writer.close()
         if self.event:
             self.event.set()
+
+    def clean_data_client(self, client_id):
+        logger.info(f"Cleaning data from client {client_id}")
+        if client_id in self.received_ids.keys():
+            self.received_ids.pop(client_id)
+        for node, batch in self.results.items():
+            batch = ([fragment for fragment in batch[0] if fragment.get_client_id() != client_id], batch[1])
+            self.results[node] = batch
+        self.ignore_ids.add(client_id)
+        self.log_writer.log_ignore(client_id)
     
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
+        if client_id in self.ignore_ids:
+            return False
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
         self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
         if id in self.received_ids[client_id][query_id]:
@@ -80,6 +97,7 @@ class Analyzer:
             self.results[node] = []
 
     def callback(self, ch, method, properties, body,event):
+        self.inspect_info_queue(event)
         data_chunk = DataChunk.from_bytes(body)
         for data_fragment in data_chunk.get_fragments():
             if not self.save_id(data_fragment):
@@ -108,6 +126,18 @@ class Analyzer:
                 self.add_and_try_to_send_chunk(fragment, key, event)
         self.mom.ack(delivery_tag=method.delivery_tag)
 
+    def inspect_info_queue(self, event) -> None:
+        while not event.is_set():
+            msg = self.mom.consume(self.info_queue)
+            if not msg:
+                return
+            datafragment, tag = msg
+            if datafragment.get_query_info().is_clean_flag():
+                self.clean_data_client(datafragment.get_client_id())
+            else:
+                logger.error(f"Unexpected message in info queue: {datafragment}")
+            self.mom.ack(tag)
+
     def run_analizer(self, event):
         while not event.is_set():
             try:
@@ -135,8 +165,10 @@ def main() -> None:
     analyzer = Analyzer()
     analyzer.run()
     if not analyzer.exit:
-        analyzer.mom.close()
-        analyzer.log_writer.close()
+        if analyzer.mom:
+            analyzer.mom.close()
+        if analyzer.log_writer:
+            analyzer.log_writer.close()
 
 if __name__ == "__main__":
     main()

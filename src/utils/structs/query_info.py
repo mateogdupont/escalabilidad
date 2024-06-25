@@ -6,6 +6,7 @@ class QueryInfo:
 
     def __init__(self) -> None:
         self.last = False
+        self.clean_flag = False
         # results
         self.author = None
         self.n_distinct = None
@@ -60,6 +61,12 @@ class QueryInfo:
     
     def set_as_last(self) -> None:
         self.last = True
+    
+    def set_as_clean_flag(self) -> None:
+        self.clean_flag = True
+
+    def is_clean_flag(self) -> bool:
+        return self.clean_flag
     
     def is_last(self) -> bool:
         return self.last

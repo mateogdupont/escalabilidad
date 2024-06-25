@@ -62,6 +62,10 @@ services:
     depends_on:
       - rabbitmq1
       - medic
+    volumes:
+      - ../logs:/logs
+    environment:
+      - LOG_PATH=/logs/cleaner1.log
 
   filter1:
     build:
@@ -70,6 +74,7 @@ services:
     environment:
       - ID=1
       - LOG_PATH=/logs/filter1.log
+      - INFO_QUEUE=info.filter1
     networks:
       - network-bridge
     volumes:
@@ -88,23 +93,10 @@ services:
   #     - ../logs:/logs
   #   environment:
   #     - LOG_PATH=/logs/filter2.log
-  # depends_on:
+  #     - INFO_QUEUE=info.filter2
+  #   depends_on:
   #     - rabbitmq1
-  # - medic
-
-  # filter3:
-  #   build:
-  #     context: .
-  #     dockerfile: ./filter/Dockerfile
-  #   networks:
-  #     - network-bridge
-  #   volumes:
-  #     - ../logs:/logs
-  #   environment:
-  #     - LOG_PATH=/logs/filter3.log
-  # depends_on:
-  #     - rabbitmq1
-  # - medic
+  #     - medic
 
   joiner1:
     build:
@@ -114,6 +106,7 @@ services:
       - ID=1
       - LOG_PATH_BOOKS=/logs/joiner1_books.log
       - LOG_PATH_REVIEWS=/logs/joiner1_reviews.log
+      - INFO_QUEUE=info.joiner1
     networks:
       - network-bridge
     volumes:
@@ -130,6 +123,7 @@ services:
       - ID=2
       - LOG_PATH_BOOKS=/logs/joiner2_books.log
       - LOG_PATH_REVIEWS=/logs/joiner2_reviews.log
+      - INFO_QUEUE=info.joiner2
     volumes:
       - ../logs:/logs
     networks:
@@ -146,6 +140,7 @@ services:
       - ID=3
       - LOG_PATH_BOOKS=/logs/joiner3_books.log
       - LOG_PATH_REVIEWS=/logs/joiner3_reviews.log
+      - INFO_QUEUE=info.joiner3
     volumes:
       - ../logs:/logs
     networks:
@@ -162,6 +157,7 @@ services:
       - ID=4
       - LOG_PATH_BOOKS=/logs/joiner4_books.log
       - LOG_PATH_REVIEWS=/logs/joiner4_reviews.log
+      - INFO_QUEUE=info.joiner4
     depends_on:
       - rabbitmq1
     networks:
@@ -176,6 +172,7 @@ services:
     environment:
       - ID=1
       - LOG_PATH=/logs/counter.log
+      - INFO_QUEUE=info.counter
     networks:
       - network-bridge
     volumes:
@@ -192,6 +189,7 @@ services:
       - ../logs:/logs
     environment:
       - LOG_PATH=/logs/sentiment_analyzer1.log
+      - INFO_QUEUE=info.sentiment_analyzer1
       - ID=1
     networks:
       - network-bridge
@@ -207,6 +205,7 @@ services:
       - ../logs:/logs
     environment:
       - LOG_PATH=/logs/sentiment_analyzer2.log
+      - INFO_QUEUE=info.sentiment_analyzer2
       - ID=2
     networks:
       - network-bridge
@@ -222,6 +221,7 @@ services:
       - ../logs:/logs
     environment:
       - LOG_PATH=/logs/sentiment_analyzer3.log
+      - INFO_QUEUE=info.sentiment_analyzer3
       - ID=3
     networks:
       - network-bridge
@@ -237,6 +237,7 @@ services:
       - ../logs:/logs
     environment:
       - LOG_PATH=/logs/sentiment_analyzer4.log
+      - INFO_QUEUE=info.sentiment_analyzer4
       - ID=4
     networks:
       - network-bridge
@@ -252,6 +253,7 @@ services:
       - ../logs:/logs
     environment:
       - LOG_PATH=/logs/sentiment_analyzer5.log
+      - INFO_QUEUE=info.sentiment_analyzer5
       - ID=5
     networks:
       - network-bridge
