@@ -151,8 +151,6 @@ class Medic:
                 return id
         return None
 
-
-
     def run(self):
         self._finish_event = Event()
         self.selected_as_lider_event = Event()
