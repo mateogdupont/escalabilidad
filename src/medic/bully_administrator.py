@@ -185,9 +185,7 @@ class Bully:
         elif msg_type == DEAD_TYPE:
             self.delete_peer_socket(self.peer_sockets, msg)
 
-    def start(self, socket_queue_from_bully: Queue, incoming_messages_queue: Queue,socket_queue: Queue):
-        logger.info(f"Inicio de bully")
-        msg = None
+    def start_bully_by_id(self, socket_queue_from_bully):
         if self.id == MAX_MEDIC_ID:
             self.amount_of_coordinated_send = self.send_bully_msg(socket_queue_from_bully,COORDINATOR_TYPE,range(1, self.id))
             self.start_coordination_time = time.time()
@@ -207,6 +205,53 @@ class Bully:
                 self.time_last_alive_sent = None
                 self.send_bully_msg(socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
                 self.start_election_time = time.time()
+    
+    def verify_non_lider_medics_timeout(self):
+        if self.time_verify_non_lider_medics and (time.time() - self.time_verify_non_lider_medics > (2*SEND_ALIVE_TIMEOUT)):
+            for node_id in range(1, MAX_MEDIC_ID):
+                if not node_id in self.alive_timeouts:
+                    self.revive_nodes(NODE_TYPE,node_id)
+            self.alive_timeouts = set()
+            self.time_verify_non_lider_medics = time.time()
+    
+    def verify_sent_alive_timeout(self, socket_queue_from_bully):
+        if self.id == self.lider_id:
+            return
+        if self.time_last_alive_sent and (time.time() - self.time_last_alive_sent > SEND_ALIVE_TIMEOUT):
+            alive_msg = f"{self.id},{ALIVE_TYPE}"
+            try:
+                sent_amount = send_msg(self.peer_sockets[self.lider_id],alive_msg)
+                if sent_amount == 0:
+                    raise ConnectionError
+                self.time_last_alive_sent = time.time()
+                logger.info(f"El lider sigue vivo :)")
+            except Exception as e:
+                logger.info(f"Fallo de comunicacion con el lider por: {e}")
+                self.time_last_alive_sent = None
+                self.send_bully_msg(socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
+                self.start_election_time = time.time()
+
+    def verify_coordination_timeout(self):
+        if self.start_coordination_time and (time.time() - self.start_coordination_time > COORDINATOR_TIMEOUT):
+            logger.info(f"Me setee como lider por timeout")
+            self.lider_id = self.id
+            self.start_coordination_time = None
+            if self.id == MAX_MEDIC_ID:
+                self.time_verify_non_lider_medics = time.time()
+            self.selected_as_lider_event.set()
+            self.revive_bigger_medics()
+
+    def verify_election_timeout(self, socket_queue_from_bully):
+        if self.start_election_time and (time.time() - self.start_election_time > ELECTION_TIMEOUT):
+            self.amount_of_coordinated_send = self.send_bully_msg(socket_queue_from_bully,COORDINATOR_TYPE,range(1, self.id))
+            self.start_election_time = None
+            self.start_coordination_time = time.time()
+            self.time_verify_non_lider_medics = None
+            
+    def start(self, socket_queue_from_bully: Queue, incoming_messages_queue: Queue,socket_queue: Queue):
+        logger.info(f"Inicio de bully")
+        msg = None
+        self.start_bully_by_id(socket_queue_from_bully)
 
         logger.error(f"Entrando al super while del bully")
         while not self._finish_event.is_set():
@@ -222,41 +267,10 @@ class Bully:
                         logger.info(f"El timeout de alive es: None xd")
                     self.try_update_sockets(socket_queue)
 
-                    if self.time_verify_non_lider_medics and (time.time() - self.time_verify_non_lider_medics > (2*SEND_ALIVE_TIMEOUT)):
-                        for node_id in range(1, MAX_MEDIC_ID):
-                            if not node_id in self.alive_timeouts:
-                                self.revive_nodes(NODE_TYPE,node_id)
-                        self.alive_timeouts = set()
-                        self.time_verify_non_lider_medics = time.time()
-
-                    if self.time_last_alive_sent and (time.time() - self.time_last_alive_sent > SEND_ALIVE_TIMEOUT):
-                        alive_msg = f"{self.id},{ALIVE_TYPE}"
-                        try:
-                            sent_amount = send_msg(self.peer_sockets[self.lider_id],alive_msg)
-                            if sent_amount == 0:
-                                raise ConnectionError
-                            self.time_last_alive_sent = time.time()
-                            logger.info(f"El lider sigue vivo :)")
-                        except Exception as e:
-                            logger.info(f"Fallo de comunicacion con el lider por: {e}")
-                            self.time_last_alive_sent = None
-                            self.send_bully_msg(socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
-                            self.start_election_time = time.time()
-
-                    if self.start_coordination_time and (time.time() - self.start_coordination_time > COORDINATOR_TIMEOUT):
-                        logger.info(f"Me setee como lider por timeout")
-                        self.lider_id = self.id
-                        self.start_coordination_time = None
-                        if self.id == MAX_MEDIC_ID:
-                            self.time_verify_non_lider_medics = time.time()
-                        self.selected_as_lider_event.set()
-                        self.revive_bigger_medics()
-
-                    if self.start_election_time and (time.time() - self.start_election_time > ELECTION_TIMEOUT):
-                        self.amount_of_coordinated_send = self.send_bully_msg(socket_queue_from_bully,COORDINATOR_TYPE,range(1, self.id))
-                        self.start_election_time = None
-                        self.start_coordination_time = time.time()
-                        self.time_verify_non_lider_medics = None
+                    self.verify_non_lider_medics_timeout()
+                    self.verify_sent_alive_timeout(socket_queue_from_bully)
+                    self.verify_coordination_timeout()
+                    self.verify_election_timeout(socket_queue_from_bully)
                     
                 finally:
                     if not msg:
