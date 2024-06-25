@@ -161,6 +161,7 @@ class DataCleaner:
     
     def handle_client(self, client_socket,client_uuid):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
+        logger.info(f"Client connected with id: {client_uuid}")
         self.log_writer.log_new_client(client_uuid)
         try:
             queries = receive_msg(client_socket)
@@ -185,7 +186,8 @@ class DataCleaner:
         else:
             logger.info(f"Client didn't send all data")
             self.send_clean_flag(client_uuid)
-        client_socket.close()                         
+        client_socket.close()               
+        logger.info(f"Client disconnected with id: {client_uuid}")          
         self.data_in_processes_queue.put(client_uuid) 
 
 
