@@ -8,6 +8,7 @@ import logging as logger
 from multiprocessing import Process, Event, Queue
 from queue import Empty
 from utils.stream_communications import *
+from medic.bully_administrator import *
 import time
 
 load_dotenv()
@@ -107,14 +108,9 @@ class Medic:
                 self.update_timeouts(msg.replace("$",""))
             except socket.timeout:
                 self.verify_timeouts()
-
-    def send_election():
-        #TODO: La idea aca es enviar a los que son mas altos que vos
-        pass
    
     def try_update_sockets(self, peer_sockets, socket_queue):
         while True:
-            # logger.error(f"Intento un update de los sockets")
             try:
                 # Read [id,socket]
                 msg = socket_queue.get_nowait()
@@ -123,186 +119,10 @@ class Medic:
             except Exception:
                 break
         return peer_sockets
-    
-    def send_bully_msg(self,peer_sockets,socket_queue_from_bully,msg_type, peers_to_send):
-        logger.info(f"Voy a ver si hay algo en el sockets para enviar coordinated{peer_sockets}")
-        msg = f"{self.id},{msg_type}"
-        amount_of_msgs_send = 0
-        new_sockets = {}
-        for id in peers_to_send:
-            if not id in peer_sockets.keys():
-                logger.info(f"Sending {msg_type} and no socket for: {id}")
-                medic_address = (MEDIC_IPS[id], self._port)
-                peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                peer_socket.settimeout(TIMEOUT_LISTENER_SOCKET)
-                logger.info(f"Me quiero conectar a: {MEDIC_IPS[id]} con puerto {self._port} e id {id}")
-                try:
-                    peer_socket.connect(medic_address)
-                    peer_socket.settimeout(None)
-                    sent_amount = send_msg(peer_socket,msg)
-                    if sent_amount == 0:
-                        logger.info(f"Error al intentar enviar a {peer_socket}")
-                    else:
-                        amount_of_msgs_send += 1
-                        new_sockets[id] = peer_socket
-                        socket_queue_from_bully.put([id,peer_socket])
-                        logger.info(f"Me conecte a: {MEDIC_IPS[id]} con puerto {self._port} e id {id}")
-                except Exception as e:
-                    logger.info(f"Error in reconection: {e}")
-                    continue
-            else:
-                sent_amount = send_msg(peer_sockets[id],msg)
-                if sent_amount == 0:
-                    logger.info(f"Error al intentar enviar a {peer_sockets[id]}")
-                else:
-                    amount_of_msgs_send += 1
-        for new_id, new_socket in new_sockets.items():
-            peer_sockets[new_id] = new_socket
-        return amount_of_msgs_send
-    
-    def delete_peer_socket(self, peer_sockets, msg):
-        logger.info(f"Voy a eliminar del dic y hay {peer_sockets}")
-        ip_to_delete = msg.split(',')[2]
-        id_to_delete = None
-        for id,peer_socket in peer_sockets.items():
-            try:
-                peer_ip, peer_port = peer_socket.getpeername()
-                if peer_ip == ip_to_delete:
-                    id_to_delete = id
-                    peer_socket.close()
-            except:
-                id_to_delete = id
-                peer_socket.close()
-        del peer_sockets[id_to_delete]
-        logger.info(f"Elimine a la ip de {id_to_delete} y los sockets quedan {peer_sockets}")
-
-    def revive_bigger_medics(self):
-        for node_id in range(self.id + 1, MAX_MEDIC_ID + 1):
-            self.revive_nodes(NODE_TYPE,node_id)
 
     def start_bully_administrator(self, socket_queue,socket_queue_from_bully, incoming_messages_queue):
-        start_election_time = None
-        start_coordination_time = None
-        time_last_alive_sent = None
-        time_verify_non_lider_medics=None
-        alive_timeouts = set()
-        amount_of_coordinated_send = 0
-        lider_id = MAX_MEDIC_ID
-        msg = None
-        peer_sockets = {}
-        logger.error(f"Inicio de bully")
-        if self.id == MAX_MEDIC_ID:
-            amount_of_coordinated_send = self.send_bully_msg(peer_sockets,socket_queue_from_bully,COORDINATOR_TYPE,range(1, self.id))
-            start_coordination_time = time.time()
-        else:
-            logger.error(f"Entre al else")
-            alive_msg = f"{self.id},{ALIVE_TYPE}"
-            try:
-                logger.error(f"Antes de mandar")
-                sent_amount = send_msg(peer_sockets[lider_id],alive_msg)
-                logger.error(f"Desp de mandar")
-                if sent_amount == 0:
-                    raise ConnectionError
-                time_last_alive_sent = time.time()
-                logger.info(f"El lider sigue vivo :)")
-            except Exception as e:
-                logger.info(f"Fallo de comunicacion con el lider por: {e}")
-                time_last_alive_sent = None
-                self.send_bully_msg(peer_sockets,socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
-                start_election_time = time.time()
-
-        logger.error(f"Entrando al super while del bully")
-        while not self._finish_event.is_set():
-            try:
-                try:
-                    msg = incoming_messages_queue.get(timeout=TIMEOUT_INCOMING_MSG)
-                except Empty:
-                    logger.info(f"Timeout in incoming messages y el timeout del election es: {start_election_time}")
-                    peer_sockets = self.try_update_sockets(peer_sockets, socket_queue)
-
-                    if time_verify_non_lider_medics and (time.time() - time_verify_non_lider_medics > 2*SEND_ALIVE_TIMEOUT):
-                        for node_id in range(1, MAX_MEDIC_ID):
-                            if not node_id in alive_timeouts:
-                                self.revive_nodes(NODE_TYPE,node_id)
-                        alive_timeouts = set()
-                        time_verify_non_lider_medics = time.time()
-
-                    if time_last_alive_sent and (time.time() - time_last_alive_sent > SEND_ALIVE_TIMEOUT):
-                        alive_msg = f"{self.id},{ALIVE_TYPE}"
-                        try:
-                            sent_amount = send_msg(peer_sockets[lider_id],alive_msg)
-                            if sent_amount == 0:
-                                raise ConnectionError
-                            time_last_alive_sent = time.time()
-                            logger.info(f"El lider sigue vivo :)")
-                        except Exception as e:
-                            logger.info(f"Fallo de comunicacion con el lider por: {e}")
-                            time_last_alive_sent = None
-                            self.send_bully_msg(peer_sockets,socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
-                            start_election_time = time.time()
-
-                    if start_coordination_time and (time.time() - start_coordination_time > COORDINATOR_TIMEOUT):
-                        logger.info(f"Me setee como lider por timeout")
-                        lider_id = self.id
-                        start_coordination_time = None
-                        if self.id == MAX_MEDIC_ID:
-                            time_verify_non_lider_medics = time.time()
-                        self.selected_as_lider_event.set()
-                        self.revive_bigger_medics()
-
-                    if start_election_time and (time.time() - start_election_time > ELECTION_TIMEOUT):
-                        amount_of_coordinated_send = self.send_bully_msg(peer_sockets,socket_queue_from_bully,COORDINATOR_TYPE,range(1, self.id))
-                        start_election_time = None
-                        start_coordination_time = time.time()
-                    
-                finally:
-                    if not msg:
-                        continue
-                    peer_sockets = self.try_update_sockets(peer_sockets, socket_queue)
-                    msg_id = int(msg.split(',')[0])
-                    msg_type = msg.split(',')[1]
-
-                    logger.info(f"Me llego un mensaje por la queue: {msg}")
-                    if msg_type == ELECTION_TYPE:
-                        answer_msg= f"{self.id},{ANSWER_TYPE}"
-                        self.send_bully_msg(peer_sockets,socket_queue_from_bully,ELECTION_TYPE,range(self.id + 1, MAX_MEDIC_ID + 1))
-                        send_msg(peer_sockets[msg_id], answer_msg)
-                        start_election_time = time.time()
-                    elif msg_type == COORDINATOR_TYPE:
-                        logger.info(f"Reconoci el coordinator")
-                        lider_id = msg_id
-                        time_last_alive_sent = time.time()
-                        start_election_time = None
-                        ack_msg= f"{self.id},{ACK_TYPE}"
-                        logger.info(f"El mensaje que voy a mandar es {ack_msg}")
-                        self.selected_as_lider_event.clear()
-                        logger.info(f"Limpio el lider event y tengo los peers: {peer_sockets} y msg_id {msg_id}")
-                        if peer_sockets[msg_id]:
-                            send_msg(peer_sockets[msg_id],ack_msg)
-                            logger.info(f"Mande un ack del coordinator {msg}")
-                    elif msg_type == ANSWER_TYPE:
-                        start_election_time = None
-                        self.selected_as_lider_event.clear()
-                    elif msg_type == ALIVE_TYPE:
-                        alive_timeouts.add(msg_id)
-                        logger.info(f"El proceso {msg_id} me envio un alive")
-                    elif msg_type == ACK_TYPE:
-                        amount_of_coordinated_send -= 1
-                        if amount_of_coordinated_send == 0:
-                            logger.info(f"Me setee como lider por cantidad de ack")
-                            if self.id == MAX_MEDIC_ID:
-                                time_verify_non_lider_medics = time.time()
-                            start_coordination_time = None
-                            lider_id = self.id
-                            self.selected_as_lider_event.set()
-                            self.revive_bigger_medics()
-                    elif msg_type == DEAD_TYPE:
-                        self.delete_peer_socket(peer_sockets, msg)
-                    msg = None
-            except Exception as e:
-                #TODO
-                logger.error(f"Fail with error: {e}")
-
+        bully = Bully(self.id,self._port,self.selected_as_lider_event,self._finish_event)
+        bully.start(socket_queue_from_bully,incoming_messages_queue,socket_queue)
             
     def start_msg_process(self, peer_socket, incoming_messages_queue: Queue):
         peer_ip, peer_port = peer_socket.getpeername()
