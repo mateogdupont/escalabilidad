@@ -140,7 +140,7 @@ class Bully:
         self.time_verify_non_lider_medics = None
         logger.info(f"Seteo time en {self.start_election_time}")
     
-    def handle_election_msg(self, msg_id):
+    def handle_coordinator_msg(self, msg_id):
             logger.info(f"Reconoci el coordinator")
             self.lider_id = msg_id
             self.time_last_alive_sent = time.time()
@@ -153,6 +153,16 @@ class Bully:
                 send_msg(self.peer_sockets[msg_id],ack_msg)
                 logger.info(f"Mande un ack del coordinator")
 
+    def handle_ack_msg(self):
+        self.amount_of_coordinated_send -= 1
+        if self.amount_of_coordinated_send == 0:
+            logger.info(f"Me setee como lider por cantidad de ack")
+            self.start_coordination_time = None
+            self.lider_id = self.id
+            self.selected_as_lider_event.set()
+            self.revive_bigger_medics()
+            if self.id == MAX_MEDIC_ID:
+                self.time_verify_non_lider_medics = time.time()
 
     def process_bully_msg(self,socket_queue_from_bully, socket_queue, msg):
         logger.info(f"Me llego un mensaje por la queue: {msg}")
@@ -164,22 +174,14 @@ class Bully:
         if msg_type == ELECTION_TYPE:
             self.handle_election_msg(socket_queue_from_bully, msg_id)
         elif msg_type == COORDINATOR_TYPE:
-            self.handle_election_msg(msg_id)
+            self.handle_coordinator_msg(msg_id)
         elif msg_type == ANSWER_TYPE:
             self.start_election_time = None
             self.selected_as_lider_event.clear()
         elif msg_type == ALIVE_TYPE:
             logger.info(f"El proceso {msg_id} me envio un alive")
         elif msg_type == ACK_TYPE:
-            self.amount_of_coordinated_send -= 1
-            if self.amount_of_coordinated_send == 0:
-                logger.info(f"Me setee como lider por cantidad de ack")
-                self.start_coordination_time = None
-                self.lider_id = self.id
-                self.selected_as_lider_event.set()
-                self.revive_bigger_medics()
-                if self.id == MAX_MEDIC_ID:
-                    self.time_verify_non_lider_medics = time.time()
+            self.handle_ack_msg()
         elif msg_type == DEAD_TYPE:
             self.delete_peer_socket(self.peer_sockets, msg)
 
