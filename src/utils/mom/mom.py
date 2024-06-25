@@ -28,8 +28,7 @@ class MOM:
                 credentials = pika.PlainCredentials(os.environ["RABBITMQ_DEFAULT_USER"], os.environ["RABBITMQ_DEFAULT_PASS"])
                 self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', 
                                                                                     credentials=credentials, 
-                                                                                    heartbeat=60*60,
-                                                                                    blocked_connection_timeout=TIMEOUT))
+                                                                                    heartbeat=60*60))
                 self.channel = self.connection.channel()
                 return
             except Exception as e:
