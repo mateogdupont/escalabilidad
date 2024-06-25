@@ -9,6 +9,7 @@ from time import sleep
 from utils.structs.data_fragment import DataFragment
 
 MAX_TRIES = 5
+TIMEOUT = 10
 
 class MOM:
     def __init__(self, consumer_queues: list) -> None:
@@ -69,7 +70,12 @@ class MOM:
         self._execute(self._consume_with_callback, queue, internal_callback)
     
     def _consume_with_callback(self, queue: str, callback: Any) -> None:
+        def on_timeout():
+            logger.info("Timeout reached, stopping the consumer.")
+            self.channel.stop_consuming()
+        self.channel.add_timeout(TIMEOUT, on_timeout)
         self.channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=False)
+        logger.info(f"Starting to consume from queue '{queue}'.")
         self.channel.start_consuming()
     
     def ack(self, delivery_tag: int) -> None:

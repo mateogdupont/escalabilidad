@@ -169,8 +169,8 @@ class DataCleaner:
         remainding_amount = self.receive_files(client_socket, expected_amount_of_files, client_uuid)
         if remainding_amount == 0:
             logger.info(f"All data was received")
-        client_socket.close()
-        self.data_in_processes_queue.put(client_uuid)
+        client_socket.close()                         # ver si hacer esto
+        self.data_in_processes_queue.put(client_uuid) # hacer esto + mandar flag
         self.log_writer.log_ended_client(client_uuid)
 
 
@@ -195,7 +195,7 @@ class DataCleaner:
    
     def proccess_result_chunk(self,event,clients, data_chunk, received_ids):
         # logger.info(f"Entre a process")
-        for fragment in data_chunk.get_fragments():
+        for fragment in data_chunk.get_fragments(): # agregar que se envíe a la results el flag de clean y manejarlo acá
             # logger.info(f"Entre a process con fragment")
             if event.is_set():
                 break
@@ -210,7 +210,7 @@ class DataCleaner:
             # if not socket:
             #     logger.info(f"Read result for unregistered client")
             #     continue
-            send_msg(socket,[fragment.to_result()])
+            send_msg(socket,[fragment.to_result()]) # call to my func, del from clients (line 221)
 
             if fragment.is_last():
                 logger.info(f"Last para {client_id}")

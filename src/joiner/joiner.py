@@ -297,20 +297,14 @@ class Joiner:
     def run_joiner(self, event):
         if len(self.books_side_tables) == 0:
             self.receive_all_books(event)
-        send_thread = Thread(target=self.run_send_with_timeout, args=(event,))
-        send_thread.start()
         while not event.is_set():
             try:
+                self.inspect_info_queue(event)
                 self.mom.consume_with_callback(self.reviews_queue, self.callback, event)
+                self.send_with_timeout(event)
             except Exception as e:
                 logger.error(f"Error in callback: {e}")
                 event.set()
-        send_thread.join()
-    
-    def run_send_with_timeout(self,event):
-        while not event.is_set():
-            self.send_with_timeout(event)
-            time.sleep(TIMEOUT/2)
 
     def run(self):
         self.event = Event()
