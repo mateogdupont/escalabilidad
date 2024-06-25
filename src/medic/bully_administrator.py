@@ -247,7 +247,7 @@ class Bully:
             self.start_election_time = None
             self.start_coordination_time = time.time()
             self.time_verify_non_lider_medics = None
-            
+
     def start(self, socket_queue_from_bully: Queue, incoming_messages_queue: Queue,socket_queue: Queue):
         logger.info(f"Inicio de bully")
         msg = None
@@ -257,24 +257,24 @@ class Bully:
         while not self._finish_event.is_set():
             try:
                 try:
+                    self.try_update_sockets(socket_queue)
+                    self.verify_non_lider_medics_timeout()
+                    self.verify_sent_alive_timeout(socket_queue_from_bully)
+                    self.verify_coordination_timeout()
+                    self.verify_election_timeout(socket_queue_from_bully)
                     msg = incoming_messages_queue.get(timeout=TIMEOUT_INCOMING_MSG)
                 except Empty:
+                    logger.info(f"Incoming_messages is Empty")       
+                finally:
                     logger.info(f"Timeout in incoming messages y el timeout del election es: {self.start_election_time}")
                     logger.info(f"Los que estan en alive son: {self.alive_timeouts}")
                     if self.time_verify_non_lider_medics:
                         logger.info(f"El timeout de alive es: {self.time_verify_non_lider_medics} contra: {time.time() - self.time_verify_non_lider_medics} y {2*SEND_ALIVE_TIMEOUT}")
                     else:
                         logger.info(f"El timeout de alive es: None xd")
-                    self.try_update_sockets(socket_queue)
-
-                    self.verify_non_lider_medics_timeout()
-                    self.verify_sent_alive_timeout(socket_queue_from_bully)
-                    self.verify_coordination_timeout()
-                    self.verify_election_timeout(socket_queue_from_bully)
-                    
-                finally:
                     if not msg:
                         continue
+                    self.try_update_sockets(socket_queue)
                     self.process_bully_msg(socket_queue_from_bully, socket_queue, msg)
                     msg = None
             except Exception as e:

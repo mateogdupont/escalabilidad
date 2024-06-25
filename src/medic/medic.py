@@ -8,7 +8,7 @@ import logging as logger
 from multiprocessing import Process, Event, Queue
 from queue import Empty
 from utils.stream_communications import *
-from medic.bully_administrator import *
+from bully_administrator import *
 import time
 
 load_dotenv()
