@@ -60,7 +60,6 @@ class DataCleaner:
         previous_clients = log_recoverer.get_clients()
         logger.info(f"Previous clients: {previous_clients}")
         for client in previous_clients:
-            self.ignore_ids.add(client)
             self.send_clean_flag(client)
             logger.info(f"Sent clean flag about {client}")
     
@@ -81,10 +80,15 @@ class DataCleaner:
             self.clean_data[node].clear()
     
     def send_clean_flag(self, client_id): # TODO: use this
+        logger.info(f"Sending clean flag about {client_id}")
+        self.ignore_ids.add(client_id)
         datafragment = DataFragment(0, {}, None, None, client_id)
         datafragment.set_as_clean_flag()
         self.mom.publish(datafragment, self.info_all_key)
+        datachunk = DataChunk([datafragment])
+        self.mom.publish(datachunk, "results")
         self.log_writer.log_ended_client(client_id)
+        logger.info(f"Sent clean flag about {client_id}")
     
     def parse_and_filter_data(self, unparsed_data, client_id, next_id):
         if unparsed_data[1] == 1:
@@ -156,22 +160,32 @@ class DataCleaner:
         return expected_amount_of_files
     
     def handle_client(self, client_socket,client_uuid):
+        self.log_writer.log_new_client(client_uuid)
         try:
             queries = receive_msg(client_socket)
             self.queries = {int(key): 0 for key in queries}
         except socket.timeout:
-                logger.info(f"Client didn't answer in time")
+            logger.info(f"Client didn't answer in time")
+            try:
+                client_socket.close()
+            except socket.error as e:
+                pass # Se asume que el cliente ya se desconectó y se cerró el socket
+            self.send_clean_flag(client_uuid)
+            self.data_in_processes_queue.put(client_uuid)
+            return
         msg_to_result_thread = [client_uuid, client_socket,len(queries)]
         self.clients_to_results_queue.put(msg_to_result_thread)
         self._initialice_mom()
         expected_amount_of_files =  2 if any(query in self.queries for query in [3, 4, 5]) else 1
-        self.log_writer.log_new_client(client_uuid)
         remainding_amount = self.receive_files(client_socket, expected_amount_of_files, client_uuid)
         if remainding_amount == 0:
             logger.info(f"All data was received")
-        client_socket.close()
-        self.data_in_processes_queue.put(client_uuid)
-        self.log_writer.log_ended_client(client_uuid)
+            self.log_writer.log_ended_client(client_uuid)
+        else:
+            logger.info(f"Client didn't send all data")
+            self.send_clean_flag(client_uuid)
+        client_socket.close()                         
+        self.data_in_processes_queue.put(client_uuid) 
 
 
     def try_clean_processes(self):
@@ -202,15 +216,33 @@ class DataCleaner:
             if not save_id(received_ids, fragment):
                 # logger.info(f"3: No save id {received_ids}")
                 continue
+                
             client_id = fragment.get_client_id()
-            if client_id not in clients:
+            if client_id not in clients or client_id in self.ignore_ids:
                 logger.info(f"Read result for unregistered client")
                 continue
             socket = clients.get(client_id)[0]
+            if fragment.get_query_info().is_clean_flag():
+                try:
+                    socket.close()
+                except socket.error as e:
+                    pass # Se asume que el cliente ya se desconectó y se cerró el socket
+                del clients[client_id]
+                continue
             # if not socket:
             #     logger.info(f"Read result for unregistered client")
             #     continue
-            send_msg(socket,[fragment.to_result()])
+            try:
+                send_msg(socket,[fragment.to_result()])
+            except socket.error as e:
+                logger.info(f"Error en el socket: Se asume que el cliente se desconectó")
+                self.send_clean_flag(client_id)
+                try:
+                    socket.close()
+                except socket.error as e:
+                    pass # Se asume que el cliente ya se desconectó y se cerró el socket
+                del clients[client_id]
+                continue
 
             if fragment.is_last():
                 logger.info(f"Last para {client_id}")
