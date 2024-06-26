@@ -21,6 +21,8 @@ CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
 NODE_TYPE=os.environ["NODE_TYPE"]
 HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
+MEDIC_IP_ADDRESSES=eval(os.environ.get("MEDIC_IPS"))
+MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 MAX_WAIT_TIME = 60 * 15
@@ -40,7 +42,6 @@ class Joiner:
         self.reviews_queue = os.environ["REVIEWS_QUEUE"]
         consumer_queues[self.books_queue] = consumer_queues[os.environ["BOOKS_QUEUE"]]
         consumer_queues.pop(os.environ["BOOKS_QUEUE"])
-        self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
         self.mom = MOM(consumer_queues)
         self.books_side_tables = log_recoverer_books.get_books_side_tables()
         self.books = log_recoverer_books.get_books()
@@ -218,7 +219,10 @@ class Joiner:
         while not self.exit and joiner_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
             try:
-                sock.sendto(msg.encode(), self.medic_addres)
+                for id,address in MEDIC_IP_ADDRESSES.items():
+                    complete_addres = (address, MEDIC_PORT)
+                    sock.sendto(msg.encode(), complete_addres)
+                    logger.error(f"Hartbeat sent to medic with id: {id}")
             except Exception as e:
                 logger.error(f"Error sending hartbeat: {e}")
             finally:
