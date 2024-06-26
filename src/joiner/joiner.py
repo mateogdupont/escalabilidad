@@ -68,6 +68,7 @@ class Joiner:
             self.event.set()
 
     def clean_data_client(self, client_id):
+        logger.info(f"Cleaning data from client {client_id}")
         if client_id in self.received_ids.keys():
             self.received_ids.pop(client_id)
         if client_id in self.books_side_tables.keys():
