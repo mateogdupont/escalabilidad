@@ -31,6 +31,9 @@ SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 
+MAX_SLEEP = 10 # seconds
+MULTIPLIER = 0.1
+
 class Analyzer:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -99,9 +102,11 @@ class Analyzer:
             self.log_writer.log_result_sent(node)
             self.results[node] = []
 
-    def callback(self, ch, method, properties, body,event):
-        self.inspect_info_queue(event)
-        data_chunk = DataChunk.from_bytes(body)
+    def process_msg(self, event) -> bool:
+        msg = self.mom.consume(self.work_queue)
+        if not msg:
+            return False
+        data_chunk, tag = msg
         for data_fragment in data_chunk.get_fragments():
             if not self.save_id(data_fragment):
                 continue
@@ -128,7 +133,8 @@ class Analyzer:
 
             for fragment, key in next_steps.items():
                 self.add_and_try_to_send_chunk(fragment, key, event)
-        self.mom.ack(delivery_tag=method.delivery_tag)
+        self.mom.ack(delivery_tag=tag)
+        return True
 
     def sync_last(self, last_data_fragment: DataFragment) -> None:
         logger.info("I have the last, before send it I will sync")
@@ -204,10 +210,15 @@ class Analyzer:
             self.mom.ack(tag)
 
     def run_analizer(self, event):
+        times_empty = 0
         while not event.is_set():
             try:
                 self.inspect_info_queue(event)
-                self.mom.consume_with_callback(self.work_queue, self.callback, event)
+                if not self.process_msg(event):
+                    times_empty += 1
+                    time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
+                    continue
+                times_empty = 0
             except Exception as e:
                 logger.error(f"Error in callback: {e}")
                 event.set()

@@ -27,6 +27,9 @@ HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 
+MAX_SLEEP = 10 # seconds
+MULTIPLIER = 0.1
+
 class Filter:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -216,12 +219,14 @@ class Filter:
                     logger.error(f"Data: {chunk.to_bytes()}")
                 self.results[key] = ([], time.time())
 
-    def callback(self, ch, method, properties, body,event):
-        self.inspect_info_queue(event)
-        data_chunk = DataChunk.from_bytes(body)
+    def process_msg(self, event) -> bool:
+        msg = self.mom.consume(self.work_queue)
+        if not msg:
+            return False
+        data_chunk, tag = msg
         self.filter_data_chunk(data_chunk,event)
-        self.mom.ack(delivery_tag=method.delivery_tag)
-        self.send_with_timeout(event)
+        self.mom.ack(delivery_tag=tag)
+        return True
 
     def inspect_info_queue(self, event) -> None:
         while not event.is_set():
@@ -247,13 +252,18 @@ class Filter:
             self.mom.ack(tag)
 
     def run_filter(self, event):
+        times_empty = 0
         while not event.is_set():
             try:
-                self.inspect_info_queue(event)
-                self.mom.consume_with_callback(self.work_queue, self.callback, event)
                 self.send_with_timeout(event)
+                self.inspect_info_queue(event)
+                if not self.process_msg(event):
+                    times_empty += 1
+                    time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
+                    continue
+                times_empty = 0
             except Exception as e:
-                logger.error(f"Error in callback: {e}")
+                logger.error(f"Error in filter: {e}")
                 event.set()
 
     def run(self):

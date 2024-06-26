@@ -64,20 +64,20 @@ class MOM:
         data_chunk = DataChunk.from_bytes(body)
         return data_chunk, method.delivery_tag
     
-    def consume_with_callback(self, queue: str, callback: Any, *args) -> None:
-        if not queue in self.consumer_queues:
-            raise ValueError(f"Queue '{queue}' not found in consumer_queues.")
-        def internal_callback(ch, method, properties, body):
-            callback(ch, method, properties, body, *args)
-        self._execute(self._consume_with_callback, queue, internal_callback)
+    # def consume_with_callback(self, queue: str, callback: Any, *args) -> None:
+    #     if not queue in self.consumer_queues:
+    #         raise ValueError(f"Queue '{queue}' not found in consumer_queues.")
+    #     def internal_callback(ch, method, properties, body):
+    #         callback(ch, method, properties, body, *args)
+    #     self._execute(self._consume_with_callback, queue, internal_callback)
     
-    def _consume_with_callback(self, queue: str, callback: Any) -> None:
-        def on_timeout():
-            logger.info("Timeout reached, stopping the consumer.")
-            self.channel.stop_consuming()
-        self.channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=False)
-        logger.info(f"Starting to consume from queue '{queue}'.")
-        self.channel.start_consuming()
+    # def _consume_with_callback(self, queue: str, callback: Any) -> None:
+    #     def on_timeout():
+    #         logger.info("Timeout reached, stopping the consumer.")
+    #         self.channel.stop_consuming()
+    #     self.channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=False)
+    #     logger.info(f"Starting to consume from queue '{queue}'.")
+    #     self.channel.start_consuming()
     
     def ack(self, delivery_tag: int) -> None:
         self._execute(self._ack, delivery_tag)

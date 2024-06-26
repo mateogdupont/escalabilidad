@@ -26,6 +26,9 @@ MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 MAX_WAIT_TIME = 60 * 15
 
+MAX_SLEEP = 10 # seconds
+MULTIPLIER = 0.1
+
 class Joiner:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -255,24 +258,26 @@ class Joiner:
                 self.log_writer_reviews.log_result_sent(key)
                 self.results[key] = ([], time.time())
 
-    def callback(self, ch, method, properties, body,event):
-        self.inspect_info_queue(event)
-        data_chunk = DataChunk.from_bytes(body)
+    def process_msg(self, event) -> bool:
+        msg = self.mom.consume(self.work_queue)
+        if not msg:
+            return False
+        data_chunk, tag = msg
         ack = True
         for fragment in data_chunk.get_fragments():
             if event.is_set():
                 return
             if not self.is_side_table_ended(fragment.get_query_id(), fragment.get_client_id()):
                 ack = False
-                self.mom.nack(delivery_tag=method.delivery_tag)
+                self.mom.nack(delivery_tag=tag)
                 self.receive_all_books(event, fragment.get_query_id(), fragment.get_client_id())
         if ack:
             for fragment in data_chunk.get_fragments():
                 if not self.save_id(fragment):
                     continue
                 self.process_review_fragment(fragment, event)
-            self.mom.ack(delivery_tag=method.delivery_tag)
-        self.send_with_timeout(event)
+            self.mom.ack(delivery_tag=tag)
+        return True
     
     def inspect_info_queue(self, event) -> None:
         while not event.is_set():
@@ -298,11 +303,16 @@ class Joiner:
     def run_joiner(self, event):
         if len(self.books_side_tables) == 0:
             self.receive_all_books(event)
+        times_empty = 0
         while not event.is_set():
             try:
-                self.inspect_info_queue(event)
-                self.mom.consume_with_callback(self.reviews_queue, self.callback, event)
                 self.send_with_timeout(event)
+                self.inspect_info_queue(event)
+                if not self.process_msg(event):
+                    times_empty += 1
+                    time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
+                    continue
+                times_empty = 0
             except Exception as e:
                 logger.error(f"Error in callback: {e}")
                 event.set()
