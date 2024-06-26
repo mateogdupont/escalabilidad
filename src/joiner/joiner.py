@@ -258,8 +258,8 @@ class Joiner:
                 self.log_writer_reviews.log_result_sent(key)
                 self.results[key] = ([], time.time())
 
-    def process_msg(self, event) -> bool:
-        msg = self.mom.consume(self.work_queue)
+    def process_review(self, event) -> bool:
+        msg = self.mom.consume(self.reviews_queue)
         if not msg:
             return False
         data_chunk, tag = msg
@@ -308,13 +308,13 @@ class Joiner:
             try:
                 self.send_with_timeout(event)
                 self.inspect_info_queue(event)
-                if not self.process_msg(event):
+                if not self.process_review(event):
                     times_empty += 1
                     time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                     continue
                 times_empty = 0
             except Exception as e:
-                logger.error(f"Error in callback: {e}")
+                logger.error(f"Error in joiner: {e}")
                 event.set()
 
     def run(self):

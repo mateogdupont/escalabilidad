@@ -220,7 +220,7 @@ class Analyzer:
                     continue
                 times_empty = 0
             except Exception as e:
-                logger.error(f"Error in callback: {e}")
+                logger.error(f"Error in analyzer: {e}")
                 event.set()
     
     def send_with_timeout(self, event):

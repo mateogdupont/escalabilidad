@@ -8,8 +8,11 @@ from time import sleep
 
 from utils.structs.data_fragment import DataFragment
 
-MAX_TRIES = 5
+MAX_TRIES = 15
 TIMEOUT = 10
+
+MAX_SLEEP = 10 # seconds
+MULTIPLIER = 0.1
 
 class MOM:
     def __init__(self, consumer_queues: list) -> None:
@@ -23,7 +26,7 @@ class MOM:
     
     def _connect(self) -> None:
         last_exception = None
-        for _ in range(MAX_TRIES):
+        for t in range(MAX_TRIES):
             try:
                 credentials = pika.PlainCredentials(os.environ["RABBITMQ_DEFAULT_USER"], os.environ["RABBITMQ_DEFAULT_PASS"])
                 self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', 
@@ -33,7 +36,8 @@ class MOM:
                 return
             except Exception as e:
                 last_exception = e
-                sleep(0.5) # wait a little before trying again, perhaps the service is not up yet
+                # wait a little before trying again, perhaps the service is not up yet
+                sleep(min(MAX_SLEEP, (t**2) * MULTIPLIER))
         logger.error(f"Cannot connect to RabbitMQ, the last exception was: {last_exception}")
         raise last_exception
     
