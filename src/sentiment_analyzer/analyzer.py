@@ -117,7 +117,7 @@ class Analyzer:
                 query_info.set_sentiment(sentiment_score)
                 data_fragment.set_query_info(query_info)
             elif not event.is_set():
-                self.sync_last(fragment)
+                self.sync_last(data_fragment)
                 self.log_writer.log_query_ended(data_fragment)
 
             # the text is no longer needed
