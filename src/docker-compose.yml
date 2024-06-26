@@ -57,6 +57,8 @@ services:
     build:
       context: .
       dockerfile: ./data_cleaner/Dockerfile
+    environment:
+      - ID=1
     networks:
       - network-bridge
     depends_on:

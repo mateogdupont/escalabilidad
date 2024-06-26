@@ -17,15 +17,19 @@ import sys
 import time
 import logging as logger
 
+load_dotenv()
 MAX_AMOUNT_OF_FRAGMENTS = 500
 MAX_AMOUNT_OF_CLIENTS = 10
 LISTEN_BACKLOG = 5
 PORT = 1250
+MEDIC_IP_ADDRESSES=eval(os.environ.get("MEDIC_IPS"))
+MEDIC_PORT=int(os.environ["MEDIC_PORT"])
+NODE_TYPE=os.environ["NODE_TYPE"]
+HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
 
 class DataCleaner:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
-        load_dotenv()
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.bind(('', 1250))
         self._socket.listen(LISTEN_BACKLOG)
@@ -35,6 +39,7 @@ class DataCleaner:
         self.clean_data = {}
         self.work_queue = None
         self.mom = None
+        self.id= os.environ["ID"]
         self.data_in_processes_queue = Queue()
         self.clients_to_results_queue = Queue()
         self.clients_processes = {}
@@ -208,8 +213,8 @@ class DataCleaner:
             self.proccess_result_chunk(event,clients,data_chunk, received_ids)
             self.mom.ack(tag)
 
-    def run(self):
-        self._event = Event()
+    def run_cleaner(self, event):
+        self._event = event
         results_proccess = Process(target=self.results_handler, args=(self._event,))
         results_proccess.start()
 
@@ -231,6 +236,24 @@ class DataCleaner:
         for id_, client_process in self.dict_procesos.items():
             client_process.join()
         results_proccess.join()
+
+    def run(self):
+        self.event = Event()
+        cleaner_proccess = Process(target=self.run_cleaner, args=(self.event,))
+        cleaner_proccess.start()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        while not self.exit and cleaner_proccess.is_alive():
+            msg = NODE_TYPE + "." + self.id + "$"
+            try:
+                for id,address in MEDIC_IP_ADDRESSES.items():
+                    complete_addres = (address, MEDIC_PORT)
+                    sock.sendto(msg.encode(), complete_addres)
+                    logger.error(f"Hartbeat sent to medic with id: {id}")
+            except Exception as e:
+                logger.error(f"Error sending hartbeat: {e}")
+            finally:
+                time.sleep(HARTBEAT_INTERVAL)
+        cleaner_proccess.join()
 
 def save_id(received_ids: dict, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
