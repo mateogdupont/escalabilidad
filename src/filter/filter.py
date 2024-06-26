@@ -35,26 +35,43 @@ class Filter:
         log_recoverer.recover_data()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
-        self.work_queue = list(consumer_queues.keys())[0]
+        self.work_queue = consumer_queues[0]
+        self.info_queue = os.environ["INFO_QUEUE"]
+        consumer_queues.append(self.info_queue)
         self.mom = MOM(consumer_queues)
         self.results = log_recoverer.get_results()
         self.received_ids = log_recoverer.get_received_ids()
+        self.ignore_ids = log_recoverer.get_ignore_ids()
         self.event = None
         self.id= os.environ["ID"]
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
         self.exit = False
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
+
+    def clean_data_client(self, client_id):
+        logger.info(f"Cleaning data from client {client_id}")
+        if client_id in self.received_ids.keys():
+            self.received_ids.pop(client_id)
+        for node, batch in self.results.items():
+            batch = ([fragment for fragment in batch[0] if fragment.get_client_id() != client_id], batch[1])
+            self.results[node] = batch
+        self.ignore_ids.add(client_id)
+        self.log_writer.log_ignore(client_id)
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
-        self.mom.close()
-        self.log_writer.close()
+        if self.mom:
+            self.mom.close()
+        if self.log_writer:
+            self.log_writer.close()
         if self.event:
             self.event.set()
 
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
+        if client_id in self.ignore_ids:
+            return False
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
@@ -140,10 +157,23 @@ class Filter:
                 self.results[key] = ([], time.time())
 
     def callback(self, ch, method, properties, body,event):
+        self.inspect_info_queue(event)
         data_chunk = DataChunk.from_bytes(body)
         self.filter_data_chunk(data_chunk,event)
         self.mom.ack(delivery_tag=method.delivery_tag)
         self.send_with_timeout(event)
+
+    def inspect_info_queue(self, event) -> None:
+        while not event.is_set():
+            msg = self.mom.consume(self.info_queue)
+            if not msg:
+                return
+            datafragment, tag = msg
+            if datafragment.get_query_info().is_clean_flag():
+                self.clean_data_client(datafragment.get_client_id())
+            else:
+                logger.error(f"Unexpected message in info queue: {datafragment}")
+            self.mom.ack(tag)
 
     def run_filter(self, event):
         while not event.is_set():
@@ -176,8 +206,10 @@ def main():
     filter = Filter()
     filter.run()
     if not filter.exit:
-        filter.mom.close()
-        filter.log_writer.close()
+        if filter.mom:
+            filter.mom.close()
+        if filter.log_writer:
+            filter.log_writer.close()
         
 if __name__ == "__main__":
     main()

@@ -24,6 +24,8 @@ class LogRecoverer(BasicLogRecoverer):
             return False
         # _, client_id, query_id, book_title = parts
         client_id = parts[1]
+        if client_id in self.ignore_ids:
+            return True
         query_id = parts[2]
         start = line.find(parts[3])
         book_title = line[start:]
@@ -37,6 +39,8 @@ class LogRecoverer(BasicLogRecoverer):
         if len(parts) < QUERY_ENDED_PARTS:
             return False
         _, client_id, query_id = parts
+        if client_id in self.ignore_ids:
+            return True
         self.side_tables_ended[client_id] = self.side_tables_ended.get(client_id, set())
         self.side_tables_ended[client_id].add(query_id)
         return True

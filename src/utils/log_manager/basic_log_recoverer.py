@@ -16,12 +16,14 @@ RESULT_PARTS = 4
 QUERY_ENDED_PARTS = 3
 RESULT_SENT_PARTS = 2
 BOOK_PARTS = 2
+IGNORE_PARTS = 2
 
 BOOK = "BOOK" 
 RECEIVED_ID = "RECEIVED_ID"
 RESULT = "RESULT"
 QUERY_ENDED = "QUERY_ENDED"
 RESULT_SENT = "RESULT_SENT"
+IGNORE = "IGNORE"
 
 END_LOG = "END_LOG"
 
@@ -46,19 +48,31 @@ class BasicLogRecoverer:
         self.ended_queries = {}
         self.sent_results = set()
         self.books = {}
+        self.ignore_ids = set()
         self._recover_funcs = {
             RECEIVED_ID: self._process_received_id,
             RESULT: self._process_result,
             QUERY_ENDED: self._process_query_ended,
             RESULT_SENT: self._process_result_sent,
-            BOOK: self._process_book
+            BOOK: self._process_book,
+            IGNORE: self._process_ignore
         }
     
+    def _process_ignore(self, line: str) -> bool:
+        parts = line.split(SEP)
+        if len(parts) < IGNORE_PARTS:
+            return False
+        _, client_id = parts
+        self.ignore_ids.add(client_id)
+        return True
+
     def _process_received_id(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) < RECEIVED_ID_PARTS:
             return False
         _, client_id, query_id, df_id = parts
+        if client_id in self.ignore_ids:
+            return True
         if query_id in self.ended_queries.get(client_id, set()):
             return True
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
@@ -77,6 +91,8 @@ class BasicLogRecoverer:
         if node in self.sent_results:
             return True
         df = DataFragment.from_bytes(base64.b64decode(df_str))
+        if df.get_client_id() in self.ignore_ids:
+            return True
         time = float(time) if time != NONE else None
         if time is not None:
             self.results[node] = self.results.get(node, ([], time))
@@ -91,6 +107,8 @@ class BasicLogRecoverer:
         if len(parts) < QUERY_ENDED_PARTS:
             return False
         _, client_id, query_id = parts
+        if client_id in self.ignore_ids:
+            return True
         self.ended_queries[client_id] = self.ended_queries.get(client_id, set())
         self.ended_queries[client_id].add(query_id)
         return True
@@ -131,8 +149,7 @@ class BasicLogRecoverer:
                 log_type = line.split(SEP)[0]
                 if not log_type in self._recover_funcs:
                     raise UnknownLogType(f"Unknown log type: {log_type}")
-                if not self._recover_funcs[log_type](line):
-                    raise ErrorProcessingLog(f"Error processing log: {line}")
+                self._recover_funcs[log_type](line)
 
     def get_received_ids(self) -> dict:
         return self.received_ids
@@ -148,4 +165,9 @@ class BasicLogRecoverer:
     
     def set_ended_queries(self, ended_queries: dict) -> None:
         self.ended_queries = ended_queries
+
+    def get_ignore_ids(self) -> set:
+        return self.ignore_ids
     
+    def set_ignore_ids(self, ignore_ids: set) -> None:
+        self.ignore_ids = ignore_ids

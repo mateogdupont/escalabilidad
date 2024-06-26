@@ -34,20 +34,19 @@ class Joiner:
         log_recoverer_reviews.recover_data()
         log_recoverer_books = LogRecoverer(os.environ["LOG_PATH_BOOKS"])
         log_recoverer_books.set_ended_queries(log_recoverer_reviews.get_ended_queries())
+        log_recoverer_books.set_ignore_ids(log_recoverer_reviews.get_ignore_ids())
         log_recoverer_books.recover_data()
         self.id = os.environ["ID"]
-        repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
-        consumer_queues = eval(repr_consumer_queues)
         self.books_queue = os.environ["BOOKS_QUEUE"] + '.' + self.id
         self.reviews_queue = os.environ["REVIEWS_QUEUE"]
-        consumer_queues[self.books_queue] = consumer_queues[os.environ["BOOKS_QUEUE"]]
-        consumer_queues.pop(os.environ["BOOKS_QUEUE"])
-        self.mom = MOM(consumer_queues)
+        self.info_queue = os.environ["INFO_QUEUE"]
+        self.mom = MOM([self.books_queue, self.reviews_queue, self.info_queue])
         self.books_side_tables = log_recoverer_books.get_books_side_tables()
         self.books = log_recoverer_books.get_books()
         self.side_tables_ended = log_recoverer_books.get_side_tables_ended()
         self.received_ids = log_recoverer_reviews.get_received_ids()
         self.results = log_recoverer_reviews.get_results()
+        self.ignore_ids = log_recoverer_reviews.get_ignore_ids()
         self.exit = False
         self.event = None
         signal.signal(signal.SIGTERM, self.sigterm_handler)
@@ -57,17 +56,35 @@ class Joiner:
     
     def sigterm_handler(self, signal,frame):
         self.exit = True
-        self.mom.close()
-        self.log_writer_books.close()
-        self.log_writer_reviews.close()
+        if self.mom:
+            self.mom.close()
+        if self.log_writer_books:
+            self.log_writer_books.close()
+        if self.log_writer_reviews:
+            self.log_writer_reviews.close()
         if self.event:
             self.event.set()
 
+    def clean_data_client(self, client_id):
+        logger.info(f"Cleaning data from client {client_id}")
+        if client_id in self.received_ids.keys():
+            self.received_ids.pop(client_id)
+        if client_id in self.books_side_tables.keys():
+            self.books_side_tables.pop(client_id)
+        if client_id in self.side_tables_ended.keys():
+            self.side_tables_ended.pop(client_id)
+        for node, batch in self.results.items():
+            batch = ([fragment for fragment in batch[0] if fragment.get_client_id() != client_id], batch[1])
+            self.results[node] = batch
+        self.ignore_ids.add(client_id)
+        self.log_writer_books.log_ignore(client_id)
 
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
+        if client_id in self.ignore_ids:
+            return False
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
         self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
         if id in self.received_ids[client_id][query_id]:
@@ -184,6 +201,7 @@ class Joiner:
                 self.results[key] = ([], time.time())
 
     def callback(self, ch, method, properties, body,event):
+        self.inspect_info_queue(event)
         data_chunk = DataChunk.from_bytes(body)
         ack = True
         for fragment in data_chunk.get_fragments():
@@ -200,6 +218,18 @@ class Joiner:
                 self.process_review_fragment(fragment, event)
             self.mom.ack(delivery_tag=method.delivery_tag)
         self.send_with_timeout(event)
+    
+    def inspect_info_queue(self, event) -> None:
+        while not event.is_set():
+            msg = self.mom.consume(self.info_queue)
+            if not msg:
+                return
+            datafragment, tag = msg
+            if datafragment.get_query_info().is_clean_flag():
+                self.clean_data_client(datafragment.get_client_id())
+            else:
+                logger.error(f"Unexpected message in info queue: {datafragment}")
+            self.mom.ack(tag)
 
     def run_joiner(self, event):
         if len(self.books_side_tables) == 0:
@@ -233,9 +263,12 @@ def main():
     joiner = Joiner()
     joiner.run()
     if not joiner.exit:
-        joiner.mom.close()
-        joiner.log_writer_books.close()
-        joiner.log_writer_reviews.close()
+        if joiner.mom:
+            joiner.mom.close()
+        if joiner.log_writer_books:
+            joiner.log_writer_books.close()
+        if joiner.log_writer_reviews:
+            joiner.log_writer_reviews.close()
    
 if __name__ == "__main__":
     main()
