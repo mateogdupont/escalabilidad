@@ -89,11 +89,11 @@ class MOM:
     def _ack(self, delivery_tag: int) -> None:
         self.channel.basic_ack(delivery_tag=delivery_tag)
     
-    def nack(self, delivery_tag: int) -> None:
-        self._execute(self._nack, delivery_tag)
+    def nack(self, delivery_tag: int, requeue: bool) -> None:
+        self._execute(self._nack, delivery_tag, requeue)
 
-    def _nack(self, delivery_tag: int) -> None:
-        self.channel.basic_nack(delivery_tag=delivery_tag)
+    def _nack(self, delivery_tag: int, requeue: bool) -> None:
+        self.channel.basic_nack(delivery_tag=delivery_tag, requeue=requeue)
     
     def publish(self, data: Union[DataChunk, DataFragment], key: str) -> None:
         if isinstance(data, DataChunk) or isinstance(data, DataFragment):

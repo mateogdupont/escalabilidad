@@ -156,7 +156,7 @@ class Analyzer:
                 break
             datafragment, tag = msg
             if datafragment.get_query_info().is_clean_flag():
-                self.mom.nack(tag)
+                self.mom.nack(tag, True)
                 logger.info("Received a clean flag, postponing (nack sent)")
                 time.sleep(0.5)
                 continue
@@ -165,28 +165,30 @@ class Analyzer:
                 nodes_left -= 1
                 logger.info(f"Sync response received, {nodes_left} nodes left")
             elif start_sync:
-                logger.info("Received a sync request, sending data fragments")
-                keys = update_data_fragment_step(datafragment.clone()).keys()
-                for key in keys:
-                    self.force_send(key)
-                datafragment.set_sync(False, True)
-                self.mom.publish(datafragment, self.info_key)
-                logger.info("Data fragments sent, sync response sent")
+                if datafragment.get_client_id() == client_id and datafragment.get_query_id() == query_id:
+                    nodes_left -= 1
+                else:
+                    logger.info("Received a sync request, sending data fragments")
+                    self.send_all()
+                    datafragment.set_sync(False, True)
+                    self.mom.publish(datafragment, self.info_key)
+                    logger.info("Data fragments sent, sync response sent")
             self.mom.ack(tag)
+            last_ack = time.time()
+
         logger.info("All nodes synced, ready to send last fragment")
 
-    def force_send(self, node: str) -> None:
-        if not node in self.results.keys():
-            return
-        if len(self.results[node][0]) > 0:
-            data_chunk = DataChunk(self.results[node])
-            try:
-                self.mom.publish(data_chunk, node)
-                self.log_writer.log_result_sent(node)
-            except Exception as e:
-                logger.error(f"Error al enviar a {node}: {e}")
-                logger.error(f"Data: {data_chunk.to_bytes()}")
-            self.results[node] = []
+    def send_all(self):
+        for key, (data, _) in self.results.items():
+            if len(data) > 0:
+                chunk = DataChunk(data)
+                try:
+                    self.mom.publish(chunk, key)
+                    self.log_writer.log_result_sent(key)
+                except Exception as e:
+                    logger.error(f"Error al enviar a {key}: {e}")
+                    logger.error(f"Data: {chunk.to_bytes()}")
+                self.results[key] = ([], time.time())
 
     def inspect_info_queue(self, event) -> None:
         while not event.is_set():
@@ -200,9 +202,7 @@ class Analyzer:
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
             elif start_sync:
-                keys = update_data_fragment_step(datafragment.clone()).keys()
-                for key in keys:
-                    self.force_send(key)
+                self.send_all()
                 datafragment.set_sync(False, True)
                 self.mom.publish(datafragment, self.info_key)
             elif not end_sync:
