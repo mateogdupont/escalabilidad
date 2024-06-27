@@ -297,11 +297,12 @@ class Filter:
         filter_proccess.join()
     
     def rewrite_logs(self, event):
-        self.log_writer.close()
-        log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
-        log_rewriter.rewrite_logs(event)
-        log_rewriter.swap_files()
-        self.log_writer.open()
+        pass
+        # self.log_writer.close()
+        # log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
+        # log_rewriter.rewrite_logs(event)
+        # log_rewriter.swap_files()
+        # self.log_writer.open()
         
 
 def main():

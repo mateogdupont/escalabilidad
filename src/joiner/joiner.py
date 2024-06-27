@@ -334,17 +334,18 @@ class Joiner:
                 event.set()
 
     def rewrite_logs(self, event):
-        self.log_writer_reviews.close()
-        self.log_writer_books.close()
-        log_rewriter_reviews = LogRecoverer(os.environ["LOG_PATH_REVIEWS"])
-        log_rewriter_reviews.rewrite_logs(event)
-        log_rewriter_books = LogRecoverer(os.environ["LOG_PATH_BOOKS"])
-        log_rewriter_books.set_ended_queries(log_rewriter_reviews.get_ended_queries())
-        log_rewriter_books.rewrite_logs(event)
-        log_rewriter_reviews.swap_files()
-        log_rewriter_books.swap_files()
-        self.log_writer_reviews.open()
-        self.log_writer_books.open()
+        # self.log_writer_reviews.close()
+        # self.log_writer_books.close()
+        # log_rewriter_reviews = LogRecoverer(os.environ["LOG_PATH_REVIEWS"])
+        # log_rewriter_reviews.rewrite_logs(event)
+        # log_rewriter_books = LogRecoverer(os.environ["LOG_PATH_BOOKS"])
+        # log_rewriter_books.set_ended_queries(log_rewriter_reviews.get_ended_queries())
+        # log_rewriter_books.rewrite_logs(event)
+        # log_rewriter_reviews.swap_files()
+        # log_rewriter_books.swap_files()
+        # self.log_writer_reviews.open()
+        # self.log_writer_books.open()
+        pass
 
     def run(self):
         self.event = Event()
