@@ -208,7 +208,7 @@ class Joiner:
         last_ack = time.time()
         while nodes_left > 0:
             msg = self.mom.consume(self.info_queue)
-            if not msg and time.time() - last_ack < TIMEOUT:
+            if not msg and time.time() - last_ack < 2*TIMEOUT:
                 time.sleep(0.5)
                 continue
             elif not msg:
