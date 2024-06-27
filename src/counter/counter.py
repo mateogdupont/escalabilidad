@@ -316,7 +316,10 @@ class Counter:
                 return
             datafragment, tag = msg
             if datafragment.get_query_info().is_clean_flag():
-                self.clean_data_client(datafragment.get_client_id())
+                client_id = datafragment.get_client_id()
+                logger.info(f"Received a clean flag for client {client_id}, cleaning data")
+                self.clean_data_client(client_id)
+                self.rewrite_logs()
             else:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
             self.mom.ack(tag)
@@ -331,6 +334,7 @@ class Counter:
                     time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                     continue
                 times_empty = 0
+                self.rewrite_logs()
             except Exception as e:
                 logger.error(f"Error in counter: {e.with_traceback(None)}")
                 event.set()
@@ -358,7 +362,7 @@ class Counter:
         log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
         log_rewriter.rewrite_logs()
         log_rewriter.swap_files()
-        self.log_writer.open()
+        # self.log_writer.open()
 
 def main():
     counter = Counter()

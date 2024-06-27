@@ -260,7 +260,7 @@ class Joiner:
                 chunk = DataChunk(data)
                 self.mom.publish(chunk, key)
                 self.log_writer_reviews.log_result_sent(key)
-                self.rewrite_logs() # TODO: check if this is the correct place to call this
+                # self.rewrite_logs() # TODO: check if this is the correct place to call this
                 self.results[key] = ([], time.time())
 
     def process_review(self, event) -> bool:
@@ -295,6 +295,7 @@ class Joiner:
                 client_id = datafragment.get_client_id()
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
+                self.rewrite_logs()
             elif start_sync:
                 self.send_all()
                 datafragment.set_sync(False, True)
@@ -316,6 +317,7 @@ class Joiner:
                     time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                     continue
                 times_empty = 0
+                self.rewrite_logs()
             except Exception as e:
                 logger.error(f"Error in joiner: {e.with_traceback(None)}")
                 event.set()
@@ -330,8 +332,8 @@ class Joiner:
         log_rewriter_books.rewrite_logs()
         log_rewriter_reviews.swap_files()
         log_rewriter_books.swap_files()
-        self.log_writer_reviews.open()
-        self.log_writer_books.open()
+        # self.log_writer_reviews.open()
+        # self.log_writer_books.open()
 
     def run(self):
         self.event = Event()

@@ -102,7 +102,7 @@ class Analyzer:
             data_chunk = DataChunk(self.results[node])
             self.mom.publish(data_chunk, node)
             self.log_writer.log_result_sent(node)
-            self.rewrite_logs() # TODO: check if this is the correct place to call this
+            # self.rewrite_logs() # TODO: check if this is the correct place to call this
             self.results[node] = []
 
     def process_msg(self, event) -> bool:
@@ -204,6 +204,7 @@ class Analyzer:
                 client_id = datafragment.get_client_id()
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
+                self.rewrite_logs()
             elif start_sync:
                 self.send_all()
                 datafragment.set_sync(False, True)
@@ -222,6 +223,7 @@ class Analyzer:
                 time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                 continue
             times_empty = 0
+            self.rewrite_logs()
             # except Exception as e:
             #     logger.error(f"Error in analyzer: {e.with_traceback(None)}")
             #     raise e
@@ -262,7 +264,7 @@ class Analyzer:
         log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
         log_rewriter.rewrite_logs()
         log_rewriter.swap_files()
-        self.log_writer.open()
+        # self.log_writer.open()
 
 def main() -> None:
     analyzer = Analyzer()
