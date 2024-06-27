@@ -82,20 +82,20 @@ services:
     depends_on:
       - rabbitmq1
   
-  filter2:
-    build:
-      context: .
-      dockerfile: ./filter/Dockerfile
-    networks:
-      - network-bridge
-    volumes:
-      - ../logs:/logs
-    environment:
-      - ID=2
-      - LOG_PATH=/logs/filter2.log
-      - INFO_QUEUE=info.filter2
-    depends_on:
-      - rabbitmq1
+  # filter2:
+  #   build:
+  #     context: .
+  #     dockerfile: ./filter/Dockerfile
+  #   networks:
+  #     - network-bridge
+  #   volumes:
+  #     - ../logs:/logs
+  #   environment:
+  #     - ID=2
+  #     - LOG_PATH=/logs/filter2.log
+  #     - INFO_QUEUE=info.filter2
+  #   depends_on:
+  #     - rabbitmq1
 
   joiner1:
     build:
@@ -145,21 +145,21 @@ services:
     depends_on:
       - rabbitmq1
 
-  joiner4:
-    build:
-      context: .
-      dockerfile: ./joiner/Dockerfile
-    environment:
-      - ID=4
-      - LOG_PATH_BOOKS=/logs/joiner4_books.log
-      - LOG_PATH_REVIEWS=/logs/joiner4_reviews.log
-      - INFO_QUEUE=info.joiner4
-    depends_on:
-      - rabbitmq1
-    networks:
-      - network-bridge
-    volumes:
-      - ../logs:/logs
+  # joiner4:
+  #   build:
+  #     context: .
+  #     dockerfile: ./joiner/Dockerfile
+  #   environment:
+  #     - ID=4
+  #     - LOG_PATH_BOOKS=/logs/joiner4_books.log
+  #     - LOG_PATH_REVIEWS=/logs/joiner4_reviews.log
+  #     - INFO_QUEUE=info.joiner4
+  #   depends_on:
+  #     - rabbitmq1
+  #   networks:
+  #     - network-bridge
+  #   volumes:
+  #     - ../logs:/logs
 
   counter1:
     build:
@@ -206,20 +206,20 @@ services:
     depends_on:
       - rabbitmq1
   
-  sentiment-analyzer3:
-    build: 
-      context: .
-      dockerfile: ./sentiment_analyzer/Dockerfile
-    volumes:
-      - ../logs:/logs
-    environment:
-      - LOG_PATH=/logs/sentiment_analyzer3.log
-      - INFO_QUEUE=info.sentiment_analyzer3
-      - ID=3
-    networks:
-      - network-bridge
-    depends_on:
-      - rabbitmq1
+  # sentiment-analyzer3:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
+  #   volumes:
+  #     - ../logs:/logs
+  #   environment:
+  #     - LOG_PATH=/logs/sentiment_analyzer3.log
+  #     - INFO_QUEUE=info.sentiment_analyzer3
+  #     - ID=3
+  #   networks:
+  #     - network-bridge
+  #   depends_on:
+  #     - rabbitmq1
 
   medic1:
     build:
