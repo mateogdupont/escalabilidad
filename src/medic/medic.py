@@ -122,6 +122,7 @@ class Medic:
         return peer_sockets
 
     def start_bully_administrator(self, socket_queue,socket_queue_from_bully, incoming_messages_queue):
+        time.sleep(TIMEOUT) #Sleep to have the same information as the rest of medics
         bully = Bully(self.id,self._port,self.selected_as_lider_event,self._finish_event)
         bully.start(socket_queue_from_bully,incoming_messages_queue,socket_queue)
             

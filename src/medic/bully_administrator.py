@@ -27,10 +27,11 @@ DEAD_TYPE=6
 COORDINATOR_TIMEOUT=4
 SEND_ALIVE_TIMEOUT=1
 ELECTION_TIMEOUT=8
-SOCKET_TIMEOUT=101
-LISTEN_BACKLOG = 4
+SOCKET_TIMEOUT=10
+LISTEN_BACKLOG = 10
 TIMEOUT_LISTENER_SOCKET=0.4
 TIMEOUT_INCOMING_MSG= 1
+TIMEOUT_ALIVE_MEDIC=20
 
 class Bully:
     def __init__(self, node_id, port,selected_as_lider_event, finish_event):
@@ -201,7 +202,7 @@ class Bully:
             
     
     def verify_non_lider_medics_timeout(self):
-        if self.time_verify_non_lider_medics and (time.time() - self.time_verify_non_lider_medics > (2*SEND_ALIVE_TIMEOUT)):
+        if self.time_verify_non_lider_medics and (time.time() - self.time_verify_non_lider_medics > (TIMEOUT_ALIVE_MEDIC)):
             for node_id in range(1, MAX_MEDIC_ID):
                 if not node_id in self.alive_timeouts:
                     self.revive_nodes(NODE_TYPE,node_id)
