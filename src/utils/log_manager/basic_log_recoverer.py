@@ -87,7 +87,8 @@ class BasicLogRecoverer:
         time = parts[2]
         start = line.find(parts[3])
         df_str = line[start:]
-        df = DataFragment.from_bytes(base64.b64decode(df_str.encode('utf-8')))
+        # df = DataFragment.from_bytes(base64.b64decode(df_str.encode('utf-8')))
+        df = DataFragment.from_str(df_str)
         if df.get_client_id() in self.ignore_ids or node in self.sent_results:
             return False
         time = float(time) if time != NONE else None
@@ -126,7 +127,8 @@ class BasicLogRecoverer:
             raise ErrorProcessingLog(f"Error processing log: {line}")
         start = line.find(parts[1])
         book_str = line[start:]
-        book = Book.from_bytes(base64.b64decode(book_str.encode('utf-8')))
+        # book = Book.from_bytes(base64.b64decode(book_str.encode('utf-8')))
+        book = Book.from_str(book_str)
         self.books[book.get_title()] = book
         return True
 

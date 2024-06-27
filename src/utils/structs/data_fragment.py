@@ -1,3 +1,4 @@
+import base64
 from typing import List, Optional, Tuple
 import pickle
 import re
@@ -30,8 +31,27 @@ class DataFragment:
     def get_sync(self) -> Tuple[bool, bool]:
         return (self.start_sync, self.end_sync)
     
+    @classmethod
+    def from_bytes(cls, bytes_obj: bytes) -> 'DataFragment':
+        datafragment = pickle.loads(bytes_obj)
+        datafragment.set_queries(datafragment.queries)
+        return datafragment
+    
     def to_bytes(self) -> bytes:
         return pickle.dumps(self)
+    
+    def to_str(self) -> str:
+        _bytes = self.to_bytes()
+        base64_encoded_bytes = base64.b64encode(_bytes)
+        base64_string = base64_encoded_bytes.decode('utf-8')
+        return base64_string
+
+    def to_str(self) -> str:
+        _bytes = self.to_bytes()
+        base64_encoded_bytes = base64.b64encode(_bytes)
+        base64_string = base64_encoded_bytes.decode('utf-8')
+        return base64_string
+        
     
     def to_human_readable(self) -> str:
         book = self.book.get_title() if self.book else "None"
@@ -62,12 +82,6 @@ class DataFragment:
             query_info_results = query_info.get_result()
 
         return [str(int(self.is_last()))] + [query] + book_result + query_info_results
-    
-    @classmethod
-    def from_bytes(cls, json_str: bytes) -> 'DataFragment':
-        datafragment = pickle.loads(json_str)
-        datafragment.set_queries(datafragment.queries)
-        return datafragment
     
     # Review raw data:
     # last|book|Id|Title|Price|User_id|profileName|review/helpfulness|review/score|review/time|review/summary|review/text
