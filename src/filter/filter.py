@@ -34,8 +34,8 @@ MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
-BATCH_CLEAN_INTERVAL = 60 * 2 # 2 minutes
-MAX_EXTRA_INTERVAL = 60 * 1 # 1 minute
+# BATCH_CLEAN_INTERVAL = 60 * 2 # 2 minutes
+# MAX_EXTRA_INTERVAL = 60 * 1 # 1 minute
 
 class Filter:
     def __init__(self):
@@ -151,6 +151,7 @@ class Filter:
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key, event)
+                self.rewrite_logs(event)
     
     def get_sync_id(self, data_fragment: DataFragment) -> int:
         client_id = data_fragment.get_client_id()
@@ -257,8 +258,8 @@ class Filter:
 
     def run_filter(self, event):
         times_empty = 0
-        last_clean = time.time()
-        random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
+        # last_clean = time.time()
+        # random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
         self.rewrite_logs(event)
         while not event.is_set():
             # try:
@@ -269,10 +270,10 @@ class Filter:
                 time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                 continue
             times_empty = 0
-            if time.time() - last_clean > BATCH_CLEAN_INTERVAL + random_extra:
-                self.rewrite_logs(event)
-                last_clean = time.time()
-                random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
+            # if time.time() - last_clean > BATCH_CLEAN_INTERVAL + random_extra:
+            #     self.rewrite_logs(event)
+            #     last_clean = time.time()
+            #     random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
             # except Exception as e:
             #     logger.error(f"Error in filter: {e.with_traceback(None)}")
             #     event.set()

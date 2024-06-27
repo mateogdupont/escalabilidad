@@ -38,8 +38,8 @@ MAX_QUERIES = 1
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
-BATCH_CLEAN_INTERVAL = 60 * 2 # 2 minutes
-MAX_EXTRA_INTERVAL = 60 * 1 # 1 minute
+# BATCH_CLEAN_INTERVAL = 60 * 2 # 2 minutes
+# MAX_EXTRA_INTERVAL = 60 * 1 # 1 minute
 
 class Analyzer:
     def __init__(self):
@@ -140,6 +140,9 @@ class Analyzer:
 
             for fragment, key in next_steps.items():
                 self.add_and_try_to_send_chunk(fragment, key, event)
+            
+            if fragment.is_last():
+                self.rewrite_logs(event)
         self.mom.ack(delivery_tag=tag)
         return True
 
@@ -219,8 +222,8 @@ class Analyzer:
 
     def run_analizer(self, event):
         times_empty = 0
-        last_clean = time.time()
-        random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
+        # last_clean = time.time()
+        # random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
         self.rewrite_logs(event)
         while not event.is_set():
             # try:
@@ -230,10 +233,10 @@ class Analyzer:
                 time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                 continue
             times_empty = 0
-            if time.time() - last_clean > BATCH_CLEAN_INTERVAL + random_extra:
-                self.rewrite_logs(event)
-                last_clean = time.time()
-                random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
+            # if time.time() - last_clean > BATCH_CLEAN_INTERVAL + random_extra:
+            #     self.rewrite_logs(event)
+            #     last_clean = time.time()
+            #     random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
             # except Exception as e:
             #     logger.error(f"Error in analyzer: {e.with_traceback(None)}")
             #     raise e
