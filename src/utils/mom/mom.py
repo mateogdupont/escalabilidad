@@ -8,7 +8,11 @@ from time import sleep
 
 from utils.structs.data_fragment import DataFragment
 
-MAX_TRIES = 5
+MAX_TRIES = 15
+TIMEOUT = 10
+
+MAX_SLEEP = 10 # seconds
+MULTIPLIER = 0.1
 
 class MOM:
     def __init__(self, consumer_queues: list) -> None:
@@ -22,15 +26,18 @@ class MOM:
     
     def _connect(self) -> None:
         last_exception = None
-        for _ in range(MAX_TRIES):
+        for t in range(MAX_TRIES):
             try:
                 credentials = pika.PlainCredentials(os.environ["RABBITMQ_DEFAULT_USER"], os.environ["RABBITMQ_DEFAULT_PASS"])
-                self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', credentials=credentials, heartbeat=60*60))
+                self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq', 
+                                                                                    credentials=credentials, 
+                                                                                    heartbeat=60*60))
                 self.channel = self.connection.channel()
                 return
             except Exception as e:
                 last_exception = e
-                sleep(0.5) # wait a little before trying again, perhaps the service is not up yet
+                # wait a little before trying again, perhaps the service is not up yet
+                sleep(min(MAX_SLEEP, (t**2) * MULTIPLIER))
         logger.error(f"Cannot connect to RabbitMQ, the last exception was: {last_exception}")
         raise last_exception
     
@@ -61,16 +68,20 @@ class MOM:
         data_chunk = DataChunk.from_bytes(body)
         return data_chunk, method.delivery_tag
     
-    def consume_with_callback(self, queue: str, callback: Any, *args) -> None:
-        if not queue in self.consumer_queues:
-            raise ValueError(f"Queue '{queue}' not found in consumer_queues.")
-        def internal_callback(ch, method, properties, body):
-            callback(ch, method, properties, body, *args)
-        self._execute(self._consume_with_callback, queue, internal_callback)
+    # def consume_with_callback(self, queue: str, callback: Any, *args) -> None:
+    #     if not queue in self.consumer_queues:
+    #         raise ValueError(f"Queue '{queue}' not found in consumer_queues.")
+    #     def internal_callback(ch, method, properties, body):
+    #         callback(ch, method, properties, body, *args)
+    #     self._execute(self._consume_with_callback, queue, internal_callback)
     
-    def _consume_with_callback(self, queue: str, callback: Any) -> None:
-        self.channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=False)
-        self.channel.start_consuming()
+    # def _consume_with_callback(self, queue: str, callback: Any) -> None:
+    #     def on_timeout():
+    #         logger.info("Timeout reached, stopping the consumer.")
+    #         self.channel.stop_consuming()
+    #     self.channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=False)
+    #     logger.info(f"Starting to consume from queue '{queue}'.")
+    #     self.channel.start_consuming()
     
     def ack(self, delivery_tag: int) -> None:
         self._execute(self._ack, delivery_tag)
@@ -78,11 +89,11 @@ class MOM:
     def _ack(self, delivery_tag: int) -> None:
         self.channel.basic_ack(delivery_tag=delivery_tag)
     
-    def nack(self, delivery_tag: int) -> None:
-        self._execute(self._nack, delivery_tag)
+    def nack(self, delivery_tag: int, requeue: bool) -> None:
+        self._execute(self._nack, delivery_tag, requeue)
 
-    def _nack(self, delivery_tag: int) -> None:
-        self.channel.basic_nack(delivery_tag=delivery_tag)
+    def _nack(self, delivery_tag: int, requeue: bool) -> None:
+        self.channel.basic_nack(delivery_tag=delivery_tag, requeue=requeue)
     
     def publish(self, data: Union[DataChunk, DataFragment], key: str) -> None:
         if isinstance(data, DataChunk) or isinstance(data, DataFragment):
