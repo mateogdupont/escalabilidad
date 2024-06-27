@@ -161,6 +161,22 @@ services:
     volumes:
       - ../logs:/logs
 
+  joiner5:
+    build:
+      context: .
+      dockerfile: ./joiner/Dockerfile
+    environment:
+      - ID=5
+      - LOG_PATH_BOOKS=/logs/joiner5_books.log
+      - LOG_PATH_REVIEWS=/logs/joiner5_reviews.log
+      - INFO_QUEUE=info.joiner5
+    depends_on:
+      - rabbitmq1
+    networks:
+      - network-bridge
+    volumes:
+      - ../logs:/logs
+
   counter1:
     build:
       context: .

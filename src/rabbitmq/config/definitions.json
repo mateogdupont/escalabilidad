@@ -96,6 +96,15 @@
             }
         },
         {
+            "name": "books-analyzer.data_processor.joiner_books.5",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-queue-type": "classic"
+            }
+        },
+        {
             "name": "books-analyzer.data_processor.joiner_reviews",
             "vhost": "/",
             "durable": true,
@@ -160,6 +169,15 @@
         },
         {
             "name": "info.joiner4",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-queue-type": "classic"
+            }
+        },
+        {
+            "name": "info.joiner5",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
@@ -293,6 +311,14 @@
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
+            "destination": "books-analyzer.data_processor.joiner_books.5",
+            "destination_type": "queue",
+            "routing_key": "joiner_books",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
             "destination": "books-analyzer.data_processor.joiner_reviews",
             "destination_type": "queue",
             "routing_key": "joiner_reviews",
@@ -398,6 +424,22 @@
             "source": "books-analyzer_exchange",
             "vhost": "/",
             "destination": "info.joiner4",
+            "destination_type": "queue",
+            "routing_key": "info_all",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
+            "destination": "info.joiner5",
+            "destination_type": "queue",
+            "routing_key": "info_joiner",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
+            "destination": "info.joiner5",
             "destination_type": "queue",
             "routing_key": "info_all",
             "arguments": {}
