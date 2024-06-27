@@ -34,8 +34,6 @@ MAX_QUERIES = 1
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
-BATCH_CLEAN_INTERVAL = 100
-
 class Counter:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)

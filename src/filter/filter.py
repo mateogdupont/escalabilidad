@@ -33,7 +33,7 @@ MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
-BATCH_CLEAN_INTERVAL = 100
+BATCH_CLEAN_INTERVAL = 60 * 3 # 3 minutes
 
 class Filter:
     def __init__(self):
@@ -255,7 +255,7 @@ class Filter:
 
     def run_filter(self, event):
         times_empty = 0
-        batches_processed = 0
+        last_clean = time.time()
         while not event.is_set():
             # try:
             self.send_with_timeout(event)
@@ -265,10 +265,9 @@ class Filter:
                 time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                 continue
             times_empty = 0
-            batches_processed += 1
-            if batches_processed == BATCH_CLEAN_INTERVAL:
+            if time.time() - last_clean > BATCH_CLEAN_INTERVAL:
                 self.rewrite_logs()
-                batches_processed = 0
+                last_clean = time.time()
             # except Exception as e:
             #     logger.error(f"Error in filter: {e.with_traceback(None)}")
             #     event.set()
