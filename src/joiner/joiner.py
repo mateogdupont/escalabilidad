@@ -2,6 +2,7 @@ import sys
 import os
 import signal
 import socket
+from threading import Thread
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
@@ -27,6 +28,9 @@ MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 MAX_WAIT_TIME = 60 * 15
 
+MAX_SLEEP = 10 # seconds
+MULTIPLIER = 0.1
+
 class Joiner:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -40,6 +44,8 @@ class Joiner:
         self.books_queue = os.environ["BOOKS_QUEUE"] + '.' + self.id
         self.reviews_queue = os.environ["REVIEWS_QUEUE"]
         self.info_queue = os.environ["INFO_QUEUE"]
+        self.info_key = os.environ["INFO_KEY"]
+        self.nodes = int(os.environ["JOINER_NODES"])
         self.mom = MOM([self.books_queue, self.reviews_queue, self.info_queue])
         self.books_side_tables = log_recoverer_books.get_books_side_tables()
         self.books = log_recoverer_books.get_books()
@@ -185,10 +191,65 @@ class Joiner:
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key, event)
         if (fragment.is_last()) and (not event.is_set()):
+            self.sync_last(fragment)
             self.log_writer_reviews.log_query_ended(fragment)
             for data, key in update_data_fragment_step(fragment).items():
                 self.add_and_try_to_send_chunk(data, key, event)
             self.clean_data(query_id, client_id)
+
+    def sync_last(self, last_data_fragment: DataFragment) -> None:
+        logger.info("I have the last, before send it I will sync")
+        sync_fragment = last_data_fragment.clone()
+        sync_fragment.set_sync(True, False)
+        self.mom.publish(sync_fragment, self.info_key)
+        logger.info("Sync sent")
+        client_id = last_data_fragment.get_client_id()
+        query_id = last_data_fragment.get_query_id()
+        nodes_left = self.nodes
+        last_ack = time.time()
+        while nodes_left > 0:
+            msg = self.mom.consume(self.info_queue)
+            if not msg and time.time() - last_ack < 2*TIMEOUT:
+                time.sleep(0.5)
+                continue
+            elif not msg:
+                logger.warning("Timeout waiting for sync response, sending last fragment")
+                break
+            datafragment, tag = msg
+            if datafragment.get_query_info().is_clean_flag():
+                self.mom.nack(tag, True)
+                logger.info("Received a clean flag, postponing (nack sent)")
+                time.sleep(0.5)
+                continue
+            start_sync, end_sync = datafragment.get_sync()
+            if end_sync and datafragment.get_client_id() == client_id and datafragment.get_query_id() == query_id:
+                nodes_left -= 1
+                logger.info(f"Sync response received, {nodes_left} nodes left")
+            elif start_sync:
+                if datafragment.get_client_id() == client_id and datafragment.get_query_id() == query_id:
+                    nodes_left -= 1
+                else:
+                    logger.info("Received a sync request, sending data fragments")
+                    self.send_all()
+                    datafragment.set_sync(False, True)
+                    self.mom.publish(datafragment, self.info_key)
+                    logger.info("Data fragments sent, sync response sent")
+            self.mom.ack(tag)
+            last_ack = time.time()
+
+        logger.info("All nodes synced, ready to send last fragment")
+
+    def send_all(self):
+        for key, (data, _) in self.results.items():
+            if len(data) > 0:
+                chunk = DataChunk(data)
+                try:
+                    self.mom.publish(chunk, key)
+                    self.log_writer.log_result_sent(key)
+                except Exception as e:
+                    logger.error(f"Error al enviar a {key}: {e}")
+                    logger.error(f"Data: {chunk.to_bytes()}")
+                self.results[key] = ([], time.time())
 
     def send_with_timeout(self,event):
         for key, (data, last_sent) in self.results.items():
@@ -200,24 +261,26 @@ class Joiner:
                 self.log_writer_reviews.log_result_sent(key)
                 self.results[key] = ([], time.time())
 
-    def callback(self, ch, method, properties, body,event):
-        self.inspect_info_queue(event)
-        data_chunk = DataChunk.from_bytes(body)
+    def process_review(self, event) -> bool:
+        msg = self.mom.consume(self.reviews_queue)
+        if not msg:
+            return False
+        data_chunk, tag = msg
         ack = True
         for fragment in data_chunk.get_fragments():
             if event.is_set():
                 return
             if not self.is_side_table_ended(fragment.get_query_id(), fragment.get_client_id()):
                 ack = False
-                self.mom.nack(delivery_tag=method.delivery_tag)
+                self.mom.nack(tag, False)
                 self.receive_all_books(event, fragment.get_query_id(), fragment.get_client_id())
         if ack:
             for fragment in data_chunk.get_fragments():
                 if not self.save_id(fragment):
                     continue
                 self.process_review_fragment(fragment, event)
-            self.mom.ack(delivery_tag=method.delivery_tag)
-        self.send_with_timeout(event)
+            self.mom.ack(delivery_tag=tag)
+        return True
     
     def inspect_info_queue(self, event) -> None:
         while not event.is_set():
@@ -225,20 +288,34 @@ class Joiner:
             if not msg:
                 return
             datafragment, tag = msg
+            start_sync, end_sync = datafragment.get_sync()
             if datafragment.get_query_info().is_clean_flag():
-                self.clean_data_client(datafragment.get_client_id())
-            else:
+                client_id = datafragment.get_client_id()
+                logger.info(f"Received a clean flag for client {client_id}, cleaning data")
+                self.clean_data_client(client_id)
+            elif start_sync:
+                self.send_all()
+                datafragment.set_sync(False, True)
+                self.mom.publish(datafragment, self.info_key)
+            elif not end_sync:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
             self.mom.ack(tag)
 
     def run_joiner(self, event):
         if len(self.books_side_tables) == 0:
             self.receive_all_books(event)
+        times_empty = 0
         while not event.is_set():
             try:
-                self.mom.consume_with_callback(self.reviews_queue, self.callback, event)
+                self.send_with_timeout(event)
+                self.inspect_info_queue(event)
+                if not self.process_review(event):
+                    times_empty += 1
+                    time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
+                    continue
+                times_empty = 0
             except Exception as e:
-                logger.error(f"Error in callback: {e}")
+                logger.error(f"Error in joiner: {e.with_traceback(None)}")
                 event.set()
 
     def run(self):

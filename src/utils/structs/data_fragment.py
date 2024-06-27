@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import pickle
 import re
 from utils.structs.book import Book
@@ -18,6 +18,17 @@ class DataFragment:
         self.query_info = QueryInfo()
         self.queries = None
         self.set_queries(queries)
+        
+        # last sync
+        self.start_sync = False
+        self.end_sync = False
+    
+    def set_sync(self, start: bool, end: bool) -> None:
+        self.start_sync = start
+        self.end_sync = end
+    
+    def get_sync(self) -> Tuple[bool, bool]:
+        return (self.start_sync, self.end_sync)
     
     def to_bytes(self) -> bytes:
         return pickle.dumps(self)

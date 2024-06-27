@@ -29,6 +29,9 @@ SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TOP = "TOP"
 
+MAX_SLEEP = 10 # seconds
+MULTIPLIER = 0.1
+
 class Counter:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -270,9 +273,11 @@ class Counter:
         return group_data, value
     
 
-    def callback(self, ch, method, properties, body,event):
-        self.inspect_info_queue(event)
-        data_chunk = DataChunk.from_bytes(body)
+    def process_msg(self,event) -> bool:
+        msg = self.mom.consume(self.work_queue)
+        if not msg:
+            return False
+        data_chunk, tag = msg
         for data_fragment in data_chunk.get_fragments():
             if event.is_set():
                 return
@@ -300,7 +305,8 @@ class Counter:
                 self.log_writer.log_counted_data_sent(data_fragment)
 
                 self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
-        self.mom.ack(delivery_tag=method.delivery_tag)
+        self.mom.ack(delivery_tag=tag)
+        return True
 
     def inspect_info_queue(self, event) -> None:
         while not event.is_set():
@@ -315,11 +321,17 @@ class Counter:
             self.mom.ack(tag)
 
     def run_counter(self, event):
+        times_empty = 0
         while not event.is_set():
             try:
-                self.mom.consume_with_callback(self.work_queue, self.callback, event)
+                self.inspect_info_queue(event)
+                if not self.process_msg(event):
+                    times_empty += 1
+                    time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
+                    continue
+                times_empty = 0
             except Exception as e:
-                logger.error(f"Error in callback: {e}")
+                logger.error(f"Error in counter: {e.with_traceback(None)}")
                 event.set()
 
     def run(self):

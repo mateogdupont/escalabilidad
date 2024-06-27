@@ -218,7 +218,7 @@ class DataCleaner:
     def proccess_result_chunk(self,event,clients, data_chunk, received_ids):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         # logger.info(f"Entre a process")
-        for fragment in data_chunk.get_fragments():
+        for fragment in data_chunk.get_fragments(): # agregar que se envíe a la results el flag de clean y manejarlo acá
             # logger.info(f"Entre a process con fragment")
             if event.is_set():
                 break
