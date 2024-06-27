@@ -24,7 +24,7 @@ TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
 NODE_TYPE=os.environ["NODE_TYPE"]
-HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
+HEARTBEAT_INTERVAL=int(os.environ["HEARTBEAT_INTERVAL"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 MAX_QUERIES = 1
@@ -289,11 +289,11 @@ class Filter:
                 for id,address in MEDIC_IP_ADDRESSES.items():
                     complete_addres = (address, MEDIC_PORT)
                     sock.sendto(msg.encode(), complete_addres)
-                    logger.error(f"Hartbeat sent to medic with id: {id}")
+                    logger.info(f"Heartbeat sent to medic with id: {id}")
             except Exception as e:
-                logger.error(f"Error sending hartbeat: {e}")
+                logger.error(f"Error sending heartbeat: {e}")
             finally:
-                time.sleep(HARTBEAT_INTERVAL)
+                time.sleep(HEARTBEAT_INTERVAL)
         filter_proccess.join()
     
     def rewrite_logs(self, event):

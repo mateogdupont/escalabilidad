@@ -98,7 +98,7 @@ class Medic:
             try:
                 logger.info(f"Me voy a quedar colgado esperando el hatbeat")
                 data, addr = self._udp_socket.recvfrom(1024)
-                # 1024 deberia ser suficiente para el hartbeat
+                # 1024 deberia ser suficiente para el heartbeat
                 if not data:
                     continue
                 msg = data.decode("utf-8")
