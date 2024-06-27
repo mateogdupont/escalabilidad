@@ -324,7 +324,6 @@ class Joiner:
                 if batches_processed == BATCH_CLEAN_INTERVAL:
                     self.rewrite_logs()
                     batches_processed = 0
-                self.rewrite_logs()
             except Exception as e:
                 logger.error(f"Error in joiner: {e.with_traceback(None)}")
                 event.set()

@@ -33,6 +33,8 @@ MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
+BATCH_CLEAN_INTERVAL = 10
+
 class Filter:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -253,6 +255,7 @@ class Filter:
 
     def run_filter(self, event):
         times_empty = 0
+        batches_processed = 0
         while not event.is_set():
             # try:
             self.send_with_timeout(event)
@@ -262,7 +265,10 @@ class Filter:
                 time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                 continue
             times_empty = 0
-            self.rewrite_logs()
+            batches_processed += 1
+            if batches_processed == BATCH_CLEAN_INTERVAL:
+                self.rewrite_logs()
+                batches_processed = 0
             # except Exception as e:
             #     logger.error(f"Error in filter: {e.with_traceback(None)}")
             #     event.set()

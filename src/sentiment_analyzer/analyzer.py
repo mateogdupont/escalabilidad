@@ -37,6 +37,8 @@ MAX_QUERIES = 1
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
+BATCH_CLEAN_INTERVAL = 10
+
 class Analyzer:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -215,6 +217,7 @@ class Analyzer:
 
     def run_analizer(self, event):
         times_empty = 0
+        batches_processed = 0
         while not event.is_set():
             # try:
             self.inspect_info_queue(event)
@@ -223,7 +226,10 @@ class Analyzer:
                 time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                 continue
             times_empty = 0
-            self.rewrite_logs()
+            batches_processed += 1
+            if batches_processed == BATCH_CLEAN_INTERVAL:
+                self.rewrite_logs()
+                batches_processed = 0
             # except Exception as e:
             #     logger.error(f"Error in analyzer: {e.with_traceback(None)}")
             #     raise e

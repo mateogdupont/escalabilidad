@@ -33,6 +33,8 @@ MAX_QUERIES = 1
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
+BATCH_CLEAN_INTERVAL = 10
+
 class Counter:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -326,6 +328,7 @@ class Counter:
 
     def run_counter(self, event):
         times_empty = 0
+        batches_processed = 0
         while not event.is_set():
             try:
                 self.inspect_info_queue(event)
@@ -334,7 +337,10 @@ class Counter:
                     time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                     continue
                 times_empty = 0
-                self.rewrite_logs()
+                batches_processed += 1
+                if batches_processed == BATCH_CLEAN_INTERVAL:
+                    self.rewrite_logs()
+                    batches_processed = 0
             except Exception as e:
                 logger.error(f"Error in counter: {e.with_traceback(None)}")
                 event.set()
