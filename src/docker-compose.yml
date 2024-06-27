@@ -96,7 +96,6 @@ services:
       - INFO_QUEUE=info.filter2
     depends_on:
       - rabbitmq1
-      - medic
 
   joiner1:
     build:
