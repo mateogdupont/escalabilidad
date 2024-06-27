@@ -21,7 +21,7 @@ class LogRecoverer(BasicLogRecoverer):
     def _process_new_client(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) < NEW_CLIENT_PARTS:
-            return False
+            raise ErrorProcessingLog(f"Error processing log: {line}")
         _, client_id = parts
         if client_id in self.ended_clients:
             return False
@@ -31,7 +31,7 @@ class LogRecoverer(BasicLogRecoverer):
     def _process_ended_client(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) < ENDED_CLIENT_PARTS:
-            return False
+            raise ErrorProcessingLog(f"Error processing log: {line}")
         _, client_id = parts
         self.ended_clients.add(client_id)
         return True

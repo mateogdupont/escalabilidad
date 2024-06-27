@@ -1,3 +1,4 @@
+import random
 import signal
 import os
 import time
@@ -23,14 +24,18 @@ TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
 NODE_TYPE=os.environ["NODE_TYPE"]
-HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
+HEARTBEAT_INTERVAL=int(os.environ["HEARTBEAT_INTERVAL"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
+MAX_QUERIES = 1
 MEDIC_IP_ADDRESSES=eval(os.environ.get("MEDIC_IPS"))
 MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
+
+# BATCH_CLEAN_INTERVAL = 60 * 2 # 2 minutes
+# MAX_EXTRA_INTERVAL = 60 * 1 # 1 minute
 
 class Filter:
     def __init__(self):
@@ -115,12 +120,11 @@ class Filter:
         self.results[node] = (self.results[node][0], time.time())
         if len(self.results[node][0]) == MAX_AMOUNT_OF_FRAGMENTS or fragment.is_last():
             data_chunk = DataChunk(self.results[node][0])
-            try:
-                self.mom.publish(data_chunk, node)
-                self.log_writer.log_result_sent(node)
-            except Exception as e:
-                logger.error(f"Error al enviar a {node}: {e}")
-                logger.error(f"Data: {data_chunk.to_bytes()}")
+            # try:
+            self.mom.publish(data_chunk, node)
+            self.log_writer.log_result_sent(node)
+            # except Exception as e:
+            #     logger.error(f"[add_and_try_to_send_chunk] Error al enviar a {node}: {e}")
             self.results[node] = ([], time.time())
         
     def filter_data_chunk(self,chunk: DataChunk, event):
@@ -199,12 +203,11 @@ class Filter:
         for key, (data, _) in self.results.items():
             if len(data) > 0:
                 chunk = DataChunk(data)
-                try:
-                    self.mom.publish(chunk, key)
-                    self.log_writer.log_result_sent(key)
-                except Exception as e:
-                    logger.error(f"Error al enviar a {key}: {e}")
-                    logger.error(f"Data: {chunk.to_bytes()}")
+                # try:
+                self.mom.publish(chunk, key)
+                self.log_writer.log_result_sent(key)
+                # except Exception as e:
+                #     logger.error(f"[send_all] Error al enviar a {key}: {e}")
                 self.results[key] = ([], time.time())
 
     def send_with_timeout(self,event):
@@ -213,12 +216,11 @@ class Filter:
                 return
             if (len(data) > 0) and (time.time() - last_sent > TIMEOUT):
                 chunk = DataChunk(data)
-                try:
-                    self.mom.publish(chunk, key)
-                    self.log_writer.log_result_sent(key)
-                except Exception as e:
-                    logger.error(f"Error al enviar a {key}: {e}")
-                    logger.error(f"Data: {chunk.to_bytes()}")
+                # try:
+                self.mom.publish(chunk, key)
+                self.log_writer.log_result_sent(key)
+                # except Exception as e:
+                #     logger.error(f"[send_with_timeout] Error al enviar a {key}: {e}")
                 self.results[key] = ([], time.time())
 
     def process_msg(self, event) -> bool:
@@ -250,21 +252,29 @@ class Filter:
             elif not end_sync:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
             self.mom.ack(tag)
+            self.rewrite_logs(event)
 
     def run_filter(self, event):
         times_empty = 0
+        # last_clean = time.time()
+        # random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
+        self.rewrite_logs(event)
         while not event.is_set():
-            try:
-                self.send_with_timeout(event)
-                self.inspect_info_queue(event)
-                if not self.process_msg(event):
-                    times_empty += 1
-                    time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
-                    continue
-                times_empty = 0
-            except Exception as e:
-                logger.error(f"Error in filter: {e.with_traceback(None)}")
-                event.set()
+            # try:
+            self.send_with_timeout(event)
+            self.inspect_info_queue(event)
+            if not self.process_msg(event):
+                times_empty += 1
+                time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
+                continue
+            times_empty = 0
+            # if time.time() - last_clean > BATCH_CLEAN_INTERVAL + random_extra:
+            #     self.rewrite_logs(event)
+            #     last_clean = time.time()
+            #     random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
+            # except Exception as e:
+            #     logger.error(f"Error in filter: {e.with_traceback(None)}")
+            #     event.set()
 
     def run(self):
         self.event = Event()
@@ -277,12 +287,19 @@ class Filter:
                 for id,address in MEDIC_IP_ADDRESSES.items():
                     complete_addres = (address, MEDIC_PORT)
                     sock.sendto(msg.encode(), complete_addres)
-                    logger.error(f"Hartbeat sent to medic with id: {id}")
+                    logger.info(f"Heartbeat sent to medic with id: {id}")
             except Exception as e:
-                logger.error(f"Error sending hartbeat: {e}")
+                logger.error(f"Error sending heartbeat: {e}")
             finally:
-                time.sleep(HARTBEAT_INTERVAL)
+                time.sleep(HEARTBEAT_INTERVAL)
         filter_proccess.join()
+    
+    def rewrite_logs(self, event):
+        self.log_writer.close()
+        log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
+        log_rewriter.rewrite_logs(event)
+        log_rewriter.swap_files()
+        self.log_writer.open()
         
 
 def main():

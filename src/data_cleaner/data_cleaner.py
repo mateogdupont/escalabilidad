@@ -22,14 +22,12 @@ import logging as logger
 load_dotenv()
 MAX_AMOUNT_OF_FRAGMENTS = 500
 MAX_AMOUNT_OF_CLIENTS = 10
-LISTEN_BACKLOG = 5
+LISTEN_BACKLOG = 10
 PORT = 1250
 MEDIC_IP_ADDRESSES=eval(os.environ.get("MEDIC_IPS"))
 MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 NODE_TYPE=os.environ["NODE_TYPE"]
-HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
-
-# TODO: clean log data somewhere
+HEARTBEAT_INTERVAL=int(os.environ["HEARTBEAT_INTERVAL"])
 
 class DataCleaner:
     def __init__(self):
@@ -84,7 +82,7 @@ class DataCleaner:
             self.mom.publish(data_chunk, node)
             self.clean_data[node].clear()
     
-    def send_clean_flag(self, client_id): # TODO: use this
+    def send_clean_flag(self, client_id):
         logger.info(f"Sending clean flag about {client_id}")
         self.ignore_ids.add(client_id)
         datafragment = DataFragment(0, {}, None, None, client_id)
@@ -150,7 +148,7 @@ class DataCleaner:
     def receive_files(self,client_socket, expected_amount_of_files, client_id):
         finish = False
         next_id = 0
-        while not self.exit and not finish:
+        while not self._event.is_set() and not finish:
             (amount, last, next_id) = self.receive_and_try_to_send_clean_data(client_socket, client_id, next_id)
             next_id += 1
             if amount == 0:
@@ -261,6 +259,7 @@ class DataCleaner:
                     # logger.info(f"Era el ultimo asique mato al client {client_id} en los results")
                     socket.close()
                     del clients[client_id]
+                    self.send_clean_flag(client_id)
                 else:
                     clients[client_id] = [socket, queries_left - 1]
 
@@ -272,6 +271,8 @@ class DataCleaner:
         while not event.is_set():
             self.try_update_clients(clients)
             msg = self.mom.consume(self.work_queue)
+            if event.is_set():
+                break
             if not msg:
                 time.sleep(1)
                 continue
@@ -283,43 +284,54 @@ class DataCleaner:
         self._event = event
         results_proccess = Process(target=self.results_handler, args=(self._event,))
         results_proccess.start()
-
-        while not self.exit:
+        self._socket.settimeout(2.0)
+        while not event.is_set():
             try: 
-                socket = self._socket.accept()[0]
+                client_socket = self._socket.accept()[0]
                 self.try_clean_processes()
                 if len(self.clients_processes.keys()) < MAX_AMOUNT_OF_CLIENTS:
                     client_uuid = uuid.uuid4().hex
-                    # logger.info(f"Voy a crear el hilo con id: {client_uuid} para socket: {socket}")
-                    client_proccess = Process(target=self.handle_client, args=(socket,client_uuid))
+                    # logger.info(f"Voy a crear el hilo con id: {client_uuid} para socket: {client_socket}")
+                    client_proccess = Process(target=self.handle_client, args=(client_socket,client_uuid))
                     client_proccess.start()
                     self.clients_processes[client_uuid] = client_proccess
-                elif socket:
+                elif client_socket:
                     logger.info("Client rejected due to max amount of clients reached")
+            except socket.timeout:
+                logger.info("TIMEOUT")
+                if event.is_set():
+                    break
             except OSError as err:
                 logger.info(f"Error in socket: {err}")
 
-        for id_, client_process in self.dict_procesos.items():
+        for id_, client_process in self.clients_processes.items():
             client_process.join()
         results_proccess.join()
 
     def run(self):
-        self.event = Event()
-        cleaner_proccess = Process(target=self.run_cleaner, args=(self.event,))
+        self._event = Event()
+        cleaner_proccess = Process(target=self.run_cleaner, args=(self._event,))
         cleaner_proccess.start()
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.exit and cleaner_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
             try:
                 for id,address in MEDIC_IP_ADDRESSES.items():
+                    if self.exit or not cleaner_proccess.is_alive():
+                        break
                     complete_addres = (address, MEDIC_PORT)
                     sock.sendto(msg.encode(), complete_addres)
-                    logger.error(f"Hartbeat sent to medic with id: {id}")
+                    logger.info(f"Heartbeat sent to medic with id: {id}")
             except Exception as e:
-                logger.error(f"Error sending hartbeat: {e}")
+                logger.error(f"Error sending heartbeat: {e}")
             finally:
-                time.sleep(HARTBEAT_INTERVAL)
+                if self.exit or not cleaner_proccess.is_alive():
+                    break
+                time.sleep(HEARTBEAT_INTERVAL)
         cleaner_proccess.join()
+        for queue in (self.clients_to_results_queue, self.data_in_processes_queue):
+            queue.close()
+            queue.join_thread()
 
 def save_id(received_ids: dict, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()

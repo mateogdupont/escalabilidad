@@ -202,24 +202,6 @@
             "arguments": {
                 "x-queue-type": "classic"
             }
-        },
-        {
-            "name": "info.sentiment_analyzer4",
-            "vhost": "/",
-            "durable": true,
-            "auto_delete": false,
-            "arguments": {
-                "x-queue-type": "classic"
-            }
-        },
-        {
-            "name": "info.sentiment_analyzer5",
-            "vhost": "/",
-            "durable": true,
-            "auto_delete": false,
-            "arguments": {
-                "x-queue-type": "classic"
-            }
         }
     ],
     "exchanges": [
@@ -462,38 +444,6 @@
             "source": "books-analyzer_exchange",
             "vhost": "/",
             "destination": "info.sentiment_analyzer3",
-            "destination_type": "queue",
-            "routing_key": "info_all",
-            "arguments": {}
-        },
-        {
-            "source": "books-analyzer_exchange",
-            "vhost": "/",
-            "destination": "info.sentiment_analyzer4",
-            "destination_type": "queue",
-            "routing_key": "info_sentiment_analyzer",
-            "arguments": {}
-        },
-        {
-            "source": "books-analyzer_exchange",
-            "vhost": "/",
-            "destination": "info.sentiment_analyzer4",
-            "destination_type": "queue",
-            "routing_key": "info_all",
-            "arguments": {}
-        },
-        {
-            "source": "books-analyzer_exchange",
-            "vhost": "/",
-            "destination": "info.sentiment_analyzer5",
-            "destination_type": "queue",
-            "routing_key": "info_sentiment_analyzer",
-            "arguments": {}
-        },
-        {
-            "source": "books-analyzer_exchange",
-            "vhost": "/",
-            "destination": "info.sentiment_analyzer5",
             "destination_type": "queue",
             "routing_key": "info_all",
             "arguments": {}

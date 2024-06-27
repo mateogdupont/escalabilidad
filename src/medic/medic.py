@@ -43,8 +43,6 @@ class Medic:
         self._ip = MEDIC_IPS[self.id]
         self._port = int(os.environ["PORT"])
         self._udp_port = int(os.environ["UDP_PORT"])
-        logger.info(f"Datos: {self._ip}")
-        logger.info(f"Datos: {self._port}")
         self._tcp_socket.bind((self._ip, self._port))
         self._tcp_socket.listen(LISTEN_BACKLOG)
         self._udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -72,7 +70,6 @@ class Medic:
 
     def update_timeouts(self, node_id):
         self.nodes[node_id] = time.time()
-        logger.info(f"Actulice el timeout para {node_id}")
 
     def create_container_name(self,node_type, node_id):
         resultado = CONTAINERS[node_type]+str(node_id)
@@ -87,7 +84,7 @@ class Medic:
                     logger.info(f"A node has died, reviving type: {node_type}, with id  : {node_id}")
                     self.revive_nodes(node_type,node_id)
                 else:
-                    logger.info(f"should revive: {node_type}, with id  : {node_id} but im not the lider") #TODO: delete this
+                    logger.info(f"Should revive: {node_type}, with id  : {node_id} but im not the lider") #TODO: delete this
                 keys_to_delete.append(key)
         for key in keys_to_delete:
             del self.nodes[key]
@@ -96,15 +93,14 @@ class Medic:
         address, port = self._udp_socket.getsockname()
         while not self._finish_event.is_set():
             try:
-                logger.info(f"Me voy a quedar colgado esperando el hatbeat")
                 data, addr = self._udp_socket.recvfrom(1024)
-                # 1024 deberia ser suficiente para el hartbeat
+                # 1024 deberia ser suficiente para el heartbeat
                 if not data:
                     continue
                 msg = data.decode("utf-8")
-                logger.info(f"Received: {msg}")
+                logger.info(f"WatchDog| Received: {msg}")
                 if not '$'in msg or not '.'in msg:
-                    logger.error(f"The msg does not respect the format: {msg}")
+                    logger.error(f"WatchDog| The msg does not respect the format: {msg}")
                 self.verify_timeouts()
                 self.update_timeouts(msg.replace("$",""))
             except socket.timeout:
@@ -115,13 +111,13 @@ class Medic:
             try:
                 # Read [id,socket]
                 msg = socket_queue.get_nowait()
-                logger.info(f"Encontre al peer: {msg}")
                 peer_sockets[msg[0]] = msg[1]
             except Exception:
                 break
         return peer_sockets
 
     def start_bully_administrator(self, socket_queue,socket_queue_from_bully, incoming_messages_queue):
+        time.sleep(TIMEOUT) #Sleep to have the same information as the rest of medics
         bully = Bully(self.id,self._port,self.selected_as_lider_event,self._finish_event)
         bully.start(socket_queue_from_bully,incoming_messages_queue,socket_queue)
             
@@ -131,19 +127,18 @@ class Medic:
             try:
                 msg = receive_msg(peer_socket)
                 if not msg:
-                    logger.error(f"MSG PROCESS:Fail to read msg, connection lost")
+                    logger.error(f"MSG PROCESS| Fail to read msg, connection lost")
                     msg = f"{self.id},{DEAD_TYPE},{peer_ip}"
-                    peer_socket.close()
                     incoming_messages_queue.put(msg)
-                    return
-                logger.info(f"MSG PROCESS: Me llego el mensaje: {msg}")
+                    break
+                logger.info(f"MSG PROCESS| Read msg: {msg}")
                 incoming_messages_queue.put(msg)
             except Exception as e:
-                peer_socket.close()
                 msg = f"{self.id},{DEAD_TYPE},{peer_ip}"
                 incoming_messages_queue.put(msg)
-                logger.error(f"MSG PROCESS: Fail to read msg with error: {e}")
-                return
+                logger.error(f"MSG PROCESS| Fail to read msg with error: {e}")
+                break
+        peer_socket.close()
 
     def get_id_from_address(self, peer_socket):
         peer_ip, peer_port = peer_socket.getpeername()
@@ -165,6 +160,7 @@ class Medic:
         bully_administrator.start()
 
         msg_processes = []
+        all_sockets = {}
 
         while not self._stop:
             peer_sockets = {}
@@ -172,32 +168,40 @@ class Medic:
                 peer_socket = self._tcp_socket.accept()[0]
                 peer_id= self.get_id_from_address(peer_socket)
                 socket_queue_from_listener.put([peer_id,peer_socket])
-                logger.info(f"RECEIVER: lo mande por la queue")
+                logger.info(f"RECEIVER| Put msg of new medic in queue")
                 peer_sockets[peer_id] = peer_socket
             except Exception as e:
-                # Handle timeout from listener
+                    logger.info(f"RECEIVER| Error waiting for new medic: {e}")
+            finally:
                 try:
                     peer_sockets = self.try_update_sockets(peer_sockets, socket_queue_from_bully)
                 except Exception as e:
-                    logger.info(f"Error trying to update_sockets: {e}")
-            finally:
+                    logger.info(f"RECEIVER| Error trying to update_sockets: {e}")
                 for id in peer_sockets:
-                    logger.info(f"RECEIVER: Finally con {peer_sockets}")
+                    all_sockets[id] = peer_sockets[id]
                     msg_process = Process(target=self.start_msg_process, args=(peer_sockets[id], incoming_messages_queue))
                     msg_process.start()
                     msg_processes.append(msg_process)
                 peer_sockets = {}
 
 
+        queues = [socket_queue_from_listener, socket_queue_from_bully, incoming_messages_queue]
         watchdog.join()
         bully_administrator.join()
         for process in msg_processes:
             process.join()
+        for queue in queues:
+            queue.close()
+            queue.join_thread()
+        for socket_list in (peer_sockets, all_sockets):
+            for medic_socket in socket_list:
+                medic_socket.close()   
+        self._tcp_socket.close()
+
 
 def main():
     load_dotenv()
     Medic().run()
-    #graceful finish?
    
 if __name__ == "__main__":
     main()

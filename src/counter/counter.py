@@ -6,6 +6,7 @@ from multiprocessing import Process, Event
 from log_manager.log_writer import LogWriter
 from utils.structs.book import *
 from utils.structs.review import *
+import base64
 from utils.structs.data_fragment import *
 from utils.structs.data_chunk import *
 from utils.mom.mom import MOM
@@ -18,7 +19,7 @@ from log_manager.log_recoverer import LogRecoverer
 
 load_dotenv()
 NODE_TYPE=os.environ["NODE_TYPE"]
-HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
+HEARTBEAT_INTERVAL=int(os.environ["HEARTBEAT_INTERVAL"])
 MEDIC_IP_ADDRESSES=eval(os.environ.get("MEDIC_IPS"))
 MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 CATEGORY_FILTER = "CATEGORY"
@@ -28,6 +29,7 @@ DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TOP = "TOP"
+MAX_QUERIES = 1
 
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
@@ -139,7 +141,8 @@ class Counter:
                     added = True
             if added:
                 self.counted_data[client_id][query_id][TOP] = sorted(self.counted_data[client_id][query_id][TOP], key=lambda fragment: fragment.get_query_info().get_average())
-                count_info = {"TOP": data_fragment.to_bytes(), "AMOUNT": top_amount}
+                df_str = data_fragment.to_str()
+                count_info = {"TOP": df_str, "AMOUNT": top_amount}
                 self.log_writer.log_counted_data(data_fragment, repr(count_info))
         else:
             top = self.counted_data[client_id][query_id][TOP]
@@ -164,7 +167,7 @@ class Counter:
             if group_data not in self.counted_data[client_id][query_id].keys():
                 self.counted_data[client_id][query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
             self.counted_data[client_id][query_id][group_data]["VALUES"].append(value)
-            self.books[group_data] = data_fragment.get_book() #TODO: redo this log if needed
+            self.books[group_data] = data_fragment.get_book() 
             self.log_writer.log_book(data_fragment.get_book())
             count_info = {"PERCENTILE": percentile, "VALUE": value, "GROUP_DATA": group_data}
             self.log_writer.log_counted_data(data_fragment, repr(count_info))
@@ -206,7 +209,7 @@ class Counter:
                 self.counted_data[client_id][query_id][group_data] = {"TOTAL": 0, "COUNT": 0}
             self.counted_data[client_id][query_id][group_data]["TOTAL"] += value
             self.counted_data[client_id][query_id][group_data]["COUNT"] += 1
-            self.books[group_data] = data_fragment.get_book() #TODO: redo this log if needed
+            self.books[group_data] = data_fragment.get_book() 
             self.log_writer.log_book(data_fragment.get_book())
             count_info = {"2": 2, "VALUE": value, "GROUP_DATA": group_data}
             self.log_writer.log_counted_data(data_fragment, repr(count_info))
@@ -303,6 +306,7 @@ class Counter:
                 if len(fragments) > 0:
                     self.mom.publish(DataChunk(fragments), key)
                 self.log_writer.log_counted_data_sent(data_fragment)
+                self.rewrite_logs(event)
 
                 self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
         self.mom.ack(delivery_tag=tag)
@@ -315,7 +319,10 @@ class Counter:
                 return
             datafragment, tag = msg
             if datafragment.get_query_info().is_clean_flag():
-                self.clean_data_client(datafragment.get_client_id())
+                client_id = datafragment.get_client_id()
+                logger.info(f"Received a clean flag for client {client_id}, cleaning data")
+                self.clean_data_client(client_id)
+                self.rewrite_logs(event)
             else:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
             self.mom.ack(tag)
@@ -345,13 +352,19 @@ class Counter:
                 for id,address in MEDIC_IP_ADDRESSES.items():
                     complete_addres = (address, MEDIC_PORT)
                     sock.sendto(msg.encode(), complete_addres)
-                    logger.error(f"Hartbeat sent to medic with id: {id}")
+                    logger.info(f"Heartbeat sent to medic with id: {id}")
             except Exception as e:
-                logger.error(f"Error sending hartbeat: {e}")
+                logger.error(f"Error sending heartbeat: {e}")
             finally:
-                time.sleep(HARTBEAT_INTERVAL)
+                time.sleep(HEARTBEAT_INTERVAL)
         counter_proccess.join()
 
+    def rewrite_logs(self, event):
+        self.log_writer.close()
+        log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
+        log_rewriter.rewrite_logs(event)
+        log_rewriter.swap_files()
+        self.log_writer.open()
 
 def main():
     counter = Counter()
