@@ -46,11 +46,11 @@ class DataFragment:
         base64_string = base64_encoded_bytes.decode('utf-8')
         return base64_string
 
-    def to_str(self) -> str:
-        _bytes = self.to_bytes()
-        base64_encoded_bytes = base64.b64encode(_bytes)
-        base64_string = base64_encoded_bytes.decode('utf-8')
-        return base64_string
+    @classmethod
+    def from_str(cls, string: str) -> 'DataFragment':
+        base64_encoded_bytes = string.encode('utf-8')
+        binary_data = base64.b64decode(base64_encoded_bytes)
+        return cls.from_bytes(binary_data)
         
     
     def to_human_readable(self) -> str:
