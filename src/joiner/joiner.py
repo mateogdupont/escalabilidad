@@ -201,7 +201,6 @@ class Joiner:
             for data, key in update_data_fragment_step(fragment).items():
                 self.add_and_try_to_send_chunk(data, key, event)
             self.clean_data(query_id, client_id)
-            self.rewrite_logs(event)
 
     def sync_last(self, last_data_fragment: DataFragment) -> None:
         logger.info("I have the last, before send it I will sync")
@@ -265,7 +264,6 @@ class Joiner:
                 chunk = DataChunk(data)
                 self.mom.publish(chunk, key)
                 self.log_writer_reviews.log_result_sent(key)
-                # self.rewrite_logs() # TODO: check if this is the correct place to call this
                 self.results[key] = ([], time.time())
 
     def process_review(self, event) -> bool:
@@ -300,7 +298,6 @@ class Joiner:
                 client_id = datafragment.get_client_id()
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
-                self.rewrite_logs(event)
             elif start_sync:
                 self.send_all()
                 datafragment.set_sync(False, True)
@@ -308,6 +305,7 @@ class Joiner:
             elif not end_sync:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
             self.mom.ack(tag)
+            self.rewrite_logs(event)
 
     def run_joiner(self, event):
         if len(self.books_side_tables) == 0:
@@ -334,18 +332,17 @@ class Joiner:
                 event.set()
 
     def rewrite_logs(self, event):
-        # self.log_writer_reviews.close()
-        # self.log_writer_books.close()
-        # log_rewriter_reviews = LogRecoverer(os.environ["LOG_PATH_REVIEWS"])
-        # log_rewriter_reviews.rewrite_logs(event)
-        # log_rewriter_books = LogRecoverer(os.environ["LOG_PATH_BOOKS"])
-        # log_rewriter_books.set_ended_queries(log_rewriter_reviews.get_ended_queries())
-        # log_rewriter_books.rewrite_logs(event)
-        # log_rewriter_reviews.swap_files()
-        # log_rewriter_books.swap_files()
-        # self.log_writer_reviews.open()
-        # self.log_writer_books.open()
-        pass
+        self.log_writer_reviews.close()
+        self.log_writer_books.close()
+        log_rewriter_reviews = LogRecoverer(os.environ["LOG_PATH_REVIEWS"])
+        log_rewriter_reviews.rewrite_logs(event)
+        log_rewriter_books = LogRecoverer(os.environ["LOG_PATH_BOOKS"])
+        log_rewriter_books.set_ended_queries(log_rewriter_reviews.get_ended_queries())
+        log_rewriter_books.rewrite_logs(event)
+        log_rewriter_reviews.swap_files()
+        log_rewriter_books.swap_files()
+        self.log_writer_reviews.open()
+        self.log_writer_books.open()
 
     def run(self):
         self.event = Event()

@@ -123,7 +123,6 @@ class Filter:
             # try:
             self.mom.publish(data_chunk, node)
             self.log_writer.log_result_sent(node)
-            # self.rewrite_logs() # TODO: check if this is the correct place to call this
             # except Exception as e:
             #     logger.error(f"[add_and_try_to_send_chunk] Error al enviar a {node}: {e}")
             self.results[node] = ([], time.time())
@@ -151,7 +150,6 @@ class Filter:
                 next_steps = update_data_fragment_step(fragment)
                 for data, key in next_steps.items():
                     self.add_and_try_to_send_chunk(data, key, event)
-                self.rewrite_logs(event)
     
     def get_sync_id(self, data_fragment: DataFragment) -> int:
         client_id = data_fragment.get_client_id()
@@ -245,7 +243,6 @@ class Filter:
                 client_id = datafragment.get_client_id()
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
-                self.rewrite_logs(event)
             elif start_sync:
                 logger.info(f"Received a sync request, sending data fragments (sync_id = {self.get_sync_id(datafragment)})")
                 self.send_all()
@@ -255,6 +252,7 @@ class Filter:
             elif not end_sync:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
             self.mom.ack(tag)
+            self.rewrite_logs(event)
 
     def run_filter(self, event):
         times_empty = 0
@@ -297,12 +295,11 @@ class Filter:
         filter_proccess.join()
     
     def rewrite_logs(self, event):
-        pass
-        # self.log_writer.close()
-        # log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
-        # log_rewriter.rewrite_logs(event)
-        # log_rewriter.swap_files()
-        # self.log_writer.open()
+        self.log_writer.close()
+        log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
+        log_rewriter.rewrite_logs(event)
+        log_rewriter.swap_files()
+        self.log_writer.open()
         
 
 def main():
