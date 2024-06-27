@@ -263,7 +263,7 @@ class Filter:
                     continue
                 times_empty = 0
             except Exception as e:
-                logger.error(f"Error in filter: {e}")
+                logger.error(f"Error in filter: {e.with_traceback(None)}")
                 event.set()
 
     def run(self):

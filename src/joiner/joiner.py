@@ -315,7 +315,7 @@ class Joiner:
                     continue
                 times_empty = 0
             except Exception as e:
-                logger.error(f"Error in joiner: {e}")
+                logger.error(f"Error in joiner: {e.with_traceback(None)}")
                 event.set()
 
     def run(self):
