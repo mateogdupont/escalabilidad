@@ -1,3 +1,4 @@
+import random
 import signal
 import os
 import socket
@@ -38,6 +39,7 @@ MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
 BATCH_CLEAN_INTERVAL = 60 * 3 # 3 minutes
+MAX_EXTRA_INTERVAL = 60 * 1 # 1 minute
 
 class Analyzer:
     def __init__(self):
@@ -218,6 +220,7 @@ class Analyzer:
     def run_analizer(self, event):
         times_empty = 0
         last_clean = time.time()
+        random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
         while not event.is_set():
             # try:
             self.inspect_info_queue(event)
@@ -226,9 +229,10 @@ class Analyzer:
                 time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                 continue
             times_empty = 0
-            if time.time() - last_clean > BATCH_CLEAN_INTERVAL:
+            if time.time() - last_clean > BATCH_CLEAN_INTERVAL + random_extra:
                 self.rewrite_logs()
                 last_clean = time.time()
+                random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
             # except Exception as e:
             #     logger.error(f"Error in analyzer: {e.with_traceback(None)}")
             #     raise e
