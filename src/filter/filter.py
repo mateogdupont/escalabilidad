@@ -26,6 +26,8 @@ NODE_TYPE=os.environ["NODE_TYPE"]
 HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
+MEDIC_IP_ADDRESSES=eval(os.environ.get("MEDIC_IPS"))
+MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
@@ -47,7 +49,6 @@ class Filter:
         self.received_ids = log_recoverer.get_received_ids()
         self.ignore_ids = log_recoverer.get_ignore_ids()
         self.event = None
-        self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
         self.id= os.environ["ID"]
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
@@ -273,7 +274,10 @@ class Filter:
         while not self.exit and filter_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
             try:
-                sock.sendto(msg.encode(), self.medic_addres)
+                for id,address in MEDIC_IP_ADDRESSES.items():
+                    complete_addres = (address, MEDIC_PORT)
+                    sock.sendto(msg.encode(), complete_addres)
+                    logger.error(f"Hartbeat sent to medic with id: {id}")
             except Exception as e:
                 logger.error(f"Error sending hartbeat: {e}")
             finally:

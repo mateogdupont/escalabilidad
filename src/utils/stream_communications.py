@@ -43,3 +43,4 @@ def send_msg(socket, msg):
             # print("Error sending data")
             break
         total_sent = total_sent + sent
+    return total_sent
