@@ -30,10 +30,6 @@ IGNORE = "IGNORE"
 
 END_LOG = "END_LOG"
 
-# TODO: review parts, some fields can contain sep
-# TODO: merge main
-# TODO: manejo de lasts
-
 class LogRecovererError(Exception):
     pass
 

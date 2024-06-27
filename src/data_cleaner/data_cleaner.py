@@ -29,8 +29,6 @@ MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 NODE_TYPE=os.environ["NODE_TYPE"]
 HEARTBEAT_INTERVAL=int(os.environ["HEARTBEAT_INTERVAL"])
 
-# TODO: clean log data somewhere
-
 class DataCleaner:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
@@ -84,7 +82,7 @@ class DataCleaner:
             self.mom.publish(data_chunk, node)
             self.clean_data[node].clear()
     
-    def send_clean_flag(self, client_id): # TODO: use this
+    def send_clean_flag(self, client_id):
         logger.info(f"Sending clean flag about {client_id}")
         self.ignore_ids.add(client_id)
         datafragment = DataFragment(0, {}, None, None, client_id)

@@ -167,7 +167,7 @@ class Counter:
             if group_data not in self.counted_data[client_id][query_id].keys():
                 self.counted_data[client_id][query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
             self.counted_data[client_id][query_id][group_data]["VALUES"].append(value)
-            self.books[group_data] = data_fragment.get_book() #TODO: redo this log if needed
+            self.books[group_data] = data_fragment.get_book() 
             self.log_writer.log_book(data_fragment.get_book())
             count_info = {"PERCENTILE": percentile, "VALUE": value, "GROUP_DATA": group_data}
             self.log_writer.log_counted_data(data_fragment, repr(count_info))
@@ -209,7 +209,7 @@ class Counter:
                 self.counted_data[client_id][query_id][group_data] = {"TOTAL": 0, "COUNT": 0}
             self.counted_data[client_id][query_id][group_data]["TOTAL"] += value
             self.counted_data[client_id][query_id][group_data]["COUNT"] += 1
-            self.books[group_data] = data_fragment.get_book() #TODO: redo this log if needed
+            self.books[group_data] = data_fragment.get_book() 
             self.log_writer.log_book(data_fragment.get_book())
             count_info = {"2": 2, "VALUE": value, "GROUP_DATA": group_data}
             self.log_writer.log_counted_data(data_fragment, repr(count_info))
