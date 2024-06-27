@@ -118,9 +118,9 @@ class BasicLogRecoverer:
         parts = line.split(SEP)
         if len(parts) < RESULT_SENT_PARTS:
             raise ErrorProcessingLog(f"Error processing log: {line}")
+        _, node = parts
         if node in self.sent_results:
             return False
-        _, node = parts
         self.sent_results.add(node)
         return True #TODO: check if needed
     
