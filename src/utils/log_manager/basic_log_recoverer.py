@@ -104,6 +104,8 @@ class BasicLogRecoverer:
         parts = line.split(SEP)
         if len(parts) < RESULT_SENT_PARTS:
             raise ErrorProcessingLog(f"Error processing log: {line}")
+        if node in self.sent_results:
+            return False
         _, node = parts
         self.sent_results.add(node)
         return True #TODO: check if needed
@@ -176,6 +178,7 @@ class BasicLogRecoverer:
                         raise UnknownLogType(f"Unknown log type: {log_type}")
                     if self._recover_funcs[log_type](line):
                         to_write.append(line)
+                to_write.append(END_LOG + END)
                 to_write.reverse()
                 temp.write(''.join(to_write))
         logger.info("Logs rewritten, it took %s seconds", round(time.time()-time1))
