@@ -35,7 +35,7 @@ MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
 BATCH_CLEAN_INTERVAL = 60 * 3 # 3 minutes
-MAX_EXTRA_INTERVAL = 60 * 1 # 1 minute
+MAX_EXTRA_INTERVAL = 60 * 2 # 2 minutes
 
 class Filter:
     def __init__(self):
