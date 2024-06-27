@@ -189,7 +189,8 @@ class BasicLogRecoverer:
                         continue
                     log_type = line.split(SEP)[0]
                     if not log_type in self._recover_funcs:
-                        raise UnknownLogType(f"Unknown log type: {log_type}")
+                        msg = f"Unknown log type: {log_type}"
+                        raise UnknownLogType(msg)
                     if self._recover_funcs[log_type](line):
                         to_write.append(line)
                 to_write.append(END_LOG + END)
