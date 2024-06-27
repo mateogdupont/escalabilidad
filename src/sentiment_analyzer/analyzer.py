@@ -180,7 +180,7 @@ class Analyzer:
         logger.info("All nodes synced, ready to send last fragment")
 
     def send_all(self):
-        for key, (data, _) in self.results.items():
+        for key, data in self.results.items():
             if len(data) > 0:
                 chunk = DataChunk(data)
                 try:
