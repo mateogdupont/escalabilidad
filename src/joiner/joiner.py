@@ -332,8 +332,8 @@ class Joiner:
         log_rewriter_books.rewrite_logs()
         log_rewriter_reviews.swap_files()
         log_rewriter_books.swap_files()
-        # self.log_writer_reviews.open()
-        # self.log_writer_books.open()
+        self.log_writer_reviews.open()
+        self.log_writer_books.open()
 
     def run(self):
         self.event = Event()

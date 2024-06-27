@@ -291,7 +291,7 @@ class Filter:
         log_rewriter.rewrite_logs()
         log_rewriter.swap_files()
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
-        # self.log_writer.open()
+        self.log_writer.open()
         
 
 def main():

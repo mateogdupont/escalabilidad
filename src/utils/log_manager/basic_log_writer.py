@@ -65,8 +65,9 @@ class BasicLogWriter:
     def close(self) -> None:
         self.file.close()
     
-    # def open(self) -> None:
-    #     self.file = open(self.file_path, "a+")
+    def open(self) -> None:
+        self.file_path = self._load_newest_file_path()
+        self.file = open(self.file_path, "a+")
     
     def log_ignore(self, client_id: str) -> None:
         self._add_logs([f"{IGNORE} {client_id}"])
