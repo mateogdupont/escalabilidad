@@ -213,17 +213,17 @@ class Analyzer:
     def run_analizer(self, event):
         times_empty = 0
         while not event.is_set():
-            try:
-                self.inspect_info_queue(event)
-                if not self.process_msg(event):
-                    times_empty += 1
-                    time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
-                    continue
-                times_empty = 0
-            except Exception as e:
-                logger.error(f"Error in analyzer: {e.with_traceback(None)}")
-                raise e
-                event.set()
+            # try:
+            self.inspect_info_queue(event)
+            if not self.process_msg(event):
+                times_empty += 1
+                time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
+                continue
+            times_empty = 0
+            # except Exception as e:
+            #     logger.error(f"Error in analyzer: {e.with_traceback(None)}")
+            #     raise e
+            #     event.set()
     
     def send_with_timeout(self, event):
         for node, batch in self.results.items():
