@@ -19,6 +19,8 @@ from log_manager.log_recoverer import LogRecoverer
 load_dotenv()
 NODE_TYPE=os.environ["NODE_TYPE"]
 HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
+MEDIC_IP_ADDRESSES=eval(os.environ.get("MEDIC_IPS"))
+MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
@@ -38,7 +40,6 @@ class Counter:
         consumer_queues.append(self.info_queue)
         self.work_queue = consumer_queues[0]
         self.mom = MOM(consumer_queues)
-        self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
         self.id= os.environ["ID"]
         self.event = None
         self.exit = False
@@ -329,7 +330,10 @@ class Counter:
         while not self.exit and counter_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
             try:
-                sock.sendto(msg.encode(), self.medic_addres)
+                for id,address in MEDIC_IP_ADDRESSES.items():
+                    complete_addres = (address, MEDIC_PORT)
+                    sock.sendto(msg.encode(), complete_addres)
+                    logger.error(f"Hartbeat sent to medic with id: {id}")
             except Exception as e:
                 logger.error(f"Error sending hartbeat: {e}")
             finally:
