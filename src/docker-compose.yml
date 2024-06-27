@@ -193,22 +193,6 @@ services:
     volumes:
       - ../logs:/logs
 
-  joiner7:
-    build:
-      context: .
-      dockerfile: ./joiner/Dockerfile
-    environment:
-      - ID=7
-      - LOG_PATH_BOOKS=/logs/joiner7_books.log
-      - LOG_PATH_REVIEWS=/logs/joiner7_reviews.log
-      - INFO_QUEUE=info.joiner7
-    depends_on:
-      - rabbitmq1
-    networks:
-      - network-bridge
-    volumes:
-      - ../logs:/logs
-
   counter1:
     build:
       context: .
@@ -279,21 +263,6 @@ services:
       - LOG_PATH=/logs/sentiment_analyzer4.log
       - INFO_QUEUE=info.sentiment_analyzer4
       - ID=4
-    networks:
-      - network-bridge
-    depends_on:
-      - rabbitmq1
-  
-  sentiment-analyzer5:
-    build: 
-      context: .
-      dockerfile: ./sentiment_analyzer/Dockerfile
-    volumes:
-      - ../logs:/logs
-    environment:
-      - LOG_PATH=/logs/sentiment_analyzer5.log
-      - INFO_QUEUE=info.sentiment_analyzer5
-      - ID=5
     networks:
       - network-bridge
     depends_on:

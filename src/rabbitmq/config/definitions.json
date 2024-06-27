@@ -114,15 +114,6 @@
             }
         },
         {
-            "name": "books-analyzer.data_processor.joiner_books.7",
-            "vhost": "/",
-            "durable": true,
-            "auto_delete": false,
-            "arguments": {
-                "x-queue-type": "classic"
-            }
-        },
-        {
             "name": "books-analyzer.data_processor.joiner_reviews",
             "vhost": "/",
             "durable": true,
@@ -213,15 +204,6 @@
             }
         },
         {
-            "name": "info.joiner7",
-            "vhost": "/",
-            "durable": true,
-            "auto_delete": false,
-            "arguments": {
-                "x-queue-type": "classic"
-            }
-        },
-        {
             "name": "info.counter",
             "vhost": "/",
             "durable": true,
@@ -259,15 +241,6 @@
         },
         {
             "name": "info.sentiment_analyzer4",
-            "vhost": "/",
-            "durable": true,
-            "auto_delete": false,
-            "arguments": {
-                "x-queue-type": "classic"
-            }
-        },
-        {
-            "name": "info.sentiment_analyzer5",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
@@ -356,14 +329,6 @@
             "source": "books-analyzer_exchange",
             "vhost": "/",
             "destination": "books-analyzer.data_processor.joiner_books.6",
-            "destination_type": "queue",
-            "routing_key": "joiner_books",
-            "arguments": {}
-        },
-        {
-            "source": "books-analyzer_exchange",
-            "vhost": "/",
-            "destination": "books-analyzer.data_processor.joiner_books.7",
             "destination_type": "queue",
             "routing_key": "joiner_books",
             "arguments": {}
@@ -515,22 +480,6 @@
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "info.joiner7",
-            "destination_type": "queue",
-            "routing_key": "info_joiner",
-            "arguments": {}
-        },
-        {
-            "source": "books-analyzer_exchange",
-            "vhost": "/",
-            "destination": "info.joiner7",
-            "destination_type": "queue",
-            "routing_key": "info_all",
-            "arguments": {}
-        },
-        {
-            "source": "books-analyzer_exchange",
-            "vhost": "/",
             "destination": "info.counter",
             "destination_type": "queue",
             "routing_key": "info_counter",
@@ -604,22 +553,6 @@
             "source": "books-analyzer_exchange",
             "vhost": "/",
             "destination": "info.sentiment_analyzer4",
-            "destination_type": "queue",
-            "routing_key": "info_all",
-            "arguments": {}
-        },
-        {
-            "source": "books-analyzer_exchange",
-            "vhost": "/",
-            "destination": "info.sentiment_analyzer5",
-            "destination_type": "queue",
-            "routing_key": "info_sentiment_analyzer",
-            "arguments": {}
-        },
-        {
-            "source": "books-analyzer_exchange",
-            "vhost": "/",
-            "destination": "info.sentiment_analyzer5",
             "destination_type": "queue",
             "routing_key": "info_all",
             "arguments": {}
