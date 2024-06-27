@@ -6,6 +6,7 @@ from multiprocessing import Process, Event
 from log_manager.log_writer import LogWriter
 from utils.structs.book import *
 from utils.structs.review import *
+import base64
 from utils.structs.data_fragment import *
 from utils.structs.data_chunk import *
 from utils.mom.mom import MOM
@@ -142,7 +143,8 @@ class Counter:
                     added = True
             if added:
                 self.counted_data[client_id][query_id][TOP] = sorted(self.counted_data[client_id][query_id][TOP], key=lambda fragment: fragment.get_query_info().get_average())
-                count_info = {"TOP": data_fragment.to_bytes(), "AMOUNT": top_amount}
+                df_str = base64.b64encode(data_fragment.to_bytes()).decode()
+                count_info = {"TOP": df_str, "AMOUNT": top_amount}
                 self.log_writer.log_counted_data(data_fragment, repr(count_info))
         else:
             top = self.counted_data[client_id][query_id][TOP]
