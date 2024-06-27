@@ -256,17 +256,17 @@ class Filter:
     def run_filter(self, event):
         times_empty = 0
         while not event.is_set():
-            try:
-                self.send_with_timeout(event)
-                self.inspect_info_queue(event)
-                if not self.process_msg(event):
-                    times_empty += 1
-                    time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
-                    continue
-                times_empty = 0
-            except Exception as e:
-                logger.error(f"Error in filter: {e.with_traceback(None)}")
-                event.set()
+            # try:
+            self.send_with_timeout(event)
+            self.inspect_info_queue(event)
+            if not self.process_msg(event):
+                times_empty += 1
+                time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
+                continue
+            times_empty = 0
+            # except Exception as e:
+            #     logger.error(f"Error in filter: {e.with_traceback(None)}")
+            #     event.set()
 
     def run(self):
         self.event = Event()
