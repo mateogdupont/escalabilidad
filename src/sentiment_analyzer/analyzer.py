@@ -222,6 +222,7 @@ class Analyzer:
                 times_empty = 0
             except Exception as e:
                 logger.error(f"Error in analyzer: {e.with_traceback(None)}")
+                raise e
                 event.set()
     
     def send_with_timeout(self, event):
