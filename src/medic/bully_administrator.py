@@ -51,7 +51,7 @@ class Bully:
 
 
     def try_update_sockets(self, socket_queue):
-        while True:
+        while not self._finish_event.is_set():
             try:
                 # Read [id,socket]
                 msg = socket_queue.get_nowait()
@@ -66,6 +66,8 @@ class Bully:
         amount_of_msgs_send = 0
         new_sockets = {}
         for id in peers_to_send:
+            if self._finish_event.is_set():
+                break
             if not id in self.peer_sockets.keys():
                 logger.info(f"Bully| Sending {msg_type} and no socket for: {id}")
                 medic_address = (MEDIC_IPS[id], self._port)
@@ -101,6 +103,8 @@ class Bully:
         ip_to_delete = msg.split(',')[2]
         id_to_delete = None
         for id,peer_socket in peer_sockets.items():
+            if self._finish_event.is_set():
+                break
             try:
                 peer_ip, peer_port = peer_socket.getpeername()
                 if peer_ip == ip_to_delete:
@@ -150,7 +154,7 @@ class Bully:
         logger.info(f"Bully| Processing msg of type ack")
         self.amount_of_coordinated_send -= 1
         if self.amount_of_coordinated_send == 0:
-            logger.info(f"Bully| Se myself ({self.id}) as lider by amount of ack")
+            logger.info(f"Bully| Set myself ({self.id}) as lider by amount of ack")
             self.start_coordination_time = None
             self.lider_id = self.id
             self.selected_as_lider_event.set()
@@ -256,5 +260,7 @@ class Bully:
                     self.process_bully_msg(socket_queue_from_bully, socket_queue, msg)
                     msg = None
             except Exception as e:
-                #TODO
                 logger.error(f"Bully| Fail with error: {e}")
+
+        for medic_socket in self.peer_sockets:
+            medic_socket.close()

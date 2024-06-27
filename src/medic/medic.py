@@ -98,7 +98,7 @@ class Medic:
                 if not data:
                     continue
                 msg = data.decode("utf-8")
-                # logger.info(f"Received: {msg}")
+                logger.info(f"WatchDog| Received: {msg}")
                 if not '$'in msg or not '.'in msg:
                     logger.error(f"WatchDog| The msg does not respect the format: {msg}")
                 self.verify_timeouts()
@@ -129,17 +129,16 @@ class Medic:
                 if not msg:
                     logger.error(f"MSG PROCESS| Fail to read msg, connection lost")
                     msg = f"{self.id},{DEAD_TYPE},{peer_ip}"
-                    peer_socket.close()
                     incoming_messages_queue.put(msg)
-                    return
+                    break
                 logger.info(f"MSG PROCESS| Read msg: {msg}")
                 incoming_messages_queue.put(msg)
             except Exception as e:
-                peer_socket.close()
                 msg = f"{self.id},{DEAD_TYPE},{peer_ip}"
                 incoming_messages_queue.put(msg)
                 logger.error(f"MSG PROCESS| Fail to read msg with error: {e}")
-                return
+                break
+        peer_socket.close()
 
     def get_id_from_address(self, peer_socket):
         peer_ip, peer_port = peer_socket.getpeername()
@@ -161,6 +160,7 @@ class Medic:
         bully_administrator.start()
 
         msg_processes = []
+        all_sockets = {}
 
         while not self._stop:
             peer_sockets = {}
@@ -178,16 +178,26 @@ class Medic:
                 except Exception as e:
                     logger.info(f"RECEIVER| Error trying to update_sockets: {e}")
                 for id in peer_sockets:
+                    all_sockets[id] = peer_sockets[id]
                     msg_process = Process(target=self.start_msg_process, args=(peer_sockets[id], incoming_messages_queue))
                     msg_process.start()
                     msg_processes.append(msg_process)
                 peer_sockets = {}
 
 
+        queues = [socket_queue_from_listener, socket_queue_from_bully, incoming_messages_queue]
         watchdog.join()
         bully_administrator.join()
         for process in msg_processes:
             process.join()
+        for queue in queues:
+            queue.close()
+            queue.join_thread()
+        for socket_list in (peer_sockets, all_sockets):
+            for medic_socket in socket_list:
+                medic_socket.close()   
+        self._tcp_socket.close()
+
 
 def main():
     load_dotenv()
