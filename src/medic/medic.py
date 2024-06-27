@@ -168,15 +168,15 @@ class Medic:
                 peer_socket = self._tcp_socket.accept()[0]
                 peer_id= self.get_id_from_address(peer_socket)
                 socket_queue_from_listener.put([peer_id,peer_socket])
-                logger.info(f"RECEIVER| Put msg in queue")
+                logger.info(f"RECEIVER| Put msg of new medic in queue")
                 peer_sockets[peer_id] = peer_socket
             except Exception as e:
-                # Handle timeout from listener
+                    logger.error(f"RECEIVER| Error waiting for new medic: {e}")
+            finally:
                 try:
                     peer_sockets = self.try_update_sockets(peer_sockets, socket_queue_from_bully)
                 except Exception as e:
                     logger.info(f"RECEIVER| Error trying to update_sockets: {e}")
-            finally:
                 for id in peer_sockets:
                     msg_process = Process(target=self.start_msg_process, args=(peer_sockets[id], incoming_messages_queue))
                     msg_process.start()
