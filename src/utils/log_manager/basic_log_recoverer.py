@@ -66,7 +66,7 @@ class BasicLogRecoverer:
     def _process_ignore(self, line: str) -> bool:
         parts = line.split(SEP)
         if len(parts) < IGNORE_PARTS:
-            return False
+            raise ErrorProcessingLog(f"Error processing log: {line}")
         _, client_id = parts
         self.ignore_ids.add(client_id)
         return True
@@ -76,9 +76,7 @@ class BasicLogRecoverer:
         if len(parts) < RECEIVED_ID_PARTS:
             raise ErrorProcessingLog(f"Error processing log: {line}")
         _, client_id, query_id, df_id = parts
-        if client_id in self.ignore_ids:
-            return True
-        if query_id in self.ended_queries.get(client_id, set()):
+        if client_id in self.ignore_ids or query_id in self.ended_queries.get(client_id, set()):
             return False
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
         self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
@@ -93,11 +91,9 @@ class BasicLogRecoverer:
         time = parts[2]
         start = line.find(parts[3])
         df_str = line[start:]
-        if node in self.sent_results:
-            return False
         df = DataFragment.from_bytes(base64.b64decode(df_str))
-        if df.get_client_id() in self.ignore_ids:
-            return True
+        if df.get_client_id() in self.ignore_ids or node in self.sent_results:
+            return False
         time = float(time) if time != NONE else None
         if time is not None:
             self.results[node] = self.results.get(node, ([], time))
@@ -113,7 +109,7 @@ class BasicLogRecoverer:
             raise ErrorProcessingLog(f"Error processing log: {line}")
         _, client_id, query_id = parts
         if client_id in self.ignore_ids:
-            return True
+            return False
         self.ended_queries[client_id] = self.ended_queries.get(client_id, set())
         self.ended_queries[client_id].add(query_id)
         return True #TODO: check if needed

@@ -261,6 +261,7 @@ class DataCleaner:
                     # logger.info(f"Era el ultimo asique mato al client {client_id} en los results")
                     socket.close()
                     del clients[client_id]
+                    self.send_clean_flag(client_id)
                 else:
                     clients[client_id] = [socket, queries_left - 1]
 
