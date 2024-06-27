@@ -5,7 +5,8 @@ from typing import List, Optional, Tuple
 from utils.structs.book import Book
 from utils.structs.data_fragment import DataFragment
 import logging as logger
-from atomicswap import swap
+import datetime
+import re
 
 SEP = " "
 END = "\n"
@@ -42,8 +43,9 @@ class ErrorProcessingLog(LogRecovererError):
 
 class BasicLogRecoverer:
     def __init__(self, file_path: str) -> None:
-        self.file_path = file_path
-        self.tmp_file_path = self.file_path.replace(".log", ".temp")
+        self.original_file_path = file_path
+        self.file_path = self._load_newest_file_path()
+        self.tmp_file_path =  None
         self.received_ids = {}
         self.results = {}
         self.ended_queries = {}
@@ -156,6 +158,7 @@ class BasicLogRecoverer:
         logger.info("Rewriting logs")
         time1 = time.time()
         to_write = []
+        self.tmp_file_path = self._generate_log_temp_file_name()
         with open(self.file_path, "r") as log:
             with open(self.tmp_file_path, "w") as temp:
                 lines = log.readlines()
@@ -176,13 +179,47 @@ class BasicLogRecoverer:
                 to_write.reverse()
                 temp.write(''.join(to_write))
         logger.info("Logs rewritten, it took %s seconds", round(time.time()-time1))
+
+    def _generate_log_temp_file_name(self):
+        updated_date = datetime.datetime.now()
+        date_with_format = updated_date.strftime("%Y-%m-%d_%H-%M-%S")
+        if self.original_file_path.endswith('.log'):
+            file_path = self.original_file_path[:-4]
+
+        return f"{file_path}_{date_with_format}_temp.log"
     
+    def _load_newest_file_path(self):
+        dir_path = os.path.dirname(self.original_file_path)
+        files = os.listdir(dir_path)
+        valid_files = []
+        for file in files:
+            if '_temp' not in file:
+                match = re.search(r'\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}', file)
+                if match:
+                    valid_files.append((file, match.group(0)))
+        
+        valid_files.sort(key=lambda x: x[1], reverse=True)
+
+        if valid_files:
+            newest_file_name = valid_files[0][0]
+            newest_file_path = os.path.join(dir_path, newest_file_name)
+            print(f"Recoverer: Loading newest file: {newest_file_path}")
+            return newest_file_path
+        else:
+            new_path= self._generate_log_temp_file_name()[:-9] + '.log'
+            print(f"Recoverer: No valid files found, using: {new_path}")
+            return new_path
+        
+    def _rename_temp_file(self):
+        file_path_without_temp = self.tmp_file_path[:-9] + '.log'
+        os.rename(self.tmp_file_path, file_path_without_temp)
+        return file_path_without_temp
+
     def swap_files(self) -> None:
-        # return
-        logger.info("Swapping files")
-        swap(self.file_path, self.tmp_file_path)
-        logger.info("Files swapped")
-        logger.info("Removing temp file")
-        os.remove(self.tmp_file_path)
-        logger.info("Temp file removed")
+        logger.info("Renaming files")
+        new_path = self._rename_temp_file()
+        os.remove(self.file_path)
+        self.file_path = new_path
+        self.tmp_file_path = None
+        logger.info("New path loaded")
     
