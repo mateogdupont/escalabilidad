@@ -38,8 +38,8 @@ MAX_QUERIES = 1
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
-BATCH_CLEAN_INTERVAL = 60 * 3 # 3 minutes
-MAX_EXTRA_INTERVAL = 60 * 2 # 2 minutes
+BATCH_CLEAN_INTERVAL = 60 * 2 # 2 minutes
+MAX_EXTRA_INTERVAL = 60 * 1 # 1 minute
 
 class Analyzer:
     def __init__(self):
@@ -78,7 +78,7 @@ class Analyzer:
         if client_id in self.received_ids.keys():
             self.received_ids.pop(client_id)
         for node, batch in self.results.items():
-            batch = ([fragment for fragment in batch[0] if fragment.get_client_id() != client_id], batch[1])
+            batch = [fragment for fragment in batch if fragment.get_client_id() != client_id]
             self.results[node] = batch
         self.ignore_ids.add(client_id)
         self.log_writer.log_ignore(client_id)
@@ -221,6 +221,7 @@ class Analyzer:
         times_empty = 0
         last_clean = time.time()
         random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
+        self.rewrite_logs()
         while not event.is_set():
             # try:
             self.inspect_info_queue(event)

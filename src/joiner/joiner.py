@@ -33,8 +33,8 @@ MAX_QUERIES = 1
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
-BATCH_CLEAN_INTERVAL = 60 * 3 # 3 minutes
-MAX_EXTRA_INTERVAL = 60 * 2 # 2 minutes
+BATCH_CLEAN_INTERVAL = 60 * 2 # 2 minutes
+MAX_EXTRA_INTERVAL = 60 * 1 # 1 minute
 
 class Joiner:
     def __init__(self):
@@ -314,6 +314,7 @@ class Joiner:
         times_empty = 0
         last_clean = time.time()
         random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
+        self.rewrite_logs()
         while not event.is_set():
             try:
                 self.send_with_timeout(event)
