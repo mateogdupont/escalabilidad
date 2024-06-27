@@ -37,9 +37,10 @@ class BasicLogWriter:
     def _load_newest_file_path(self):
         dir_path = os.path.dirname(self.original_file_path)
         files = os.listdir(dir_path)
+        node_name = self.original_file_path.split('/')[-1].replace('.log', '')
         valid_files = []
         for file in files:
-            if '_temp' not in file:
+            if '_temp' not in file and node_name in file:
                 match = re.search(r'\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}', file)
                 if match:
                     valid_files.append((file, match.group(0)))
