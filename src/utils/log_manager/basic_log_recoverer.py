@@ -193,8 +193,8 @@ class BasicLogRecoverer:
                         raise UnknownLogType(msg)
                     if self._recover_funcs[log_type](line):
                         to_write.append(line)
-                to_write.append(END_LOG + END)
                 to_write.reverse()
+                to_write.append(END_LOG + END)
                 temp.write(''.join(to_write))
         logger.info("Logs rewritten, it took %s seconds", round(time.time()-time1))
 
