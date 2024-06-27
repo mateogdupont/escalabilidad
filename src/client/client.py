@@ -60,25 +60,28 @@ class Client:
                 break
 
     def _send_file(self, file_path: str, is_book_file: bool):
-        logger.info(f"Starting to send: {file_path}")
-        previus_read_data = []
-        with open(file_path, 'r') as data_file:
-            reader = csv.reader(data_file)
-            first = next(reader)
+        try:
+            logger.info(f"Starting to send: {file_path}")
+            previus_read_data = []
+            with open(file_path, 'r') as data_file:
+                reader = csv.reader(data_file)
+                first = next(reader)
 
-            while True and not self._stop:
-                self.read_chunk(reader, is_book_file)
-                if not self.data or self._stop:
+                while True and not self._stop:
+                    self.read_chunk(reader, is_book_file)
+                    if not self.data or self._stop:
+                        if len(previus_read_data) > 0:
+                            previus_read_data[len(previus_read_data) - 1][0] = 1
+                            send_msg(self.socket,previus_read_data)
+                        break
                     if len(previus_read_data) > 0:
-                        previus_read_data[len(previus_read_data) - 1][0] = 1
                         send_msg(self.socket,previus_read_data)
-                    break
-                if len(previus_read_data) > 0:
-                    send_msg(self.socket,previus_read_data)
-                previus_read_data = self.data
-                
-        if not self._stop:
-            logger.info(f"All data in {file_path} have been sended")
+                    previus_read_data = self.data
+                    
+            if not self._stop:
+                logger.info(f"All data in {file_path} have been sended")
+        except socket.error as e:
+            logger.error("Error 599: Network connect timeout error, try again later please") # https://http.cat/status/599
 
 
 
@@ -92,7 +95,10 @@ class Client:
         results_proccess = Process(target=self._handle_results, args=(self._event,))
         results_proccess.start()
         keys = list(self._queries.keys())
-        send_msg(self.socket,keys)
+        try:
+            send_msg(self.socket,keys)
+        except socket.error as e:
+            logger.error("Error 599: Network connect timeout error, try again later please") # https://http.cat/status/599
         logger.info(f"Starting to send data, please wait") 
         self._send_all_data_files()
         if not self._stop:
@@ -107,7 +113,7 @@ class Client:
                 chunk_msg = receive_msg(self.socket)
                 return chunk_msg
             except socket.error as e:
-                logger.info(f"Error en el socket: {e}")
+                logger.error("Error 599: Network connect timeout error, try again later please") # https://http.cat/status/599
                 return None
             
     def _initialize_result_files_and_writers(self):

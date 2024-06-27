@@ -31,6 +31,8 @@ class LogRecoverer(BasicLogRecoverer):
             raise ErrorProcessingLog(f"Error processing log: {line}")
         # _, client_id, query_id, count_info = parts
         client_id = parts[1]
+        if client_id in self.ignore_ids:
+            return True
         query_id = parts[2]
         start = line.find(parts[3])
         count_info = line[start:]
@@ -97,6 +99,8 @@ class LogRecoverer(BasicLogRecoverer):
         if len(parts) < COUNTED_DATA_SENT_PARTS:
             raise ErrorProcessingLog(f"Error processing log: {line}")
         _, client_id, query_id = parts
+        if client_id in self.ignore_ids:
+            return True
         self.counted_data_sent[client_id] = self.counted_data_sent.get(client_id, set())
         self.counted_data_sent[client_id].add(query_id)
         return True #TODO: check if needed

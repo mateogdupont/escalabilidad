@@ -6,12 +6,14 @@ from utils.structs.data_fragment import DataFragment
 import base64
 import datetime
 import re
+import logging as logger
 
 BOOK = "BOOK"               # <datafragment como str>
 RECEIVED_ID = "RECEIVED_ID" # <client_id> <query_id> <df_id>
 RESULT = "RESULT"           # <node> [<time>] <datafragment como str>
 QUERY_ENDED = "QUERY_ENDED" # <client_id> <query_id>
 RESULT_SENT = "RESULT_SENT" # <node>
+IGNORE = "IGNORE"           # <client_id>
 
 TITLE = "TITLE"
 BOOK_STR = "BOOK_STR"
@@ -62,8 +64,12 @@ class BasicLogWriter:
     def close(self) -> None:
         self.file.close()
     
-    def open(self) -> None:
-        self.file = open(self.file_path, "a+")
+    # def open(self) -> None:
+    #     self.file = open(self.file_path, "a+")
+    
+    def log_ignore(self, client_id: str) -> None:
+        self._add_logs([f"{IGNORE} {client_id}"])
+        logger.info(f"Ignoring client {client_id}")
 
     def log_result(self, next_steps: List[Tuple[DataFragment, str]], time: Optional[float] =None) -> None:
         if len(next_steps) == 0:

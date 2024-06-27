@@ -5,6 +5,8 @@ from typing import List, Tuple
 from multiprocessing import Process, Event, Queue
 from queue import Empty
 import uuid
+from log_manager.log_recoverer import LogRecoverer
+from log_manager.log_writer import LogWriter
 from utils.structs.book import *
 from utils.structs.review import *
 from utils.structs.data_fragment import *
@@ -17,15 +19,22 @@ import sys
 import time
 import logging as logger
 
+load_dotenv()
 MAX_AMOUNT_OF_FRAGMENTS = 500
 MAX_AMOUNT_OF_CLIENTS = 10
 LISTEN_BACKLOG = 5
 PORT = 1250
+MEDIC_IP_ADDRESSES=eval(os.environ.get("MEDIC_IPS"))
+MEDIC_PORT=int(os.environ["MEDIC_PORT"])
+NODE_TYPE=os.environ["NODE_TYPE"]
+HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
+
+# TODO: clean log data somewhere
 
 class DataCleaner:
     def __init__(self):
         logger.basicConfig(stream=sys.stdout, level=logger.INFO)
-        load_dotenv()
+        self.info_all_key = os.environ["INFO_KEY_ALL"]
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.bind(('', 1250))
         self._socket.listen(LISTEN_BACKLOG)
@@ -33,24 +42,36 @@ class DataCleaner:
         self._event = None
         self.queries = {}
         self.clean_data = {}
+        self.ignore_ids = set()
         self.work_queue = None
         self.mom = None
+        self.id= os.environ["ID"]
         self.data_in_processes_queue = Queue()
         self.clients_to_results_queue = Queue()
         self.clients_processes = {}
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
+        self.log_writer = LogWriter(os.environ["LOG_PATH"])
     
     def _initialice_mom(self):
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
-        self.work_queue = list(consumer_queues.keys())[0]
+        self.work_queue = consumer_queues[0]
         self.mom = MOM(consumer_queues)
 
+    def manage_clients(self):
+        log_recoverer = LogRecoverer(os.environ["LOG_PATH"])
+        log_recoverer.recover_data()
+        previous_clients = log_recoverer.get_clients()
+        logger.info(f"Previous clients: {previous_clients}")
+        for client in previous_clients:
+            self.send_clean_flag(client)
+            logger.info(f"Sent clean flag about {client}")
     
     def sigterm_handler(self, signal,frame):
         self._socket.close()
-        self.mom.close()
+        if self.mom:
+            self.mom.close()
         self.exit = True
         if self._event:
             self._event.set()
@@ -62,6 +83,17 @@ class DataCleaner:
             data_chunk = DataChunk(self.clean_data[node])
             self.mom.publish(data_chunk, node)
             self.clean_data[node].clear()
+    
+    def send_clean_flag(self, client_id): # TODO: use this
+        logger.info(f"Sending clean flag about {client_id}")
+        self.ignore_ids.add(client_id)
+        datafragment = DataFragment(0, {}, None, None, client_id)
+        datafragment.set_as_clean_flag()
+        self.mom.publish(datafragment, self.info_all_key)
+        datachunk = DataChunk([datafragment])
+        self.mom.publish(datachunk, "results")
+        self.log_writer.log_ended_client(client_id)
+        logger.info(f"Sent clean flag about {client_id}")
     
     def parse_and_filter_data(self, unparsed_data, client_id, next_id):
         if unparsed_data[1] == 1:
@@ -133,11 +165,21 @@ class DataCleaner:
         return expected_amount_of_files
     
     def handle_client(self, client_socket,client_uuid):
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
+        logger.info(f"Client connected with id: {client_uuid}")
+        self.log_writer.log_new_client(client_uuid)
         try:
             queries = receive_msg(client_socket)
             self.queries = {int(key): 0 for key in queries}
-        except socket.timeout:
-                logger.info(f"Client didn't answer in time")
+        except Exception:
+            logger.info(f"Client didn't answer in time")
+            try:
+                client_socket.close()
+            except socket.error as e:
+                pass # Se asume que el cliente ya se desconectó y se cerró el socket
+            self.send_clean_flag(client_uuid)
+            self.data_in_processes_queue.put(client_uuid)
+            return
         msg_to_result_thread = [client_uuid, client_socket,len(queries)]
         self.clients_to_results_queue.put(msg_to_result_thread)
         self._initialice_mom()
@@ -145,8 +187,13 @@ class DataCleaner:
         remainding_amount = self.receive_files(client_socket, expected_amount_of_files, client_uuid)
         if remainding_amount == 0:
             logger.info(f"All data was received")
-        client_socket.close()
-        self.data_in_processes_queue.put(client_uuid)
+            self.log_writer.log_ended_client(client_uuid)
+        else:
+            logger.info(f"Client didn't send all data")
+            self.send_clean_flag(client_uuid)
+        client_socket.close()               
+        logger.info(f"Client disconnected with id: {client_uuid}")          
+        self.data_in_processes_queue.put(client_uuid) 
 
 
     def try_clean_processes(self):
@@ -169,6 +216,7 @@ class DataCleaner:
                 return
    
     def proccess_result_chunk(self,event,clients, data_chunk, received_ids):
+        logger.basicConfig(stream=sys.stdout, level=logger.INFO)
         # logger.info(f"Entre a process")
         for fragment in data_chunk.get_fragments():
             # logger.info(f"Entre a process con fragment")
@@ -177,12 +225,34 @@ class DataCleaner:
             if not save_id(received_ids, fragment):
                 # logger.info(f"3: No save id {received_ids}")
                 continue
+                
             client_id = fragment.get_client_id()
-            socket = clients.get(client_id)[0]
-            if not socket:
+            if client_id not in clients or client_id in self.ignore_ids:
                 logger.info(f"Read result for unregistered client")
                 continue
-            send_msg(socket,[fragment.to_result()])
+            socket = clients.get(client_id)[0]
+            if fragment.get_query_info().is_clean_flag():
+                try:
+                    socket.close()
+                except socket.error as e:
+                    pass # Se asume que el cliente ya se desconectó y se cerró el socket
+                del clients[client_id]
+                logger.info(f"Cleaning data from client {client_id}")
+                continue
+            # if not socket:
+            #     logger.info(f"Read result for unregistered client")
+            #     continue
+            try:
+                send_msg(socket,[fragment.to_result()])
+            except Exception:
+                logger.info(f"Error en el socket: Se asume que el cliente se desconectó")
+                self.send_clean_flag(client_id)
+                try:
+                    socket.close()
+                except socket.error as e:
+                    pass # Se asume que el cliente ya se desconectó y se cerró el socket
+                del clients[client_id]
+                continue
 
             if fragment.is_last():
                 logger.info(f"Last para {client_id}")
@@ -196,6 +266,7 @@ class DataCleaner:
 
     def results_handler(self,event):
         self._initialice_mom()
+        self.manage_clients()
         clients = {}
         received_ids = {}
         while not event.is_set():
@@ -208,8 +279,8 @@ class DataCleaner:
             self.proccess_result_chunk(event,clients,data_chunk, received_ids)
             self.mom.ack(tag)
 
-    def run(self):
-        self._event = Event()
+    def run_cleaner(self, event):
+        self._event = event
         results_proccess = Process(target=self.results_handler, args=(self._event,))
         results_proccess.start()
 
@@ -232,6 +303,24 @@ class DataCleaner:
             client_process.join()
         results_proccess.join()
 
+    def run(self):
+        self.event = Event()
+        cleaner_proccess = Process(target=self.run_cleaner, args=(self.event,))
+        cleaner_proccess.start()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        while not self.exit and cleaner_proccess.is_alive():
+            msg = NODE_TYPE + "." + self.id + "$"
+            try:
+                for id,address in MEDIC_IP_ADDRESSES.items():
+                    complete_addres = (address, MEDIC_PORT)
+                    sock.sendto(msg.encode(), complete_addres)
+                    logger.error(f"Hartbeat sent to medic with id: {id}")
+            except Exception as e:
+                logger.error(f"Error sending hartbeat: {e}")
+            finally:
+                time.sleep(HARTBEAT_INTERVAL)
+        cleaner_proccess.join()
+
 def save_id(received_ids: dict, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
@@ -247,7 +336,10 @@ def main():
     cleaner = DataCleaner()
     cleaner.run()
     if not cleaner.exit:
-        cleaner.mom.close()
+        if cleaner.mom:
+            cleaner.mom.close()
+        if cleaner.log_writer:
+            cleaner.log_writer.close()
    
 if __name__ == "__main__":
     main()

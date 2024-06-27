@@ -23,6 +23,8 @@ class LogRecoverer(BasicLogRecoverer):
         if len(parts) < SIDE_TABLE_UPDATE_PARTS:
             raise ErrorProcessingLog(f"Error processing log: {line}")
         client_id = parts[1]
+        if client_id in self.ignore_ids:
+            return True
         query_id = parts[2]
         if query_id in self.ended_queries.get(client_id, set()):
             return False
@@ -38,7 +40,7 @@ class LogRecoverer(BasicLogRecoverer):
         if len(parts) < QUERY_ENDED_PARTS:
             raise ErrorProcessingLog(f"Error processing log: {line}")
         _, client_id, query_id = parts
-        if query_id in self.ended_queries.get(client_id, set()):
+        if client_id in self.ignore_ids or query_id in self.ended_queries.get(client_id, set()):
             return False
         self.side_tables_ended[client_id] = self.side_tables_ended.get(client_id, set())
         self.side_tables_ended[client_id].add(query_id)

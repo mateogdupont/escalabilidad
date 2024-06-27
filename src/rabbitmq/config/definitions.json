@@ -38,8 +38,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -48,8 +47,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -58,8 +56,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -68,8 +65,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -78,8 +74,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -88,8 +83,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -98,8 +92,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -108,8 +101,7 @@
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
@@ -122,173 +114,111 @@
             }
         },
         {
-            "name": "log.filter1",
+            "name": "info.filter1",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
-            "name": "log.filter2",
+            "name": "info.filter2",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
-            "name": "log.filter3",
+            "name": "info.joiner1",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
-            "name": "log.joiner1_books",
+            "name": "info.joiner2",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
-            "name": "log.joiner2_books",
+            "name": "info.joiner3",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
-            "name": "log.joiner3_books",
+            "name": "info.joiner4",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
-            "name": "log.joiner4_books",
+            "name": "info.counter",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
-            "name": "log.joiner1_reviews",
+            "name": "info.sentiment_analyzer1",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
-            "name": "log.joiner2_reviews",
+            "name": "info.sentiment_analyzer2",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
-            "name": "log.joiner3_reviews",
+            "name": "info.sentiment_analyzer3",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
-            "name": "log.joiner4_reviews",
+            "name": "info.sentiment_analyzer4",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         },
         {
-            "name": "log.counter",
+            "name": "info.sentiment_analyzer5",
             "vhost": "/",
             "durable": true,
             "auto_delete": false,
             "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
-            }
-        },
-        {
-            "name": "log.sentiment_analyzer1",
-            "vhost": "/",
-            "durable": true,
-            "auto_delete": false,
-            "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
-            }
-        },
-        {
-            "name": "log.sentiment_analyzer2",
-            "vhost": "/",
-            "durable": true,
-            "auto_delete": false,
-            "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
-            }
-        },
-        {
-            "name": "log.sentiment_analyzer3",
-            "vhost": "/",
-            "durable": true,
-            "auto_delete": false,
-            "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
-            }
-        },
-        {
-            "name": "log.sentiment_analyzer4",
-            "vhost": "/",
-            "durable": true,
-            "auto_delete": false,
-            "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
-            }
-        },
-        {
-            "name": "log.sentiment_analyzer5",
-            "vhost": "/",
-            "durable": true,
-            "auto_delete": false,
-            "arguments": {
-                "x-queue-type": "classic",
-                "x-max-priority": 5
+                "x-queue-type": "classic"
             }
         }
     ],
@@ -379,137 +309,193 @@
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.filter1",
+            "destination": "info.filter1",
             "destination_type": "queue",
-            "routing_key": "log_filter",
+            "routing_key": "info_filter",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.filter2",
+            "destination": "info.filter1",
             "destination_type": "queue",
-            "routing_key": "log_filter",
+            "routing_key": "info_all",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.filter3",
+            "destination": "info.filter2",
             "destination_type": "queue",
-            "routing_key": "log_filter",
+            "routing_key": "info_filter",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.joiner1_books",
+            "destination": "info.filter2",
             "destination_type": "queue",
-            "routing_key": "log_joiner_books",
+            "routing_key": "info_all",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.joiner2_books",
+            "destination": "info.joiner1",
             "destination_type": "queue",
-            "routing_key": "log_joiner_books",
+            "routing_key": "info_joiner",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.joiner3_books",
+            "destination": "info.joiner1",
             "destination_type": "queue",
-            "routing_key": "log_joiner_books",
+            "routing_key": "info_all",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.joiner4_books",
+            "destination": "info.joiner2",
             "destination_type": "queue",
-            "routing_key": "log_joiner_books",
+            "routing_key": "info_joiner",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.joiner1_reviews",
+            "destination": "info.joiner2",
             "destination_type": "queue",
-            "routing_key": "log_joiner_reviews",
+            "routing_key": "info_all",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.joiner2_reviews",
+            "destination": "info.joiner3",
             "destination_type": "queue",
-            "routing_key": "log_joiner_reviews",
+            "routing_key": "info_joiner",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.joiner3_reviews",
+            "destination": "info.joiner3",
             "destination_type": "queue",
-            "routing_key": "log_joiner_reviews",
+            "routing_key": "info_all",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.joiner4_reviews",
+            "destination": "info.joiner4",
             "destination_type": "queue",
-            "routing_key": "log_joiner_reviews",
+            "routing_key": "info_joiner",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.counter",
+            "destination": "info.joiner4",
             "destination_type": "queue",
-            "routing_key": "log_counter",
+            "routing_key": "info_all",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.sentiment_analyzer1",
+            "destination": "info.counter",
             "destination_type": "queue",
-            "routing_key": "log_sentiment_analyzer",
+            "routing_key": "info_counter",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.sentiment_analyzer2",
+            "destination": "info.counter",
             "destination_type": "queue",
-            "routing_key": "log_sentiment_analyzer",
+            "routing_key": "info_all",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.sentiment_analyzer3",
+            "destination": "info.sentiment_analyzer1",
             "destination_type": "queue",
-            "routing_key": "log_sentiment_analyzer",
+            "routing_key": "info_sentiment_analyzer",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.sentiment_analyzer4",
+            "destination": "info.sentiment_analyzer1",
             "destination_type": "queue",
-            "routing_key": "log_sentiment_analyzer",
+            "routing_key": "info_all",
             "arguments": {}
         },
         {
             "source": "books-analyzer_exchange",
             "vhost": "/",
-            "destination": "log.sentiment_analyzer5",
+            "destination": "info.sentiment_analyzer2",
             "destination_type": "queue",
-            "routing_key": "log_sentiment_analyzer",
+            "routing_key": "info_sentiment_analyzer",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
+            "destination": "info.sentiment_analyzer2",
+            "destination_type": "queue",
+            "routing_key": "info_all",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
+            "destination": "info.sentiment_analyzer3",
+            "destination_type": "queue",
+            "routing_key": "info_sentiment_analyzer",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
+            "destination": "info.sentiment_analyzer3",
+            "destination_type": "queue",
+            "routing_key": "info_all",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
+            "destination": "info.sentiment_analyzer4",
+            "destination_type": "queue",
+            "routing_key": "info_sentiment_analyzer",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
+            "destination": "info.sentiment_analyzer4",
+            "destination_type": "queue",
+            "routing_key": "info_all",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
+            "destination": "info.sentiment_analyzer5",
+            "destination_type": "queue",
+            "routing_key": "info_sentiment_analyzer",
+            "arguments": {}
+        },
+        {
+            "source": "books-analyzer_exchange",
+            "vhost": "/",
+            "destination": "info.sentiment_analyzer5",
+            "destination_type": "queue",
+            "routing_key": "info_all",
             "arguments": {}
         }
     ]

@@ -19,6 +19,8 @@ from log_manager.log_recoverer import LogRecoverer
 load_dotenv()
 NODE_TYPE=os.environ["NODE_TYPE"]
 HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
+MEDIC_IP_ADDRESSES=eval(os.environ.get("MEDIC_IPS"))
+MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
 TITLE_FILTER = "TITLE"
@@ -35,30 +37,45 @@ class Counter:
         log_recoverer.recover_data()
         repr_consumer_queues = os.environ["CONSUMER_QUEUES"]
         consumer_queues = eval(repr_consumer_queues)
-        self.work_queue = list(consumer_queues.keys())[0]
+        self.info_queue = os.environ["INFO_QUEUE"]
+        consumer_queues.append(self.info_queue)
+        self.work_queue = consumer_queues[0]
         self.mom = MOM(consumer_queues)
-        self.medic_addres = (os.environ["MEDIC_IP"], int(os.environ["MEDIC_PORT"]))
         self.id= os.environ["ID"]
         self.event = None
         self.exit = False
         self.counted_data = log_recoverer.get_counted_data()
         self.books = log_recoverer.get_books()
         self.received_ids = log_recoverer.get_received_ids()
+        self.ignore_ids = log_recoverer.get_ignore_ids()
         self.log_writer = LogWriter(os.environ["LOG_PATH"])
         signal.signal(signal.SIGTERM, self.sigterm_handler)
         signal.signal(signal.SIGINT, self.sigterm_handler)
     
     def sigterm_handler(self, signal, frame):
         self.exit = True
-        self.mom.close()
-        self.log_writer.close()
+        if self.mom:
+            self.mom.close()
+        if self.log_writer:
+            self.log_writer.close()
         if self.event:
             self.event.set()
+    
+    def clean_data_client(self, client_id):
+        logger.info(f"Cleaning data from client {client_id}")
+        if client_id in self.received_ids.keys():
+            self.received_ids.pop(client_id)
+        if client_id in self.counted_data.keys():
+            self.counted_data.pop(client_id)
+        self.ignore_ids.add(client_id)
+        self.log_writer.log_ignore(client_id)
     
     def save_id(self, data_fragment: DataFragment) -> bool:
         client_id = data_fragment.get_client_id()
         query_id = data_fragment.get_query_id()
         id = data_fragment.get_id()
+        if client_id in self.ignore_ids:
+            return False
         self.received_ids[client_id] = self.received_ids.get(client_id, {})
         self.received_ids[client_id][query_id] = self.received_ids[client_id].get(query_id, set())
         if id in self.received_ids[client_id][query_id]:
@@ -255,6 +272,7 @@ class Counter:
     
 
     def callback(self, ch, method, properties, body,event):
+        self.inspect_info_queue(event)
         data_chunk = DataChunk.from_bytes(body)
         for data_fragment in data_chunk.get_fragments():
             if event.is_set():
@@ -285,6 +303,18 @@ class Counter:
                 self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
         self.mom.ack(delivery_tag=method.delivery_tag)
 
+    def inspect_info_queue(self, event) -> None:
+        while not event.is_set():
+            msg = self.mom.consume(self.info_queue)
+            if not msg:
+                return
+            datafragment, tag = msg
+            if datafragment.get_query_info().is_clean_flag():
+                self.clean_data_client(datafragment.get_client_id())
+            else:
+                logger.error(f"Unexpected message in info queue: {datafragment}")
+            self.mom.ack(tag)
+
     def run_counter(self, event):
         while not event.is_set():
             try:
@@ -301,7 +331,10 @@ class Counter:
         while not self.exit and counter_proccess.is_alive():
             msg = NODE_TYPE + "." + self.id + "$"
             try:
-                sock.sendto(msg.encode(), self.medic_addres)
+                for id,address in MEDIC_IP_ADDRESSES.items():
+                    complete_addres = (address, MEDIC_PORT)
+                    sock.sendto(msg.encode(), complete_addres)
+                    logger.error(f"Hartbeat sent to medic with id: {id}")
             except Exception as e:
                 logger.error(f"Error sending hartbeat: {e}")
             finally:
@@ -319,8 +352,10 @@ def main():
     counter = Counter()
     counter.run()
     if not counter.exit:
-        counter.mom.close()
-        counter.log_writer.close()
+        if counter.mom:
+            counter.mom.close()
+        if counter.log_writer:
+            counter.log_writer.close()
    
 if __name__ == "__main__":
     main()

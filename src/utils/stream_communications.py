@@ -37,9 +37,10 @@ def send_msg(socket, msg):
         try:
             sent = socket.send(msg[total_sent:])
         except (OSError, BrokenPipeError):
-            print("Error: Broken Pipe")
+            # print("Error: Broken Pipe")
             break
         if sent == 0:
-            print("Error sending data")
+            # print("Error sending data")
             break
         total_sent = total_sent + sent
+    return total_sent
