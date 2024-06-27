@@ -33,7 +33,7 @@ MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
-BATCH_CLEAN_INTERVAL = 10
+BATCH_CLEAN_INTERVAL = 100
 
 class Filter:
     def __init__(self):
