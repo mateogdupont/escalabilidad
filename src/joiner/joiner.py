@@ -299,7 +299,7 @@ class Joiner:
                 client_id = datafragment.get_client_id()
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
-                self.rewrite_logs()
+                self.rewrite_logs(event)
             elif start_sync:
                 self.send_all()
                 datafragment.set_sync(False, True)
@@ -314,7 +314,7 @@ class Joiner:
         times_empty = 0
         last_clean = time.time()
         random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
-        self.rewrite_logs()
+        self.rewrite_logs(event)
         while not event.is_set():
             try:
                 self.send_with_timeout(event)
@@ -325,21 +325,21 @@ class Joiner:
                     continue
                 times_empty = 0
                 if time.time() - last_clean > BATCH_CLEAN_INTERVAL + random_extra:
-                    self.rewrite_logs()
+                    self.rewrite_logs(event)
                     last_clean = time.time()
                     random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
             except Exception as e:
                 logger.error(f"Error in joiner: {e.with_traceback(None)}")
                 event.set()
 
-    def rewrite_logs(self):
+    def rewrite_logs(self, event):
         self.log_writer_reviews.close()
         self.log_writer_books.close()
         log_rewriter_reviews = LogRecoverer(os.environ["LOG_PATH_REVIEWS"])
-        log_rewriter_reviews.rewrite_logs()
+        log_rewriter_reviews.rewrite_logs(event)
         log_rewriter_books = LogRecoverer(os.environ["LOG_PATH_BOOKS"])
         log_rewriter_books.set_ended_queries(log_rewriter_reviews.get_ended_queries())
-        log_rewriter_books.rewrite_logs()
+        log_rewriter_books.rewrite_logs(event)
         log_rewriter_reviews.swap_files()
         log_rewriter_books.swap_files()
         self.log_writer_reviews.open()

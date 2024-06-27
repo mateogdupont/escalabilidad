@@ -169,7 +169,7 @@ class BasicLogRecoverer:
     def set_ended_queries(self, ended_queries: dict) -> None:
         self.ended_queries = ended_queries
 
-    def rewrite_logs(self) -> None:
+    def rewrite_logs(self, event) -> None:
         # return
         logger.info("Rewriting logs")
         time1 = time.time()
@@ -182,6 +182,8 @@ class BasicLogRecoverer:
                     return
                 start = False
                 for line in lines[::-1]:
+                    if event.is_set():
+                        return
                     if not start and not line.startswith(END_LOG):
                         continue
                     if line.startswith(END_LOG):

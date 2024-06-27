@@ -244,7 +244,7 @@ class Filter:
                 client_id = datafragment.get_client_id()
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
-                self.rewrite_logs()
+                self.rewrite_logs(event)
             elif start_sync:
                 logger.info(f"Received a sync request, sending data fragments (sync_id = {self.get_sync_id(datafragment)})")
                 self.send_all()
@@ -259,7 +259,7 @@ class Filter:
         times_empty = 0
         last_clean = time.time()
         random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
-        self.rewrite_logs()
+        self.rewrite_logs(event)
         while not event.is_set():
             # try:
             self.send_with_timeout(event)
@@ -270,7 +270,7 @@ class Filter:
                 continue
             times_empty = 0
             if time.time() - last_clean > BATCH_CLEAN_INTERVAL + random_extra:
-                self.rewrite_logs()
+                self.rewrite_logs(event)
                 last_clean = time.time()
                 random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
             # except Exception as e:
@@ -295,10 +295,10 @@ class Filter:
                 time.sleep(HARTBEAT_INTERVAL)
         filter_proccess.join()
     
-    def rewrite_logs(self):
+    def rewrite_logs(self, event):
         self.log_writer.close()
         log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
-        log_rewriter.rewrite_logs()
+        log_rewriter.rewrite_logs(event)
         log_rewriter.swap_files()
         self.log_writer.open()
         
