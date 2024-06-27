@@ -171,7 +171,7 @@ class Medic:
                 logger.info(f"RECEIVER| Put msg of new medic in queue")
                 peer_sockets[peer_id] = peer_socket
             except Exception as e:
-                    logger.error(f"RECEIVER| Error waiting for new medic: {e}")
+                    logger.info(f"RECEIVER| Error waiting for new medic: {e}")
             finally:
                 try:
                     peer_sockets = self.try_update_sockets(peer_sockets, socket_queue_from_bully)

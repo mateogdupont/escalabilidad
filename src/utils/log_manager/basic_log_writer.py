@@ -83,7 +83,7 @@ class BasicLogWriter:
         id_log = f"{RECEIVED_ID} {client_id} {query_id} {df_id}"
         logs.append(id_log)
         for df, node in next_steps:
-            df_str = base64.b64encode(df.to_bytes()).decode()
+            df_str = base64.b64encode(df.to_bytes()).decode('utf-8')
             result_log = f"{RESULT} {node} {time} {df_str}"
             logs.append(result_log)
         self._add_logs(logs)
@@ -100,5 +100,5 @@ class BasicLogWriter:
         self._add_logs([f"{RESULT_SENT} {node}"])
     
     def log_book(self, book: Book) -> None:
-        self._add_logs([f"{BOOK} {base64.b64encode(book.to_bytes()).decode()}"])
+        self._add_logs([f"{BOOK} {base64.b64encode(book.to_bytes()).decode('utf-8')}"])
     

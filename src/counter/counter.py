@@ -141,7 +141,7 @@ class Counter:
                     added = True
             if added:
                 self.counted_data[client_id][query_id][TOP] = sorted(self.counted_data[client_id][query_id][TOP], key=lambda fragment: fragment.get_query_info().get_average())
-                df_str = base64.b64encode(data_fragment.to_bytes()).decode()
+                df_str = base64.b64encode(data_fragment.to_bytes()).decode('utf-8')
                 count_info = {"TOP": df_str, "AMOUNT": top_amount}
                 self.log_writer.log_counted_data(data_fragment, repr(count_info))
         else:

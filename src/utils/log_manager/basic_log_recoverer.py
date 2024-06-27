@@ -87,7 +87,7 @@ class BasicLogRecoverer:
         time = parts[2]
         start = line.find(parts[3])
         df_str = line[start:]
-        df = DataFragment.from_bytes(base64.b64decode(df_str))
+        df = DataFragment.from_bytes(base64.b64decode(df_str.encode('utf-8')))
         if df.get_client_id() in self.ignore_ids or node in self.sent_results:
             return False
         time = float(time) if time != NONE else None
@@ -126,7 +126,7 @@ class BasicLogRecoverer:
             raise ErrorProcessingLog(f"Error processing log: {line}")
         start = line.find(parts[1])
         book_str = line[start:]
-        book = Book.from_bytes(base64.b64decode(book_str))
+        book = Book.from_bytes(base64.b64decode(book_str.encode('utf-8')))
         self.books[book.get_title()] = book
         return True
 
@@ -235,7 +235,7 @@ class BasicLogRecoverer:
     def swap_files(self) -> None:
         logger.info("Renaming files")
         new_path = self._rename_temp_file()
-        os.remove(self.file_path)
+        # os.remove(self.file_path)
         self.file_path = new_path
         self.tmp_file_path = None
         logger.info("New path loaded")
