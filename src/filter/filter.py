@@ -1,3 +1,4 @@
+import random
 import signal
 import os
 import time
@@ -23,7 +24,7 @@ TITLE_FILTER = "TITLE"
 DISTINCT_FILTER = "COUNT_DISTINCT"
 SENTIMENT_FILTER = "SENTIMENT"
 NODE_TYPE=os.environ["NODE_TYPE"]
-HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
+HEARTBEAT_INTERVAL=int(os.environ["HEARTBEAT_INTERVAL"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
 TIMEOUT = 50
 MAX_QUERIES = 1
@@ -33,7 +34,8 @@ MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
-BATCH_CLEAN_INTERVAL = 10
+# BATCH_CLEAN_INTERVAL = 60 * 2 # 2 minutes
+# MAX_EXTRA_INTERVAL = 60 * 1 # 1 minute
 
 class Filter:
     def __init__(self):
@@ -121,7 +123,6 @@ class Filter:
             # try:
             self.mom.publish(data_chunk, node)
             self.log_writer.log_result_sent(node)
-            # self.rewrite_logs() # TODO: check if this is the correct place to call this
             # except Exception as e:
             #     logger.error(f"[add_and_try_to_send_chunk] Error al enviar a {node}: {e}")
             self.results[node] = ([], time.time())
@@ -242,7 +243,6 @@ class Filter:
                 client_id = datafragment.get_client_id()
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
-                self.rewrite_logs()
             elif start_sync:
                 logger.info(f"Received a sync request, sending data fragments (sync_id = {self.get_sync_id(datafragment)})")
                 self.send_all()
@@ -252,10 +252,13 @@ class Filter:
             elif not end_sync:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
             self.mom.ack(tag)
+            self.rewrite_logs(event)
 
     def run_filter(self, event):
         times_empty = 0
-        batches_processed = 0
+        # last_clean = time.time()
+        # random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
+        self.rewrite_logs(event)
         while not event.is_set():
             # try:
             self.send_with_timeout(event)
@@ -265,10 +268,10 @@ class Filter:
                 time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                 continue
             times_empty = 0
-            batches_processed += 1
-            if batches_processed == BATCH_CLEAN_INTERVAL:
-                self.rewrite_logs()
-                batches_processed = 0
+            # if time.time() - last_clean > BATCH_CLEAN_INTERVAL + random_extra:
+            #     self.rewrite_logs(event)
+            #     last_clean = time.time()
+            #     random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
             # except Exception as e:
             #     logger.error(f"Error in filter: {e.with_traceback(None)}")
             #     event.set()
@@ -284,17 +287,17 @@ class Filter:
                 for id,address in MEDIC_IP_ADDRESSES.items():
                     complete_addres = (address, MEDIC_PORT)
                     sock.sendto(msg.encode(), complete_addres)
-                    logger.error(f"Hartbeat sent to medic with id: {id}")
+                    logger.info(f"Heartbeat sent to medic with id: {id}")
             except Exception as e:
-                logger.error(f"Error sending hartbeat: {e}")
+                logger.error(f"Error sending heartbeat: {e}")
             finally:
-                time.sleep(HARTBEAT_INTERVAL)
+                time.sleep(HEARTBEAT_INTERVAL)
         filter_proccess.join()
     
-    def rewrite_logs(self):
+    def rewrite_logs(self, event):
         self.log_writer.close()
         log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
-        log_rewriter.rewrite_logs()
+        log_rewriter.rewrite_logs(event)
         log_rewriter.swap_files()
         self.log_writer.open()
         

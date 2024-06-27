@@ -1,3 +1,4 @@
+import random
 import sys
 import os
 import signal
@@ -21,7 +22,7 @@ load_dotenv()
 CATEGORY_FILTER = "CATEGORY"
 YEAR_FILTER = "YEAR"
 NODE_TYPE=os.environ["NODE_TYPE"]
-HARTBEAT_INTERVAL=int(os.environ["HARTBEAT_INTERVAL"])
+HEARTBEAT_INTERVAL=int(os.environ["HEARTBEAT_INTERVAL"])
 MEDIC_IP_ADDRESSES=eval(os.environ.get("MEDIC_IPS"))
 MEDIC_PORT=int(os.environ["MEDIC_PORT"])
 MAX_AMOUNT_OF_FRAGMENTS = 800
@@ -32,7 +33,8 @@ MAX_QUERIES = 1
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
-BATCH_CLEAN_INTERVAL = 200
+# BATCH_CLEAN_INTERVAL = 60 * 2 # 2 minutes
+# MAX_EXTRA_INTERVAL = 60 * 1 # 1 minute
 
 class Joiner:
     def __init__(self):
@@ -262,7 +264,6 @@ class Joiner:
                 chunk = DataChunk(data)
                 self.mom.publish(chunk, key)
                 self.log_writer_reviews.log_result_sent(key)
-                # self.rewrite_logs() # TODO: check if this is the correct place to call this
                 self.results[key] = ([], time.time())
 
     def process_review(self, event) -> bool:
@@ -297,7 +298,6 @@ class Joiner:
                 client_id = datafragment.get_client_id()
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
-                self.rewrite_logs()
             elif start_sync:
                 self.send_all()
                 datafragment.set_sync(False, True)
@@ -305,12 +305,15 @@ class Joiner:
             elif not end_sync:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
             self.mom.ack(tag)
+            self.rewrite_logs(event)
 
     def run_joiner(self, event):
         if len(self.books_side_tables) == 0:
             self.receive_all_books(event)
         times_empty = 0
-        batches_processed = 0
+        # last_clean = time.time()
+        # random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
+        self.rewrite_logs(event)
         while not event.is_set():
             try:
                 self.send_with_timeout(event)
@@ -320,22 +323,22 @@ class Joiner:
                     time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
                     continue
                 times_empty = 0
-                batches_processed += 1
-                if batches_processed == BATCH_CLEAN_INTERVAL:
-                    self.rewrite_logs()
-                    batches_processed = 0
+                # if time.time() - last_clean > BATCH_CLEAN_INTERVAL + random_extra:
+                #     self.rewrite_logs(event)
+                #     last_clean = time.time()
+                #     random_extra = random.randint(0, MAX_EXTRA_INTERVAL)
             except Exception as e:
                 logger.error(f"Error in joiner: {e.with_traceback(None)}")
                 event.set()
 
-    def rewrite_logs(self):
+    def rewrite_logs(self, event):
         self.log_writer_reviews.close()
         self.log_writer_books.close()
         log_rewriter_reviews = LogRecoverer(os.environ["LOG_PATH_REVIEWS"])
-        log_rewriter_reviews.rewrite_logs()
+        log_rewriter_reviews.rewrite_logs(event)
         log_rewriter_books = LogRecoverer(os.environ["LOG_PATH_BOOKS"])
         log_rewriter_books.set_ended_queries(log_rewriter_reviews.get_ended_queries())
-        log_rewriter_books.rewrite_logs()
+        log_rewriter_books.rewrite_logs(event)
         log_rewriter_reviews.swap_files()
         log_rewriter_books.swap_files()
         self.log_writer_reviews.open()
@@ -352,11 +355,11 @@ class Joiner:
                 for id,address in MEDIC_IP_ADDRESSES.items():
                     complete_addres = (address, MEDIC_PORT)
                     sock.sendto(msg.encode(), complete_addres)
-                    logger.error(f"Hartbeat sent to medic with id: {id}")
+                    logger.info(f"Heartbeat sent to medic with id: {id}")
             except Exception as e:
-                logger.error(f"Error sending hartbeat: {e}")
+                logger.error(f"Error sending heartbeat: {e}")
             finally:
-                time.sleep(HARTBEAT_INTERVAL)
+                time.sleep(HEARTBEAT_INTERVAL)
         joiner_proccess.join()
         
 def main():

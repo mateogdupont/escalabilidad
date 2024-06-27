@@ -94,7 +94,7 @@ class Medic:
         while not self._finish_event.is_set():
             try:
                 data, addr = self._udp_socket.recvfrom(1024)
-                # 1024 deberia ser suficiente para el hartbeat
+                # 1024 deberia ser suficiente para el heartbeat
                 if not data:
                     continue
                 msg = data.decode("utf-8")
