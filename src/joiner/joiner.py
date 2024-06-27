@@ -32,7 +32,7 @@ MAX_QUERIES = 1
 MAX_SLEEP = 10 # seconds
 MULTIPLIER = 0.1
 
-BATCH_CLEAN_INTERVAL = 10
+BATCH_CLEAN_INTERVAL = 20
 
 class Joiner:
     def __init__(self):
