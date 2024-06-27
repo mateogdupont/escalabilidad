@@ -306,7 +306,7 @@ class Counter:
                 if len(fragments) > 0:
                     self.mom.publish(DataChunk(fragments), key)
                 self.log_writer.log_counted_data_sent(data_fragment)
-                self.rewrite_logs()
+                self.rewrite_logs(event)
 
                 self.clean_data(data_fragment.get_query_id(), data_fragment.get_client_id())
         self.mom.ack(delivery_tag=tag)
@@ -322,7 +322,7 @@ class Counter:
                 client_id = datafragment.get_client_id()
                 logger.info(f"Received a clean flag for client {client_id}, cleaning data")
                 self.clean_data_client(client_id)
-                self.rewrite_logs()
+                self.rewrite_logs(event)
             else:
                 logger.error(f"Unexpected message in info queue: {datafragment}")
             self.mom.ack(tag)
@@ -359,10 +359,10 @@ class Counter:
                 time.sleep(HARTBEAT_INTERVAL)
         counter_proccess.join()
 
-    def rewrite_logs(self):
+    def rewrite_logs(self, event):
         self.log_writer.close()
         log_rewriter = LogRecoverer(os.environ["LOG_PATH"])
-        log_rewriter.rewrite_logs()
+        log_rewriter.rewrite_logs(event)
         log_rewriter.swap_files()
         self.log_writer.open()
 
