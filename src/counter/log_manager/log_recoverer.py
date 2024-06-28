@@ -46,13 +46,13 @@ class LogRecoverer(BasicLogRecoverer):
         self.counted_data[client_id] = self.counted_data.get(client_id, {})
         self.counted_data[client_id][query_id] = self.counted_data[client_id].get(query_id, {})
 
-        if TOP in count_info:
+        if count_info.startswith(TOP):
             self._process_top(client_id, query_id, count_info)
-        elif PERCENTILE in count_info:
+        elif count_info.startswith(PERCENTILE):
             self._process_percentile(client_id, query_id, count_info)
-        elif "2" in count_info:
+        elif count_info.startswith("2"):
             self._process_2(client_id, query_id, count_info)
-        elif "1" in count_info:
+        elif count_info.startswith("1"):
             self._process1(client_id, query_id, count_info)
         else:
             raise ErrorProcessingLog(f"Error processing log: {line}")
