@@ -97,7 +97,6 @@ class LogRecoverer(BasicLogRecoverer):
         start = count_info.find(parts[2])
         df_str = count_info[start:]
         df = DataFragment.from_str(df_str)
-        amount = count_info[AMOUNT]
         added = False
         if len(self.counted_data[client_id][query_id][TOP]) < amount:
             self.counted_data[client_id][query_id][TOP].append(df)
