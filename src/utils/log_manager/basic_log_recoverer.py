@@ -237,7 +237,7 @@ class BasicLogRecoverer:
     def swap_files(self) -> None:
         logger.info("Renaming files")
         new_path = self._rename_temp_file()
-        # os.remove(self.file_path)
+        os.remove(self.file_path)
         self.file_path = new_path
         self.tmp_file_path = None
         logger.info("New path loaded")
