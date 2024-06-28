@@ -39,6 +39,7 @@ class LogRecoverer(BasicLogRecoverer):
             return False
         # count_info = eval(count_info)
         # count_info = ast.literal_eval(count_info)
+        logger.info(f"line: {line}")
         logger.info(f"parts: {parts}")
         logger.info(f"count_info: {count_info}")
         
