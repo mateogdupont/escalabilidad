@@ -142,8 +142,9 @@ class Counter:
             if added:
                 self.counted_data[client_id][query_id][TOP] = sorted(self.counted_data[client_id][query_id][TOP], key=lambda fragment: fragment.get_query_info().get_average())
                 df_str = data_fragment.to_str()
-                count_info = {"TOP": df_str, "AMOUNT": top_amount}
-                self.log_writer.log_counted_data(data_fragment, repr(count_info))
+                # count_info = {"TOP": df_str, "AMOUNT": top_amount}
+                count_info = f"TOP {top_amount} {df_str}"
+                self.log_writer.log_counted_data(data_fragment, count_info)
         else:
             top = self.counted_data[client_id][query_id][TOP]
             for fragment in top:
@@ -169,8 +170,9 @@ class Counter:
             self.counted_data[client_id][query_id][group_data]["VALUES"].append(value)
             self.books[group_data] = data_fragment.get_book() 
             self.log_writer.log_book(data_fragment.get_book())
-            count_info = {"PERCENTILE": percentile, "VALUE": value, "GROUP_DATA": group_data}
-            self.log_writer.log_counted_data(data_fragment, repr(count_info))
+            # count_info = {"PERCENTILE": percentile, "VALUE": value, "GROUP_DATA": group_data}
+            count_info = f"PERCENTILE {percentile} {value} {group_data}"
+            self.log_writer.log_counted_data(data_fragment, count_info)
         else:
             sentiment_scores = {}
             percentile_number = None
@@ -211,8 +213,9 @@ class Counter:
             self.counted_data[client_id][query_id][group_data]["COUNT"] += 1
             self.books[group_data] = data_fragment.get_book() 
             self.log_writer.log_book(data_fragment.get_book())
-            count_info = {"2": 2, "VALUE": value, "GROUP_DATA": group_data}
-            self.log_writer.log_counted_data(data_fragment, repr(count_info))
+            # count_info = {"2": 2, "VALUE": value, "GROUP_DATA": group_data}
+            count_info = f"2 {value} {group_data}"
+            self.log_writer.log_counted_data(data_fragment, count_info)
         else:
             next_id = data_fragment.get_id() + 1
             for group_data in self.counted_data[client_id][query_id].keys():
@@ -242,8 +245,9 @@ class Counter:
                     if data not in self.counted_data[client_id][query_id].keys():
                         self.counted_data[client_id][query_id][data] = set()
                     self.counted_data[client_id][query_id][data].add(value)
-                    count_info = {"1": 1, "VALUE": value, "GROUP_DATA": data}
-                    self.log_writer.log_counted_data(data_fragment, repr(count_info))
+                    # count_info = {"1": 1, "VALUE": value, "GROUP_DATA": data}
+                    count_info = f"1 {value} {data}"
+                    self.log_writer.log_counted_data(data_fragment, count_info)
             else:
                 logger.warning(f"Group data is not a list, it is a {type(group_data)}")
         else:

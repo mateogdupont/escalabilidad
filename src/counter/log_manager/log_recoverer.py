@@ -38,49 +38,59 @@ class LogRecoverer(BasicLogRecoverer):
         if client_id in self.ignore_ids or query_id in self.counted_data_sent.get(client_id, set()):
             return False
         # count_info = eval(count_info)
-        count_info = ast.literal_eval(count_info)
+        # count_info = ast.literal_eval(count_info)
         
         self.counted_data[client_id] = self.counted_data.get(client_id, {})
         self.counted_data[client_id][query_id] = self.counted_data[client_id].get(query_id, {})
 
-        if TOP in count_info.keys():
+        if TOP in count_info:
             self._process_top(client_id, query_id, count_info)
-        elif PERCENTILE in count_info.keys():
+        elif PERCENTILE in count_info:
             self._process_percentile(client_id, query_id, count_info)
-        elif "2" in count_info.keys():
+        elif "2" in count_info:
             self._process_2(client_id, query_id, count_info)
-        elif "1" in count_info.keys():
+        elif "1" in count_info:
             self._process1(client_id, query_id, count_info)
         else:
             raise ErrorProcessingLog(f"Error processing log: {line}")
         return True
 
     def _process1(self, client_id, query_id, count_info):
-        group_data = count_info[GROUP_DATA]
-        value = count_info[VALUE]
+        parts = count_info.split(SEP)
+        value = float(parts[1])
+        start = count_info.find(parts[2])
+        group_data = count_info[start:]
         if group_data not in self.counted_data[client_id][query_id].keys():
             self.counted_data[client_id][query_id][group_data] = set()
         self.counted_data[client_id][query_id][group_data].add(value)
 
     def _process_2(self, client_id, query_id, count_info):
-        group_data = count_info[GROUP_DATA]
-        value = count_info[VALUE]
+        parts = count_info.split(SEP)
+        value = float(parts[1])
+        start = count_info.find(parts[2])
+        group_data = count_info[start:]
         if group_data not in self.counted_data[client_id][query_id].keys():
             self.counted_data[client_id][query_id][group_data] = {"TOTAL": 0, "COUNT": 0}
         self.counted_data[client_id][query_id][group_data]["TOTAL"] += value
         self.counted_data[client_id][query_id][group_data]["COUNT"] += 1
 
     def _process_percentile(self, client_id, query_id, count_info):
-        group_data = count_info[GROUP_DATA]
-        percentile = count_info[PERCENTILE]
-        value = count_info[VALUE]
+        parts = count_info.split(SEP)
+        percentile = int(parts[1])
+        value = float(parts[2])
+        start = count_info.find(parts[3])
+        group_data = count_info[start:]
         if group_data not in self.counted_data[client_id][query_id].keys():
             self.counted_data[client_id][query_id][group_data] = {"PERCENTILE": percentile, "VALUES": []}
         self.counted_data[client_id][query_id][group_data]["VALUES"].append(value)
 
     def _process_top(self, client_id, query_id, count_info):
         self.counted_data[client_id][query_id][TOP] = self.counted_data[client_id][query_id].get(TOP, [])
-        df = DataFragment.from_str(count_info[TOP])
+        parts = count_info.split(SEP)
+        amount = int(parts[1])
+        start = count_info.find(parts[2])
+        df_str = count_info[start:]
+        df = DataFragment.from_str(df_str)
         amount = count_info[AMOUNT]
         added = False
         if len(self.counted_data[client_id][query_id][TOP]) < amount:
