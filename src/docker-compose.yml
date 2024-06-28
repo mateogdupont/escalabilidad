@@ -82,20 +82,20 @@ services:
     depends_on:
       - rabbitmq1
   
-  # filter2:
-  #   build:
-  #     context: .
-  #     dockerfile: ./filter/Dockerfile
-  #   networks:
-  #     - network-bridge
-  #   volumes:
-  #     - ../logs:/logs
-  #   environment:
-  #     - ID=2
-  #     - LOG_PATH=/logs/filter2.log
-  #     - INFO_QUEUE=info.filter2
-  #   depends_on:
-  #     - rabbitmq1
+  filter2:
+    build:
+      context: .
+      dockerfile: ./filter/Dockerfile
+    networks:
+      - network-bridge
+    volumes:
+      - ../logs:/logs
+    environment:
+      - ID=2
+      - LOG_PATH=/logs/filter2.log
+      - INFO_QUEUE=info.filter2
+    depends_on:
+      - rabbitmq1
 
   joiner1:
     build:
@@ -145,21 +145,21 @@ services:
     depends_on:
       - rabbitmq1
 
-  # joiner4:
-  #   build:
-  #     context: .
-  #     dockerfile: ./joiner/Dockerfile
-  #   environment:
-  #     - ID=4
-  #     - LOG_PATH_BOOKS=/logs/joiner4_books.log
-  #     - LOG_PATH_REVIEWS=/logs/joiner4_reviews.log
-  #     - INFO_QUEUE=info.joiner4
-  #   depends_on:
-  #     - rabbitmq1
-  #   networks:
-  #     - network-bridge
-  #   volumes:
-  #     - ../logs:/logs
+  joiner4:
+    build:
+      context: .
+      dockerfile: ./joiner/Dockerfile
+    environment:
+      - ID=4
+      - LOG_PATH_BOOKS=/logs/joiner4_books.log
+      - LOG_PATH_REVIEWS=/logs/joiner4_reviews.log
+      - INFO_QUEUE=info.joiner4
+    depends_on:
+      - rabbitmq1
+    networks:
+      - network-bridge
+    volumes:
+      - ../logs:/logs
 
   counter1:
     build:
@@ -176,35 +176,35 @@ services:
     depends_on:
       - rabbitmq1
     
-  sentiment-analyzer1:
-    build:
-      context: .
-      dockerfile: ./sentiment_analyzer/Dockerfile
-    volumes:
-      - ../logs:/logs
-    environment:
-      - LOG_PATH=/logs/sentiment_analyzer1.log
-      - INFO_QUEUE=info.sentiment_analyzer1
-      - ID=1
-    networks:
-      - network-bridge
-    depends_on:
-      - rabbitmq1
+  # sentiment-analyzer1:
+  #   build:
+  #     context: .
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
+  #   volumes:
+  #     - ../logs:/logs
+  #   environment:
+  #     - LOG_PATH=/logs/sentiment_analyzer1.log
+  #     - INFO_QUEUE=info.sentiment_analyzer1
+  #     - ID=1
+  #   networks:
+  #     - network-bridge
+  #   depends_on:
+  #     - rabbitmq1
   
-  sentiment-analyzer2:
-    build: 
-      context: .
-      dockerfile: ./sentiment_analyzer/Dockerfile
-    volumes:
-      - ../logs:/logs
-    environment:
-      - LOG_PATH=/logs/sentiment_analyzer2.log
-      - INFO_QUEUE=info.sentiment_analyzer2
-      - ID=2
-    networks:
-      - network-bridge
-    depends_on:
-      - rabbitmq1
+  # sentiment-analyzer2:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./sentiment_analyzer/Dockerfile
+  #   volumes:
+  #     - ../logs:/logs
+  #   environment:
+  #     - LOG_PATH=/logs/sentiment_analyzer2.log
+  #     - INFO_QUEUE=info.sentiment_analyzer2
+  #     - ID=2
+  #   networks:
+  #     - network-bridge
+  #   depends_on:
+  #     - rabbitmq1
   
   # sentiment-analyzer3:
   #   build: 
@@ -234,44 +234,44 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
-  medic2:
-    build:
-      context: .
-      dockerfile: ./medic/Dockerfile
-    environment:
-      - ID=2
-    networks:
-      network-bridge:
-        ipv4_address: 172.16.238.20
-    hostname: 172.16.238.20
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+  # medic2:
+  #   build:
+  #     context: .
+  #     dockerfile: ./medic/Dockerfile
+  #   environment:
+  #     - ID=2
+  #   networks:
+  #     network-bridge:
+  #       ipv4_address: 172.16.238.20
+  #   hostname: 172.16.238.20
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
 
-  medic3:
-    build:
-      context: .
-      dockerfile: ./medic/Dockerfile
-    environment:
-      - ID=3
-    networks:
-      network-bridge:
-        ipv4_address: 172.16.238.30
-    hostname: 172.16.238.30
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+  # medic3:
+  #   build:
+  #     context: .
+  #     dockerfile: ./medic/Dockerfile
+  #   environment:
+  #     - ID=3
+  #   networks:
+  #     network-bridge:
+  #       ipv4_address: 172.16.238.30
+  #   hostname: 172.16.238.30
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
 
-  medic4:
-    build:
-      context: .
-      dockerfile: ./medic/Dockerfile
-    environment:
-      - ID=4
-    networks:
-      network-bridge:
-        ipv4_address: 172.16.238.40
-    hostname: 172.16.238.40
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  
+  # medic4:
+  #   build:
+  #     context: .
+  #     dockerfile: ./medic/Dockerfile
+  #   environment:
+  #     - ID=4
+  #   networks:
+  #     network-bridge:
+  #       ipv4_address: 172.16.238.40
+  #   hostname: 172.16.238.40
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock  
 
 networks:
   network-bridge:

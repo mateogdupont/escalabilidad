@@ -16,4 +16,5 @@ RUN pip install -r ./utils/requirements.txt
 
 ENV PYTHONPATH /
 
-ENTRYPOINT ["bash", "-c", "sleep 15 && python client/main.py .. 1,2,3,4,5"]
+# Run only the query with the TOP filter
+ENTRYPOINT ["bash", "-c", "sleep 15 && python client/main.py .. 4"] 
