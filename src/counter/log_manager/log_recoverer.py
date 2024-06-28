@@ -33,7 +33,7 @@ class LogRecoverer(BasicLogRecoverer):
         # _, client_id, query_id, count_info = parts
         client_id = parts[1]
         query_id = parts[2]
-        start = line.find(' '.join(parts[3:])[:15])
+        start = line.find(' '.join(parts[3:])[:10])
         count_info = line[start:]
         if client_id in self.ignore_ids or query_id in self.counted_data_sent.get(client_id, set()):
             return False
