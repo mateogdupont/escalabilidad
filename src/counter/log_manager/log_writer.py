@@ -14,6 +14,11 @@ class LogWriter(BasicLogWriter):
         super().__init__(file_path)
 
     def log_counted_data(self, fragment: DataFragment, count_info: str) -> None:
+        if type(count_info) != str:
+            raise ValueError("count_info must be a string")
+        if '{' in count_info or '}' in count_info:
+            raise ValueError("count_info cannot be a string representation of a dictionary")
+            
         client_id = fragment.get_client_id()
         query_id = fragment.get_query_id()
         df_id = fragment.get_id()
