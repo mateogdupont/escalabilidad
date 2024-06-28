@@ -289,6 +289,10 @@ class Counter:
             results = self.count_data_fragment(data_fragment, event)
 
             if data_fragment.is_last():
+                if data_fragment.get_query_info().filter_by_top():
+                    raise Exception("Error raised with testing purposes") # The idea is to to make the counter crash
+                                                                          #  when all the fragments are received and
+                                                                          #  saved in the log file
                 self.log_writer.log_query_ended(data_fragment)
                 results.append(data_fragment)
                 key = None
@@ -330,16 +334,16 @@ class Counter:
     def run_counter(self, event):
         times_empty = 0
         while not event.is_set():
-            try:
-                self.inspect_info_queue(event)
-                if not self.process_msg(event):
-                    times_empty += 1
-                    time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
-                    continue
-                times_empty = 0
-            except Exception as e:
-                logger.error(f"Error in counter: {e.with_traceback(None)}")
-                event.set()
+            # try:
+            self.inspect_info_queue(event)
+            if not self.process_msg(event):
+                times_empty += 1
+                time.sleep(min(MAX_SLEEP, (times_empty**2) * MULTIPLIER))
+                continue
+            times_empty = 0
+            # except Exception as e:
+            #     logger.error(f"Error in counter: {e.with_traceback(None)}")
+            #     event.set()
 
     def run(self):
         self.event = Event()
