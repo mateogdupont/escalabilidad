@@ -33,29 +33,31 @@ class LogRecoverer(BasicLogRecoverer):
         # _, client_id, query_id, count_info = parts
         client_id = parts[1]
         query_id = parts[2]
-        start = line.find(parts[3])
+        start = line.find(' '.join(parts[3:])[:15])
         count_info = line[start:]
         if client_id in self.ignore_ids or query_id in self.counted_data_sent.get(client_id, set()):
             return False
         # count_info = eval(count_info)
         # count_info = ast.literal_eval(count_info)
-        logger.info(f"line: {line}")
-        logger.info(f"parts: {parts}")
-        logger.info(f"count_info: {count_info}")
         
         self.counted_data[client_id] = self.counted_data.get(client_id, {})
         self.counted_data[client_id][query_id] = self.counted_data[client_id].get(query_id, {})
-
-        if count_info.startswith(TOP):
-            self._process_top(client_id, query_id, count_info)
-        elif count_info.startswith(PERCENTILE):
-            self._process_percentile(client_id, query_id, count_info)
-        elif count_info.startswith("2"):
-            self._process_2(client_id, query_id, count_info)
-        elif count_info.startswith("1"):
-            self._process1(client_id, query_id, count_info)
-        else:
-            raise ErrorProcessingLog(f"Error processing log: {line}")
+        try:
+            if count_info.startswith(TOP):
+                self._process_top(client_id, query_id, count_info)
+            elif count_info.startswith(PERCENTILE):
+                self._process_percentile(client_id, query_id, count_info)
+            elif count_info.startswith("2"):
+                self._process_2(client_id, query_id, count_info)
+            elif count_info.startswith("1"):
+                self._process1(client_id, query_id, count_info)
+            else:
+                raise ErrorProcessingLog(f"Error processing log: {line}")
+        except Exception as e:
+            logger.info(f"line: {line}")
+            logger.info(f"parts: {parts}")
+            logger.info(f"count_info: {count_info}")
+            raise e
         return True
 
     def _process1(self, client_id, query_id, count_info):
