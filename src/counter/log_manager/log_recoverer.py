@@ -2,6 +2,7 @@ import base64
 from typing import Tuple
 from utils.log_manager.basic_log_recoverer import *
 from utils.structs.data_fragment import DataFragment
+import ast
 
 TOP = "TOP"
 AMOUNT = "AMOUNT"
@@ -36,7 +37,8 @@ class LogRecoverer(BasicLogRecoverer):
         count_info = line[start:]
         if client_id in self.ignore_ids or query_id in self.counted_data_sent.get(client_id, set()):
             return False
-        count_info = eval(count_info)
+        # count_info = eval(count_info)
+        count_info = ast.literal_eval(count_info)
         
         self.counted_data[client_id] = self.counted_data.get(client_id, {})
         self.counted_data[client_id][query_id] = self.counted_data[client_id].get(query_id, {})
