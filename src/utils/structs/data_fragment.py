@@ -48,8 +48,8 @@ class DataFragment:
 
     @classmethod
     def from_str(cls, string: str) -> 'DataFragment':
-        base64_encoded_bytes = string.encode('utf-8')
-        binary_data = base64.b64decode(base64_encoded_bytes)
+        # base64_encoded_bytes = string.encode('utf-8')
+        binary_data = base64.b64decode(string)
         return cls.from_bytes(binary_data)
         
     
