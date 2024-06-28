@@ -39,6 +39,8 @@ class LogRecoverer(BasicLogRecoverer):
             return False
         # count_info = eval(count_info)
         # count_info = ast.literal_eval(count_info)
+        logger.info(f"parts: {parts}")
+        logger.info(f"count_info: {count_info}")
         
         self.counted_data[client_id] = self.counted_data.get(client_id, {})
         self.counted_data[client_id][query_id] = self.counted_data[client_id].get(query_id, {})
@@ -87,6 +89,7 @@ class LogRecoverer(BasicLogRecoverer):
     def _process_top(self, client_id, query_id, count_info):
         self.counted_data[client_id][query_id][TOP] = self.counted_data[client_id][query_id].get(TOP, [])
         parts = count_info.split(SEP)
+        logger.info(f"parts: {parts}")
         amount = int(parts[1])
         start = count_info.find(parts[2])
         df_str = count_info[start:]

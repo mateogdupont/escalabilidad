@@ -123,7 +123,7 @@ class Counter:
             return self.count_type_3(data_fragment, query_id, queries, group_data, value, percentile_data[0],event)
         return []
     
-    def count_top(self, data_fragment, query_id):
+    def count_top(self, data_fragment: DataFragment, query_id):
         results = []
         client_id = data_fragment.get_client_id()
         query_info = data_fragment.get_query_info()
